@@ -236,14 +236,22 @@ export class WebhookService {
         });
 
         if (!channel) {
-          channel = await prisma.channel.findFirst({
-            where: { type: 'META_CLOUD' }
+          let workspace = await prisma.workspace.findFirst();
+          if (!workspace) {
+            workspace = await prisma.workspace.create({
+              data: { name: 'Workspace Principal' }
+            });
+          }
+          channel = await prisma.channel.create({
+            data: {
+              name: displayPhoneNumber ? `WhatsApp ${displayPhoneNumber}` : 'WhatsApp Meta Cloud API (Oficial)',
+              type: 'META_CLOUD',
+              connectionStatus: 'CONNECTED',
+              metaPhoneNumberId: phoneNumberId || 'default',
+              workspaceId: workspace.id
+            }
           });
-        }
-
-        if (!channel) {
-          console.warn(`⚠️ [WebhookService] Nenhum canal Meta encontrado no banco de dados.`);
-          return { success: false, reason: 'channel_not_found' };
+          console.log(`✨ [WebhookService] Canal Meta Cloud API criado automaticamente: ${channel.id}`);
         }
 
         let textContent = msg.text?.body || 'Mensagem oficial da Meta';
@@ -269,14 +277,13 @@ export class WebhookService {
           });
         }
 
-        // 3. Buscar ou criar Conversa (Padronizado por workspaceId + channelId + contactId na fila RECEPTION)
+        // 3. Buscar ou criar Conversa (Obrigatório cair na fila RECEPTION se não houver atendente atribuído)
         let isNewConversation = false;
         let conversation = await prisma.conversation.findFirst({
           where: {
             workspaceId: channel.workspaceId,
             channelId: channel.id,
-            contactId: contact.id,
-            queue: { in: ['RECEPTION', 'DEPARTMENT', 'CONVERSATION'] }
+            contactId: contact.id
           }
         });
 
@@ -312,35 +319,25 @@ export class WebhookService {
             conversation: conversation
           });
         } else {
-          if (conversation.queue === 'CLOSED' || conversation.status === 'CLOSED') {
-            conversation = await prisma.conversation.update({
-              where: { id: conversation.id },
-              data: {
-                queue: 'RECEPTION',
-                status: 'UNATTENDED',
-                agentId: null,
-                departmentId: null,
-                unreadCount: { increment: 1 },
-                updatedAt: new Date()
-              }
-            });
+          // Se conversa não possui atendente atribuído ou está fechada, FORÇAR retorno para a Recepção
+          const forceReception = conversation.agentId === null || conversation.queue === 'CLOSED' || conversation.status === 'CLOSED';
+          conversation = await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              queue: forceReception ? 'RECEPTION' : conversation.queue,
+              status: forceReception ? 'UNATTENDED' : conversation.status,
+              unreadCount: { increment: 1 },
+              updatedAt: new Date()
+            }
+          });
 
-            await prisma.activityLog.create({
-              data: {
-                conversationId: conversation.id,
-                userName: 'Sistema',
-                action: '🔔 Mensagem do cliente reabriu a conversa para a Recepção'
-              }
-            });
-          } else {
-            conversation = await prisma.conversation.update({
-              where: { id: conversation.id },
-              data: {
-                unreadCount: { increment: 1 },
-                updatedAt: new Date()
-              }
-            });
-          }
+          await prisma.activityLog.create({
+            data: {
+              conversationId: conversation.id,
+              userName: 'Sistema',
+              action: '🔔 Nova mensagem do cliente recebida na Recepção'
+            }
+          });
         }
 
         // 4. Salvar Mensagem do Cliente
