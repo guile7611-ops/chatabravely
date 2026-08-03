@@ -1,10 +1,20 @@
 import { computed, unref } from 'vue';
 import { getCurrentInstance } from 'vue';
 
+import { useStore as useVuexStore } from 'vuex';
+
 export const useStore = () => {
   const vm = getCurrentInstance();
-  if (!vm) throw new Error('must be called in setup');
-  return vm.proxy.$store;
+  if (vm?.proxy?.$store) {
+    return vm.proxy.$store;
+  }
+  try {
+    const vuexStore = useVuexStore();
+    if (vuexStore) return vuexStore;
+  } catch (e) {
+    // fallback
+  }
+  return vm?.appContext?.config?.globalProperties?.$store || {};
 };
 
 export const useStoreGetters = () => {

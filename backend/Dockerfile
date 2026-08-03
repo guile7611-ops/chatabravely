@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Instalar dependencias do sistema necessarias para o Prisma no Alpine
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
 # Copiar definicoes de pacotes e schema do Prisma
@@ -19,5 +22,5 @@ RUN npm run build
 # Expor porta da API REST + WebSockets
 EXPOSE 3000
 
-# Executar a API em modo desenvolvimento com respawn
-CMD ["npm", "run", "dev"]
+# Executar a API em modo desenvolvimento garantindo o prisma generate
+CMD ["sh", "-c", "npx prisma generate && npm run dev"]

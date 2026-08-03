@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useStore } from 'vuex';
+import { useStore } from 'dashboard/composables/store';
 import { useCallSession } from 'dashboard/composables/useCallSession';
 import { setWhatsappCallMuted } from 'dashboard/composables/useWhatsappCallSession';
 import TwilioVoiceClient from 'dashboard/api/channel/voice/twilioVoiceClient';

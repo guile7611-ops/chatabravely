@@ -68,8 +68,8 @@ export const getters = {
     return currentAccount.auto_offline;
   },
 
-  getCurrentAccountId(_, __, rootState) {
-    if (rootState.route.params && rootState.route.params.accountId) {
+  getCurrentAccountId($state, _, rootState) {
+    if (rootState?.route?.params?.accountId) {
       return Number(rootState.route.params.accountId);
     }
     return 1;

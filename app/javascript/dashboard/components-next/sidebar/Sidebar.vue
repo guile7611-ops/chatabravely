@@ -3,8 +3,7 @@ import { h, ref, computed, onMounted, watch } from 'vue';
 import { provideSidebarContext, useSidebarResize } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
-import { useMapGetter, useFunctionGetter } from 'dashboard/composables/store';
-import { useStore } from 'vuex';
+import { useMapGetter, useFunctionGetter, useStore } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
 import { vOnClickOutside } from '@vueuse/components';
@@ -62,6 +61,7 @@ const isFeatureEnabledonAccount = useMapGetter(
 );
 
 const hasAdvancedAssignment = computed(() => {
+  if (typeof isFeatureEnabledonAccount?.value !== 'function') return false;
   return isFeatureEnabledonAccount.value(
     accountId.value,
     FEATURE_FLAGS.ADVANCED_ASSIGNMENT
@@ -69,6 +69,7 @@ const hasAdvancedAssignment = computed(() => {
 });
 
 const hasConversationUnreadCounts = computed(() => {
+  if (typeof isFeatureEnabledonAccount?.value !== 'function') return false;
   return isFeatureEnabledonAccount.value(
     accountId.value,
     FEATURE_FLAGS.CONVERSATION_UNREAD_COUNTS
@@ -456,7 +457,7 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.CUSTOM_VIEWS_SEGMENTS'),
           collapsible: true,
           showTreeLine: true,
-          children: contactCustomViews.value.map(view => ({
+          children: (contactCustomViews.value || []).map(view => ({
             name: `${view.name}-${view.id}`,
             label: view.name,
             to: accountScopedRoute(
@@ -476,7 +477,7 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.TAGGED_WITH'),
           collapsible: true,
           showTreeLine: true,
-          children: labels.value.map(label => ({
+          children: (labels.value || []).map(label => ({
             name: `${label.title}-${label.id}`,
             label: label.title,
             icon: h('span', {

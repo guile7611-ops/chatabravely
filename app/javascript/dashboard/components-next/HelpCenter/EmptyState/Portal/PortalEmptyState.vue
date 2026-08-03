@@ -1,5 +1,5 @@
 <script setup>
-import { useRouter } from 'vue';
+import { useRouter } from 'vue-router';
 import EmptyStateLayout from 'dashboard/components-next/EmptyStateLayout.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 

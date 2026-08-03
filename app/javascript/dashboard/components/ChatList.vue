@@ -1,8 +1,8 @@
 <script setup>
 import { ref, unref, provide, computed, watch, onMounted } from 'vue';
-import { useStore } from 'vuex';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import {
+  useStore,
   useMapGetter,
   useFunctionGetter,
 } from 'dashboard/composables/store.js';

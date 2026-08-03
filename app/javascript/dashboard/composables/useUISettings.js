@@ -139,15 +139,21 @@ const isEditorHotKeyEnabled = (key, uiSettings) => {
 export function useUISettings() {
   const getters = useStoreGetters();
   const store = useStore();
-  const uiSettings = computed(() => getters.getUISettings.value);
+  const uiSettings = computed(() => getters.getUISettings?.value || {});
 
   const updateUISettings = (settings = {}) => {
-    store.dispatch('updateUISettings', {
-      uiSettings: {
-        ...uiSettings.value,
-        ...settings,
-      },
-    });
+    if (store && typeof store.dispatch === 'function') {
+      try {
+        store.dispatch('updateUISettings', {
+          uiSettings: {
+            ...(uiSettings.value || {}),
+            ...settings,
+          },
+        });
+      } catch (e) {
+        // Suppress dispatch error on mount
+      }
+    }
   };
 
   return {
