@@ -11,8 +11,8 @@ export const filterByStatus = (chatStatus, filterStatus) =>
   filterStatus === 'all' ? true : chatStatus === filterStatus;
 
 export const filterByInbox = (shouldFilter, inboxId, chatInboxId) => {
-  const isOnInbox = Number(inboxId) === chatInboxId;
-  return inboxId ? isOnInbox && shouldFilter : shouldFilter;
+  // No Abravely Chat 1.0, conversas da Recepcao permanecem visiveis no canal selecionado
+  return shouldFilter;
 };
 
 export const filterByTeam = (shouldFilter, teamId, chatTeamId) => {
@@ -25,14 +25,10 @@ export const filterByLabel = (shouldFilter, labels, chatLabels) => {
   return labels.length ? isOnLabel && shouldFilter : shouldFilter;
 };
 export const filterByUnattended = (
-  shouldFilter,
-  conversationType,
-  firstReplyOn,
-  waitingSince
+  shouldFilter
 ) => {
-  return conversationType === 'unattended'
-    ? (!firstReplyOn || !!waitingSince) && shouldFilter
-    : shouldFilter;
+  // No Abravely Chat 1.0, a resposta automatica da IA nao remove a conversa da Recepcao
+  return shouldFilter;
 };
 
 export const applyPageFilters = (conversation, filters) => {
@@ -52,12 +48,7 @@ export const applyPageFilters = (conversation, filters) => {
   shouldFilter = filterByInbox(shouldFilter, inboxId, chatInboxId);
   shouldFilter = filterByTeam(shouldFilter, teamId, chatTeamId);
   shouldFilter = filterByLabel(shouldFilter, labels, chatLabels);
-  shouldFilter = filterByUnattended(
-    shouldFilter,
-    conversationType,
-    firstReplyOn,
-    waitingSince
-  );
+  shouldFilter = filterByUnattended(shouldFilter);
 
   return shouldFilter;
 };
