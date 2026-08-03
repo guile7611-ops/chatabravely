@@ -348,7 +348,7 @@ watch(
       >
         <Spinner />
       </div>
-      <template v-else-if="!hasNoArticles">
+      <template v-else>
         <div
           v-if="selectedArticleIds.size > 0"
           class="sticky top-0 z-[5] bg-gradient-to-b from-n-surface-1 from-90% to-transparent pt-1 pb-2"
@@ -458,17 +458,6 @@ watch(
           @toggle-select="handleToggleSelect"
         />
       </template>
-      <ArticleEmptyState
-        v-else
-        class="pt-14"
-        :title="getEmptyStateTitle"
-        :subtitle="getEmptyStateSubtitle"
-        :show-button="hasNoArticlesInPortal && !isSearching"
-        :button-label="
-          t('HELP_CENTER.ARTICLES_PAGE.EMPTY_STATE.ALL.BUTTON_LABEL')
-        "
-        @click="navigateToNewArticlePage"
-      />
     </template>
     <BulkTranslateDialog
       ref="bulkTranslateDialogRef"

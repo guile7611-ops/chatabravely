@@ -65,12 +65,9 @@ const togglePortalSwitcher = () => {
           v-if="showHeaderTitle"
           class="flex items-center justify-start h-20 gap-2"
         >
-          <span
-            v-if="activePortalName"
-            class="min-w-0 text-xl font-medium truncate text-n-slate-12"
-          >
-            {{ activePortalName }}
-          </span>
+          <h1 class="min-w-0 text-2xl font-bold truncate text-n-slate-12">
+            Central de Ajuda
+          </h1>
           <div v-if="activePortalName" class="relative shrink-0 group">
             <OnClickOutside @trigger="showPortalSwitcher = false">
               <Button
