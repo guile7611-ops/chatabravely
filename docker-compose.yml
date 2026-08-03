@@ -47,6 +47,28 @@ services:
     volumes:
       - evolution_go_data:/evolution/instances
 
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agoravai-backend-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/chatabravely?schema=public
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - EVOLUTION_API_KEY=EvolutionApiKey123!
+    depends_on:
+      - postgres
+      - redis
+      - evolution-api
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
 volumes:
   postgres_data:
   redis_data:

@@ -6,28 +6,14 @@ import Twitter from './channels/Twitter.vue';
 import Api from './channels/Api.vue';
 import Email from './channels/Email.vue';
 import Sms from './channels/Sms.vue';
+import Evolution from './channels/Evolution.vue';
+import CloudWhatsapp from './channels/CloudWhatsapp.vue';
 import Whatsapp from './channels/Whatsapp.vue';
-import WhatsappCall from './channels/WhatsappCall.vue';
-import Line from './channels/Line.vue';
-import Telegram from './channels/Telegram.vue';
-import Instagram from './channels/Instagram.vue';
-import Tiktok from './channels/Tiktok.vue';
-import Voice from './channels/Voice.vue';
 
 const channelViewList = {
-  facebook: Facebook,
-  website: Website,
-  twitter: Twitter,
-  api: Api,
-  email: Email,
-  sms: Sms,
+  whatsapp_qrcode: Evolution,
+  whatsapp_official: CloudWhatsapp,
   whatsapp: Whatsapp,
-  whatsapp_call: WhatsappCall,
-  line: Line,
-  telegram: Telegram,
-  instagram: Instagram,
-  tiktok: Tiktok,
-  voice: Voice,
 };
 
 export default defineComponent({

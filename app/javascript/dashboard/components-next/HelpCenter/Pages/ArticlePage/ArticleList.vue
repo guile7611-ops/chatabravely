@@ -9,7 +9,7 @@ import { PORTALS_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { getArticleStatus } from 'dashboard/helper/portalHelper.js';
 import wootConstants from 'dashboard/constants/globals';
 
-import ArticleCard from 'dashboard/components-next/HelpCenter/ArticleCard/ArticleCard.vue';
+import ArticleDetailModal from 'dashboard/components-next/HelpCenter/ArticleDetailModal.vue';
 
 const props = defineProps({
   articles: {
@@ -41,6 +41,8 @@ const { t } = useI18n();
 
 const localArticles = ref(props.articles);
 const hoveredArticleId = ref(null);
+const selectedArticleForDetail = ref(null);
+const isDetailModalOpen = ref(false);
 
 const dragEnabled = computed(() => {
   return (
@@ -64,6 +66,23 @@ const handleCardHover = (isHovered, id) => {
 const getCategoryById = useMapGetter('categories/categoryById');
 
 const openArticle = id => {
+  const article = localArticles.value.find(a => a.id === id);
+  if (article) {
+    selectedArticleForDetail.value = article;
+    isDetailModalOpen.value = true;
+  }
+};
+
+const handleConfirmRead = (articleId) => {
+  const article = localArticles.value.find(a => a.id === articleId);
+  if (article) {
+    article.views = (article.views || 0) + 1;
+  }
+};
+
+const handleEditFromModal = (article) => {
+  isDetailModalOpen.value = false;
+  const id = article?.id;
   const { tab, categorySlug, locale } = route.params;
   if (props.isCategoryArticles) {
     router.push({
@@ -228,6 +247,15 @@ watch(
       </li>
     </template>
   </Draggable>
+
+  <ArticleDetailModal
+    :article="selectedArticleForDetail"
+    :is-open="isDetailModalOpen"
+    :is-manager="true"
+    @close="isDetailModalOpen = false"
+    @confirm-read="handleConfirmRead"
+    @edit-article="handleEditFromModal"
+  />
 </template>
 
 <style lang="scss" scoped>

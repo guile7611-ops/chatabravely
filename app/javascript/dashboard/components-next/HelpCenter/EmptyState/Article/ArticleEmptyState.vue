@@ -32,21 +32,7 @@ const onClick = () => {
 
 <template>
   <EmptyStateLayout :title="title" :subtitle="subtitle">
-    <template #empty-state-item>
-      <div class="grid grid-cols-1 gap-4 p-px overflow-hidden">
-        <ArticleCard
-          v-for="(article, index) in articleContent.slice(0, 5)"
-          :id="article.id"
-          :key="`article-${index}`"
-          :title="article.title"
-          :status="article.status"
-          :updated-at="article.updatedAt"
-          :author="article.author"
-          :category="article.category"
-          :views="article.views"
-        />
-      </div>
-    </template>
+
     <template #actions>
       <div v-if="showButton">
         <Button :label="buttonLabel" icon="i-lucide-plus" @click="onClick" />

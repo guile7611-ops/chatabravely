@@ -127,10 +127,15 @@ export const actions = {
     }
   },
   async setUser({ commit, dispatch }) {
-    if (authAPI.hasAuthCookie()) {
-      await dispatch('validityCheck');
+    try {
+      if (authAPI.hasAuthCookie()) {
+        await dispatch('validityCheck');
+      }
+    } catch (e) {
+      // Ignore auth errors in standalone dev mode
+    } finally {
+      commit(types.SET_CURRENT_USER_UI_FLAGS, { isFetching: false });
     }
-    commit(types.SET_CURRENT_USER_UI_FLAGS, { isFetching: false });
   },
   logout({ commit }) {
     commit(types.CLEAR_USER);

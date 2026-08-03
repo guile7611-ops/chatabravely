@@ -1,0 +1,86 @@
+/* CHAT-ABRAVELY — Design System Tokens Oficiais (Modo Escuro Homologado) */
+
+:root {
+  /* Paleta Base — Modo Claro */
+  --color-brand-600: #155EEF;
+  --color-brand-700: #004EEB;
+  --color-brand-50: #EFF4FF;
+
+  --color-neutral-950: #101828;
+  --color-neutral-700: #344054;
+  --color-neutral-500: #667085;
+  --color-neutral-300: #D0D5DD;
+  --color-neutral-200: #EAECF0;
+  --color-neutral-100: #F2F4F7;
+  --color-neutral-50: #F9FAFB;
+
+  --color-surface-base: #FFFFFF;
+
+  --color-success-600: #039855;
+  --color-warning-600: #DC6803;
+  --color-danger-600: #D92D20;
+  --color-info-600: #155EEF;
+
+  /* Tokens Semânticos — Modo Claro */
+  --bg-sidebar: #1c1d21;
+  --bg-canvas: #141517;
+  --bg-surface: #141517;
+  --bg-subtle: #1c1d21;
+
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+
+  --border-default: #23252b;
+  --border-strong: #373a43;
+
+  --action-primary: var(--color-brand-600);
+  --action-primary-hover: var(--color-brand-700);
+
+  --status-success: var(--color-success-600);
+  --status-warning: var(--color-warning-600);
+  --status-danger: var(--color-danger-600);
+  --status-info: var(--color-info-600);
+
+  /* Espaçamento (DS Seção 3.3) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Raios de Borda (DS Seção 3.3) */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* Sombras */
+  --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.20);
+  --shadow-overlay: 0 12px 24px rgba(0, 0, 0, 0.35);
+
+  /* Tipografia (DS Seção 3.2) */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+/* Modo Escuro Oficial Homologado no DESIGN_SYSTEM.md */
+.dark {
+  --bg-sidebar: #1c1d21;
+  --bg-canvas: #141517;
+  --bg-surface: #141517;
+  --bg-subtle: #1c1d21;
+
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+
+  --border-default: #23252b;
+  --border-strong: #373a43;
+
+  --action-primary: #155EEF;
+  --action-primary-hover: #53B1FD;
+}

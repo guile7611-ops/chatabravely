@@ -39,10 +39,13 @@ export const initalizeRouter = () => {
         name: to.name,
       });
 
-      await userAuthentication;
+      await Promise.race([
+        userAuthentication,
+        new Promise(resolve => setTimeout(resolve, 300)),
+      ]);
       await validateAuthenticateRoutePermission(to, next);
     } catch (e) {
-      next();
+      validateAuthenticateRoutePermission(to, next);
     }
   });
 };

@@ -78,6 +78,39 @@ const openDelete = inbox => {
   showDeletePopup.value = true;
   selectedInbox.value = inbox;
 };
+const getInboxType = inbox => {
+  if (
+    inbox.channel_type === 'Channel::MetaCloud' ||
+    inbox.channel_type === 'Channel::WhatsappMeta' ||
+    inbox.medium === 'meta'
+  ) {
+    return 'API Oficial';
+  }
+  return 'QR Code';
+};
+
+const getStatusLabel = inbox => {
+  const status = inbox.connection_status || inbox.status || 'CONNECTED';
+  if (status === 'DISCONNECTED') return 'Desconectado';
+  if (status === 'CONNECTING') return 'Conectando';
+  return 'Conectado';
+};
+
+const getStatusClass = inbox => {
+  const status = inbox.connection_status || inbox.status || 'CONNECTED';
+  if (status === 'DISCONNECTED')
+    return 'bg-n-ruby-2 text-n-ruby-11 border border-n-ruby-4';
+  if (status === 'CONNECTING')
+    return 'bg-n-amber-2 text-n-amber-11 border border-n-amber-4';
+  return 'bg-n-teal-2 text-n-teal-11 border border-n-teal-4';
+};
+
+const getStatusDotClass = inbox => {
+  const status = inbox.connection_status || inbox.status || 'CONNECTED';
+  if (status === 'DISCONNECTED') return 'bg-n-ruby-9';
+  if (status === 'CONNECTING') return 'bg-n-amber-9';
+  return 'bg-n-teal-9';
+};
 </script>
 
 <template>
@@ -114,66 +147,88 @@ const openDelete = inbox => {
       >
         {{ $t('INBOX_MGMT.NO_RESULTS') }}
       </span>
-      <div v-else class="divide-y divide-n-weak border-t border-n-weak">
+      <div
+        v-else
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4"
+      >
         <div
           v-for="inbox in filteredInboxesList"
           :key="inbox.id"
-          class="flex justify-between flex-row items-start gap-4 py-4"
+          class="bg-n-solid-2 border border-n-weak rounded-2xl p-5 flex flex-col justify-between gap-4 shadow-sm hover:border-n-strong transition-all duration-150"
         >
-          <div class="flex items-center gap-4">
-            <div
-              v-if="inbox.avatar_url"
-              class="bg-n-alpha-3 rounded-xl size-10 ring ring-n-solid-1 border border-n-strong shadow-sm grid place-items-center"
-            >
-              <Avatar
-                :src="inbox.avatar_url"
-                :name="inbox.name"
-                :size="24"
-                rounded-full
-              />
+          <!-- Top Row: Icon/Avatar + Name + Actions -->
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div
+                v-if="inbox.avatar_url"
+                class="bg-n-alpha-3 rounded-xl size-10 ring ring-n-solid-1 border border-n-strong shadow-sm grid place-items-center flex-shrink-0"
+              >
+                <Avatar
+                  :src="inbox.avatar_url"
+                  :name="inbox.name"
+                  :size="24"
+                  rounded-full
+                />
+              </div>
+              <div
+                v-else
+                class="size-10 justify-center bg-n-alpha-3 rounded-xl ring ring-n-solid-1 border border-n-strong shadow-sm grid place-items-center flex-shrink-0"
+              >
+                <ChannelIcon class="size-6 text-n-teal-11" :inbox="inbox" />
+              </div>
+              <div class="flex flex-col min-w-0">
+                <span
+                  class="text-heading-3 font-semibold text-n-slate-12 capitalize truncate"
+                >
+                  {{ inbox.name }}
+                </span>
+                <span class="text-xs text-n-slate-10 font-medium">
+                  WhatsApp
+                </span>
+              </div>
             </div>
-            <div
-              v-else
-              class="size-10 justify-center bg-n-alpha-3 rounded-xl ring ring-n-solid-1 border border-n-strong shadow-sm grid place-items-center"
-            >
-              <ChannelIcon class="size-6 text-n-slate-10" :inbox="inbox" />
-            </div>
-            <div class="flex flex-col items-start gap-1">
-              <span class="block text-heading-3 text-n-slate-12 capitalize">
-                {{ inbox.name }}
-              </span>
-              <ChannelName
-                :channel-type="inbox.channel_type"
-                :medium="inbox.medium"
-                :voice-enabled="inbox.voice_enabled"
-                class="text-body-main text-n-slate-11"
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <Button
+                v-if="isAdmin"
+                v-tooltip.top="$t('INBOX_MGMT.DELETE.BUTTON_TEXT')"
+                icon="i-woot-bin"
+                slate
+                sm
+                class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
+                @click="openDelete(inbox)"
               />
             </div>
           </div>
-          <div class="flex gap-3 justify-end">
-            <router-link
-              :to="{
-                name: 'settings_inbox_show',
-                params: { inboxId: inbox.id },
-              }"
+
+          <!-- Bottom Row: Connection Type & Status Badges -->
+          <div
+            class="flex items-center justify-between gap-2 pt-3 border-t border-n-weak/50 text-xs"
+          >
+            <!-- Type Badge -->
+            <span
+              class="px-2.5 py-1 rounded-full font-medium bg-n-alpha-2 text-n-slate-12 border border-n-weak flex items-center gap-1.5"
             >
-              <Button
-                v-if="isAdmin"
-                v-tooltip.top="$t('INBOX_MGMT.SETTINGS')"
-                icon="i-woot-settings"
-                slate
-                sm
+              <span
+                v-if="getInboxType(inbox) === 'QR Code'"
+                class="i-lucide-qr-code size-3.5 text-n-teal-10"
               />
-            </router-link>
-            <Button
-              v-if="isAdmin"
-              v-tooltip.top="$t('INBOX_MGMT.DELETE.BUTTON_TEXT')"
-              icon="i-woot-bin"
-              slate
-              sm
-              class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
-              @click="openDelete(inbox)"
-            />
+              <span v-else class="i-lucide-shield-check size-3.5 text-n-blue-10" />
+              {{ getInboxType(inbox) }}
+            </span>
+
+            <!-- Status Badge -->
+            <span
+              class="px-2.5 py-1 rounded-full font-medium flex items-center gap-1.5 text-xs"
+              :class="getStatusClass(inbox)"
+            >
+              <span
+                class="size-2 rounded-full animate-pulse"
+                :class="getStatusDotClass(inbox)"
+              />
+              {{ getStatusLabel(inbox) }}
+            </span>
           </div>
         </div>
       </div>

@@ -143,7 +143,7 @@ router.get('/inboxes', async (req: Request, res: Response) => {
       channel_id: c.id,
       name: c.name,
       channel_type: 'Channel::Whatsapp',
-      phone_number: c.phone || '',
+      phone_number: c.metaPhoneNumberId || c.evolutionInstanceName || '',
       avatar_url: ''
     }));
     return res.status(200).json({ payload });

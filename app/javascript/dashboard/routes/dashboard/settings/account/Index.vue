@@ -252,11 +252,8 @@ export default {
 
       <woot-loading-state v-if="uiFlags.isFetchingItem" />
     </div>
-    <AudioTranscription v-if="showAudioTranscriptionConfig" />
-    <AccountId />
     <div v-if="!uiFlags.isFetchingItem && isOnChatwootCloud">
       <AccountDelete />
     </div>
-    <BuildInfo />
   </div>
 </template>

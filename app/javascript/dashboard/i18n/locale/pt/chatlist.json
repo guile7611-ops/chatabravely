@@ -15,9 +15,9 @@
     },
     "FILTER_ALL": "Todas",
     "ASSIGNEE_TYPE_TABS": {
-      "me": "Minhas",
-      "unassigned": "Não atribuídas",
-      "all": "Todas"
+      "me": "Recepção",
+      "unassigned": "Departamentos",
+      "all": "Ativas"
     },
     "CHAT_STATUS_FILTER_ITEMS": {
       "open": {

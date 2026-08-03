@@ -2,8 +2,8 @@
   "HELP_CENTER": {
     "TITLE": "Centro de Ajuda",
     "NEW_PAGE": {
-      "DESCRIPTION": "Crie portais centrais de ajuda de auto-serviço para seus clientes. Ajude-os a encontrar respostas rapidamente, sem esperar. Agilize dúvidas, aumente a eficiência dos agentes e eleve o suporte ao cliente.",
-      "CREATE_PORTAL_BUTTON": "Criar portal"
+      "DESCRIPTION": "Crie e compartilhe comunicados, manuais e artigos de ajuda para toda a sua equipe. Mantenha os agentes atualizados e agilize o atendimento.",
+      "CREATE_PORTAL_BUTTON": "Criar artigo"
     },
     "HEADER": {
       "FILTER": "Filtrar por",
