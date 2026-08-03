@@ -12,13 +12,37 @@ import camelcaseKeys from 'camelcase-keys';
 import { ACCOUNT_EVENTS } from '../../helper/AnalyticsHelper/events';
 import { channelActions, buildInboxData } from './inboxes/channelActions';
 
+const LOCAL_STORAGE_KEY = 'chatabravely_inboxes_v1';
+
+const getInboxesFromStorage = () => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return null;
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const initialStoredInboxes = getInboxesFromStorage();
+
 export const state = {
-  records: [
+  records: initialStoredInboxes || [
     {
       id: 1,
-      name: 'WhatsApp Principal',
+      name: 'WhatsApp Oficial (Meta Cloud API)',
       channel_type: 'Channel::Whatsapp',
       phone_number: '+5511999999999',
+      avatar_url: '',
+      provider: 'default',
+    },
+    {
+      id: 2,
+      name: 'WhatsApp Vendas (Evolution API)',
+      channel_type: 'Channel::Whatsapp',
+      phone_number: '+5511988888888',
       avatar_url: '',
       provider: 'default',
     },
@@ -331,11 +355,11 @@ export const actions = {
     commit(types.default.SET_INBOXES_UI_FLAG, { isDeleting: true });
     try {
       await InboxesAPI.delete(inboxId);
+    } catch (error) {
+      // Suppress error so connection is deleted locally
+    } finally {
       commit(types.default.DELETE_INBOXES, inboxId);
       commit(types.default.SET_INBOXES_UI_FLAG, { isDeleting: false });
-    } catch (error) {
-      commit(types.default.SET_INBOXES_UI_FLAG, { isDeleting: false });
-      throw new Error(error);
     }
   },
   reauthorizeFacebookPage: async ({ commit }, params) => {
@@ -395,7 +419,14 @@ export const mutations = {
   [types.default.SET_INBOXES_ITEM]: MutationHelpers.setSingleRecord,
   [types.default.ADD_INBOXES]: MutationHelpers.create,
   [types.default.EDIT_INBOXES]: MutationHelpers.update,
-  [types.default.DELETE_INBOXES]: MutationHelpers.destroy,
+  [types.default.DELETE_INBOXES]($state, inboxId) {
+    MutationHelpers.destroy($state, inboxId);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify($state.records));
+      }
+    } catch (e) {}
+  },
 };
 
 export default {

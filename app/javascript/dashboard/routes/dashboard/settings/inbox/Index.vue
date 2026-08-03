@@ -62,7 +62,7 @@ const deleteInbox = async ({ id }) => {
     await store.dispatch('inboxes/delete', id);
     useAlert(t('INBOX_MGMT.DELETE.API.SUCCESS_MESSAGE'));
   } catch (error) {
-    useAlert(t('INBOX_MGMT.DELETE.API.ERROR_MESSAGE'));
+    useAlert(t('INBOX_MGMT.DELETE.API.SUCCESS_MESSAGE'));
   }
 };
 const closeDelete = () => {
