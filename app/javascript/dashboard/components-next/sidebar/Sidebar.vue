@@ -102,10 +102,22 @@ const toggleShortcutModalFn = show => {
 
 useSidebarKeyboardShortcuts(toggleShortcutModalFn);
 
-const expandedItem = ref(null);
+const expandedItems = ref(new Set(['Conversation', 'Channels', 'Contacts', 'Reports', 'Help Center', 'Settings']));
+
+const isExpandedItem = name => {
+  if (!name) return false;
+  return expandedItems.value.has(name);
+};
 
 const setExpandedItem = name => {
-  expandedItem.value = expandedItem.value === name ? null : name;
+  if (!name) return;
+  const next = new Set(expandedItems.value);
+  if (next.has(name)) {
+    next.delete(name);
+  } else {
+    next.add(name);
+  }
+  expandedItems.value = next;
 };
 
 const {
@@ -129,7 +141,8 @@ const startX = ref(0);
 const startWidth = ref(0);
 
 provideSidebarContext({
-  expandedItem,
+  expandedItem: expandedItems,
+  isExpandedItem,
   setExpandedItem,
   isCollapsed: isEffectivelyCollapsed,
   sidebarWidth,
