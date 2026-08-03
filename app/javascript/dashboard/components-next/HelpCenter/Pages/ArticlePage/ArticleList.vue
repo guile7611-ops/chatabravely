@@ -136,10 +136,6 @@ const onDragEnd = () => {
   onReorder(reorderedGroup);
 };
 
-const getCategory = categoryId => {
-  return getCategoryById.value(categoryId) || { name: '', icon: '' };
-};
-
 const getStatusMessage = (status, isSuccess) => {
   const messageType = isSuccess ? 'SUCCESS' : 'ERROR';
   const statusMap = {
