@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="410" height="410" viewBox="0 0 410 410">
+  <rect width="100%" height="100%" fill="#0b141a"/>
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Camera -->
+    <path d="M40 30h20l4 6h16l4-6h20v40H40zM64 50a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"/>
+    <!-- Chat Bubble -->
+    <path d="M160 30c-15 0-25 10-25 22 0 8 5 15 12 18v10l10-6c1 0 2 0 3 0 15 0 25-10 25-22s-10-22-25-22z"/>
+    <!-- Heart -->
+    <path d="M280 40c-6-8-18-4-18 4 0 10 18 20 18 20s18-10 18-20c0-8-12-12-18-4z"/>
+    <!-- Star -->
+    <path d="M360 30l3 8 8 1-6 6 2 8-7-4-7 4 2-8-6-6 8-1z"/>
+    <!-- Submarine / Fish -->
+    <path d="M50 140c20 0 35 10 35 20s-15 20-35 20-35-10-35-20 15-20 35-20zm35 20h20m-10-10v20"/>
+    <!-- Musical Note -->
+    <path d="M170 130v30m0-20l20-5v30m-20-5a6 6 0 1 0 0 10 6 6 0 0 0 0-10zm20 0a6 6 0 1 0 0 10 6 6 0 0 0 0-10z"/>
+    <!-- Phone -->
+    <path d="M260 130h16a4 4 0 0 1 4 4v32a4 4 0 0 1-4 4h-16a4 4 0 0 1-4-4v-32a4 4 0 0 1 4-4zm6 4h4"/>
+    <!-- Smiley Face -->
+    <circle cx="360" cy="150" r="16"/>
+    <circle cx="354" cy="146" r="1.5" fill="#ffffff" fill-opacity="0.06"/>
+    <circle cx="366" cy="146" r="1.5" fill="#ffffff" fill-opacity="0.06"/>
+    <path d="M354 156a8 8 0 0 0 12 0"/>
+    <!-- Coffee Cup -->
+    <path d="M40 240h24v20a8 8 0 0 1-8 8h-8a8 8 0 0 1-8-8v-20zm24 6h6a4 4 0 0 1 0 8h-6"/>
+    <!-- Search / Magnifier -->
+    <circle cx="160" cy="250" r="10"/>
+    <path d="M167 257l10 10"/>
+    <!-- Thumbs Up -->
+    <path d="M260 260v-12c0-4 4-8 6-8s2 4 2 8v4h10a4 4 0 0 1 4 4c0 2-1 4-2 5 2 1 2 3 2 4 0 2-1 4-3 5v2a4 4 0 0 1-4 4h-15v-16z"/>
+    <!-- Gamepad -->
+    <path d="M340 245h30a8 8 0 0 1 8 8v10a8 8 0 0 1-8 8h-30a8 8 0 0 1-8-8v-10a8 8 0 0 1 8-8zm8 13h10m-5-5v10m20-3h.01m4-4h.01"/>
+    <!-- Clock -->
+    <circle cx="60" cy="340" r="14"/>
+    <path d="M60 332v8h6"/>
+    <!-- Planet / Saturn -->
+    <circle cx="160" cy="340" r="10"/>
+    <ellipse cx="160" cy="340" rx="18" ry="5" transform="rotate(-20 160 340)"/>
+    <!-- Airplane -->
+    <path d="M260 330l20 10-8 6 10 10-6 2-7-7-6 4 1-15z"/>
+    <!-- Lightbulb -->
+    <path d="M355 330a10 10 0 0 1 10 10c0 4-2 7-4 9v4h-12v-4c-2-2-4-5-4-9a10 10 0 0 1 10-10zm-6 27h12"/>
+  </g>
+</svg>

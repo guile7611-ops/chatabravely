@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none">
+  <!-- Quadrado Branco com cantos arredondados -->
+  <rect width="24" height="24" rx="6" fill="#FFFFFF"/>
+  <!-- Fantasminha no centro do quadrado -->
+  <path d="M12 4A8 8 0 0 0 4 12v8a1 1 0 0 0 1.7.7l1.8-1.8 1.8 1.8a1 1 0 0 0 1.4 0l1.8-1.8 1.8 1.8a1 1 0 0 0 1.4 0l1.8-1.8 1.8 1.8A1 1 0 0 0 20 20v-8A8 8 0 0 0 12 4zm-2.5 8A1.25 1.25 0 1 1 10.75 10.75 1.25 1.25 0 0 1 9.5 12zm5 0A1.25 1.25 0 1 1 15.75 10.75 1.25 1.25 0 0 1 14.5 12z" fill="#000000"/>
+</svg>

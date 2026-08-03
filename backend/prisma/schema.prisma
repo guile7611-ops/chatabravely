@@ -1,0 +1,243 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ChannelType {
+  EVOLUTION
+  META_CLOUD
+}
+
+enum ConnectionStatus {
+  DISCONNECTED
+  CONNECTING
+  CONNECTED
+}
+
+enum ConversationStatus {
+  UNATTENDED
+  OPEN
+  CLOSED
+}
+
+enum ConversationQueue {
+  RECEPTION
+  DEPARTMENT
+  CONVERSATION
+  CLOSED
+}
+
+enum MessageContentType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+}
+
+enum MessageSenderType {
+  CUSTOMER
+  AGENT
+  SYSTEM
+  NOTE
+}
+
+model Workspace {
+  id                      String                  @id @default(uuid())
+  name                    String
+  active                  Boolean                 @default(true)
+  blocked                 Boolean                 @default(false)
+  plan                    String                  @default("ENTERPRISE")
+  maxUsers                Int                     @default(20)
+  maxChannels             Int                     @default(10)
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  users                   User[]
+  channels                Channel[]
+  contacts                Contact[]
+  conversations           Conversation[]
+  departments             Department[]
+  cannedResponses         CannedResponse[]
+  helpArticles            HelpArticle[]
+  labels                  Label[]
+  savedExecutiveSummaries SavedExecutiveSummary[]
+}
+
+model SavedExecutiveSummary {
+  id                String    @id @default(uuid())
+  title             String
+  summary           String
+  days              Int       @default(7)
+  businessHoursOnly Boolean   @default(false)
+  createdByName     String?
+  workspaceId       String
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String
+  password      String
+  role          String         @default("AGENT") // ADMIN ou AGENT (Atendente)
+  avatarUrl     String?
+  isOnline      Boolean        @default(true)
+  workspaceId   String
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  departments   Department[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Channel {
+  id                    String           @id @default(uuid())
+  name                  String
+  type                  ChannelType      @default(EVOLUTION)
+  connectionStatus      ConnectionStatus @default(DISCONNECTED)
+  workspaceId           String
+  workspace             Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  // WhatsApp Meta Cloud API
+  metaToken             String?
+  metaPhoneNumberId     String?
+  metaWabaId            String?
+  
+  // WhatsApp Evolution API (Go)
+  evolutionInstanceName String?
+  evolutionApiKey       String?
+  qrCodeBase64          String?          @db.Text
+
+  conversations         Conversation[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
+
+model Contact {
+  id            String         @id @default(uuid())
+  name          String
+  phone         String?
+  email         String?
+  avatarUrl     String?
+  company       String?
+  biography     String?
+  location      String?
+  workspaceId   String
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  labels        Label[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([workspaceId, phone])
+}
+
+model Conversation {
+  id            String             @id @default(uuid())
+  idNumber      String             @default("#100")
+  channelId     String
+  channel       Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  contactId     String
+  contact       Contact            @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  status        ConversationStatus @default(UNATTENDED)
+  queue         ConversationQueue  @default(RECEPTION)
+  priority      String             @default("Nenhuma") // Nenhuma, Baixa, Média, Urgente
+  assignedTeam  String             @default("SD 🤝 Sucesso do Cliente")
+  slaTimer      String             @default("9d 22h")
+  unreadCount   Int                @default(0)
+  workspaceId   String
+  workspace     Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agentId       String?
+  agent         User?              @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  departmentId  String?
+  department    Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  messages      Message[]
+  activityLogs  ActivityLog[]
+  closedAt      DateTime?
+  closureReason String?
+  aiSummary     String?            @db.Text
+  lastCustomerMessageAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model Message {
+  id             String             @id @default(uuid())
+  externalId     String?
+  conversationId String
+  conversation   Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  content        String             @db.Text
+  contentType    MessageContentType @default(TEXT)
+  senderType     MessageSenderType  @default(AGENT)
+  senderName     String
+  avatarPill     String?            @default("GT")
+  mediaUrl       String?
+  isPrivate      Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+}
+
+model ActivityLog {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userName       String
+  action         String       @db.Text
+  createdAt      DateTime     @default(now())
+}
+
+model Department {
+  id            String         @id @default(uuid())
+  name          String
+  workspaceId   String
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  users         User[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model CannedResponse {
+  id          String    @id @default(uuid())
+  shortcut    String
+  content     String    @db.Text
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, shortcut])
+}
+
+model HelpArticle {
+  id          String    @id @default(uuid())
+  title       String
+  subject     String
+  content     String    @db.Text
+  fileUrl     String?
+  fileName    String?
+  videoUrl    String?
+  views       Int       @default(0)
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Label {
+  id          String    @id @default(uuid())
+  name        String
+  color       String    @default("#0091ff")
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contacts    Contact[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, name])
+}
