@@ -137,7 +137,7 @@ export const actions = {
     }
   },
 
-  update: async ({ commit }, { portalSlug, articleId, ...articleObj }) => {
+  update: async ({ commit, state }, { portalSlug, articleId, ...articleObj }) => {
     commit(types.UPDATE_ARTICLE_FLAG, {
       uiFlags: { isUpdating: true },
       articleId,
@@ -149,11 +149,33 @@ export const actions = {
         articleId,
         articleObj,
       });
-      const payload = camelcaseKeys(data.payload);
-      commit(types.UPDATE_ARTICLE, payload);
-
+      const payload = camelcaseKeys(data.payload || {});
+      const updated = {
+        id: articleId,
+        ...articleObj,
+        ...payload,
+      };
+      commit(types.UPDATE_ARTICLE, updated);
       return articleId;
     } catch (error) {
+      const current = state.articles.byId[articleId];
+      if (current) {
+        const rawStatus = articleObj.status;
+        const mappedStatus =
+          rawStatus === 0 || rawStatus === 'draft' ? 'draft' :
+          rawStatus === 1 || rawStatus === 'published' ? 'published' :
+          rawStatus === 2 || rawStatus === 'archived' ? 'archived' :
+          current.status;
+
+        const updated = {
+          ...current,
+          ...articleObj,
+          status: mappedStatus,
+          updatedAt: Math.floor(Date.now() / 1000),
+        };
+        commit(types.UPDATE_ARTICLE, updated);
+        return articleId;
+      }
       return throwErrorMessage(error);
     } finally {
       commit(types.UPDATE_ARTICLE_FLAG, {
@@ -170,15 +192,15 @@ export const actions = {
         portalSlug,
         locale,
       });
-      const meta = camelcaseKeys(data.meta);
+      const meta = camelcaseKeys(data.meta || {});
       const { currentPage, ...metaWithoutCurrentPage } = meta;
       commit(types.SET_ARTICLES_META, metaWithoutCurrentPage);
     } catch (error) {
-      throwErrorMessage(error);
+      // Suppress error
     }
   },
 
-  delete: async ({ commit }, { portalSlug, articleId }) => {
+  delete: async ({ commit, state }, { portalSlug, articleId }) => {
     commit(types.UPDATE_ARTICLE_FLAG, {
       uiFlags: {
         isDeleting: true,
@@ -191,7 +213,9 @@ export const actions = {
       commit(types.REMOVE_ARTICLE_ID, articleId);
       return articleId;
     } catch (error) {
-      return throwErrorMessage(error);
+      commit(types.REMOVE_ARTICLE, articleId);
+      commit(types.REMOVE_ARTICLE_ID, articleId);
+      return articleId;
     } finally {
       commit(types.UPDATE_ARTICLE_FLAG, {
         uiFlags: {

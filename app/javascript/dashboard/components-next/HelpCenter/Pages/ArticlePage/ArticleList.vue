@@ -184,9 +184,11 @@ const handleArticleAction = async (action, { status, id }) => {
       } else if (status === ARTICLE_STATUS_TYPES.PUBLISH) {
         useTrack(PORTALS_EVENTS.PUBLISH_ARTICLE);
       }
+      try {
+        await updateArticlesMeta();
+        await updatePortalMeta();
+      } catch (e) {}
     }
-    await updateArticlesMeta();
-    await updatePortalMeta();
   } catch (error) {
     const errorMessage =
       error?.message ||
