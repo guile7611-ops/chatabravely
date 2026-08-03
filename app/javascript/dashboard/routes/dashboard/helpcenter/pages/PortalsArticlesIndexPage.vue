@@ -32,17 +32,28 @@ const author = computed(() =>
 );
 
 const activeLocale = computed(() => route.params.locale);
-const portal = computed(() => getPortalBySlug.value(selectedPortalSlug.value));
+const portal = computed(() => {
+  const fetchedPortal = typeof getPortalBySlug.value === 'function'
+    ? getPortalBySlug.value(selectedPortalSlug.value)
+    : null;
+  return fetchedPortal || {
+    name: 'Central de Ajuda',
+    slug: selectedPortalSlug.value || 'main',
+    config: { allowed_locales: [] },
+  };
+});
+
 const allowedLocales = computed(() => {
-  if (!portal.value) {
+  if (!portal.value || !portal.value.config) {
     return [];
   }
-  const { allowed_locales: allAllowedLocales } = portal.value.config;
+  const allAllowedLocales = portal.value.config.allowed_locales || [];
+  if (!Array.isArray(allAllowedLocales)) return [];
   return allAllowedLocales.map(locale => {
     return {
-      id: locale.code,
-      name: allLocales[locale.code],
-      code: locale.code,
+      id: locale?.code,
+      name: allLocales[locale?.code] || locale?.code,
+      code: locale?.code,
     };
   });
 });
@@ -71,8 +82,8 @@ const articles = computed(() =>
 const fetchArticles = ({ pageNumber: pageNumberParam } = {}) => {
   store.dispatch('articles/index', {
     pageNumber: pageNumberParam || pageNumber.value,
-    portalSlug: selectedPortalSlug.value,
-    locale: activeLocale.value,
+    portalSlug: selectedPortalSlug.value || 'main',
+    locale: activeLocale.value || 'pt_BR',
     status: status.value,
     authorId: author.value,
     categorySlug: selectedCategorySlug.value,
@@ -94,17 +105,22 @@ const onSearch = query => {
 };
 
 const fetchPortalAndItsCategories = async locale => {
-  await store.dispatch('portals/index');
-  const selectedPortalParam = {
-    portalSlug: selectedPortalSlug.value,
-    locale: locale || selectedLocaleInPortal.value,
-  };
-  store.dispatch('portals/show', selectedPortalParam);
-  store.dispatch('categories/index', selectedPortalParam);
-  store.dispatch('agents/get');
+  try {
+    await store.dispatch('portals/index');
+    const selectedPortalParam = {
+      portalSlug: selectedPortalSlug.value || 'main',
+      locale: locale || selectedLocaleInPortal.value || 'pt_BR',
+    };
+    store.dispatch('portals/show', selectedPortalParam);
+    store.dispatch('categories/index', selectedPortalParam);
+    store.dispatch('agents/get');
+  } catch (e) {
+    // Suppress dispatch error in standalone mode
+  }
 };
 
 onMounted(() => {
+  fetchPortalAndItsCategories();
   fetchArticles();
 });
 
@@ -112,6 +128,7 @@ watch(
   () => route.params,
   () => {
     pageNumber.value = 1;
+    fetchPortalAndItsCategories();
     fetchArticles();
   },
   { deep: true, immediate: true }
