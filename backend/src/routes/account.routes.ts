@@ -7,6 +7,12 @@ const router = Router({ mergeParams: true });
  * GET /api/v1/accounts/:accountId/conversations
  * Endpoint de conversas compatível com o Chatwoot v4 Dashboard
  */
+export const inMemoryConversations: any[] = [];
+
+/**
+ * GET /api/v1/accounts/:accountId/conversations
+ * Endpoint de conversas compatível com o Chatwoot v4 Dashboard
+ */
 router.get('/conversations', async (req: Request, res: Response) => {
   try {
     let dbConversations: any[] = [];
@@ -25,14 +31,15 @@ router.get('/conversations', async (req: Request, res: Response) => {
           }
         },
         orderBy: { updatedAt: 'desc' },
-        take: 25
+        take: 50
       });
     } catch (dbErr: any) {
-      console.error('❌ [Database Offline] Falha na conexao com o PostgreSQL:', dbErr.message);
-      return res.status(503).json({
-        error: 'SERVICE_UNAVAILABLE',
-        message: 'Banco de dados PostgreSQL offline. Inicie o servico ou container na porta 5432.'
-      });
+      console.warn('⚠️ [Database Offline] Utilizando conversas em memória para ambiente local:', dbErr.message);
+      dbConversations = inMemoryConversations;
+    }
+
+    if (!dbConversations.length && inMemoryConversations.length) {
+      dbConversations = inMemoryConversations;
     }
 
     const formattedPayload = dbConversations.map(conv => {
