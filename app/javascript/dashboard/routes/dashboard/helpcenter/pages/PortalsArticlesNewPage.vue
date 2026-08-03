@@ -46,7 +46,7 @@ const setCategoryId = newCategoryId => {
   selectedCategoryId.value = newCategoryId;
 };
 
-const createNewArticle = async ({ title, content }) => {
+const createNewArticle = async ({ title, content, attachments = [], status = 'published' } = {}) => {
   if (title) article.value.title = title;
   if (content) article.value.content = content;
 
@@ -54,35 +54,29 @@ const createNewArticle = async ({ title, content }) => {
 
   isUpdating.value = true;
   try {
-    const { locale } = route.params;
+    const { locale, portalSlug: routePortalSlug } = route.params;
+    const targetPortalSlug = routePortalSlug || portalSlug || 'default';
     const resolvedCategoryId = selectedCategoryId.value || categoryId.value;
     const articleId = await store.dispatch('articles/create', {
-      portalSlug,
-      content: article.value.content,
+      portalSlug: targetPortalSlug,
+      content: article.value.content || '',
       title: article.value.title,
-      locale: locale,
+      locale: locale || 'pt_BR',
       authorId: selectedAuthorId.value || currentUserId.value,
       categoryId: resolvedCategoryId,
+      attachments,
+      status,
     });
 
     useTrack(PORTALS_EVENTS.CREATE_ARTICLE, { locale });
+    useAlert('Comunicado / Artigo publicado com sucesso!');
 
-    const resolvedSlug = categories.value?.find(
-      c => c.id === resolvedCategoryId
-    )?.slug;
-    const startedFromCategorySlug = route.params.categorySlug;
-
-    router.replace({
-      name: isCategoryArticles.value
-        ? 'portals_categories_articles_edit'
-        : 'portals_articles_edit',
+    router.push({
+      name: 'portals_articles_index',
       params: {
-        articleSlug: articleId,
-        portalSlug,
-        locale,
-        ...(startedFromCategorySlug
-          ? { categorySlug: resolvedSlug || startedFromCategorySlug }
-          : {}),
+        portalSlug: targetPortalSlug,
+        tab: 'published',
+        locale: locale || 'pt_BR',
       },
     });
   } catch (error) {

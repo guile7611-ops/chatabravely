@@ -117,12 +117,14 @@ const removeAttachment = (index) => {
   attachments.value.splice(index, 1);
 };
 
-const handleCreateArticle = event => {
-  if (!isNewArticle.value) return;
-  const title = event?.target?.value || localTitle.value || '';
-  if (title.trim()) {
-    emit('createArticle', { title, content: localContent.value, attachments: attachments.value });
-  }
+const handlePublishNewArticle = (status = 'published') => {
+  const title = localTitle.value || 'Comunicado Sem Título';
+  emit('createArticle', {
+    title,
+    content: localContent.value || '',
+    attachments: attachments.value,
+    status,
+  });
 };
 </script>
 
@@ -136,6 +138,7 @@ const handleCreateArticle = event => {
         :article-id="article.id"
         @go-back="onClickGoBack"
         @preview-article="previewArticle"
+        @publish-new-article="handlePublishNewArticle"
       />
     </template>
     <template #content>

@@ -37,7 +37,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['goBack', 'previewArticle']);
+const emit = defineEmits(['goBack', 'previewArticle', 'publishNewArticle']);
 
 const { t } = useI18n();
 const store = useStore();
@@ -88,6 +88,12 @@ const getStatusMessage = (status, isSuccess) => {
 const updateArticleStatus = async ({ value }) => {
   showArticleActionMenu.value = false;
   const status = getArticleStatus(value);
+
+  if (!props.articleId) {
+    emit('publishNewArticle', status);
+    return;
+  }
+
   if (status === ARTICLE_STATUS_TYPES.PUBLISH) {
     isArticlePublishing.value = true;
   }
@@ -149,8 +155,7 @@ const updateArticleStatus = async ({ value }) => {
             no-animation
             :is-loading="isArticlePublishing"
             :disabled="
-              status === ARTICLE_STATUSES.PUBLISHED ||
-              !articleId ||
+              (props.articleId && status === ARTICLE_STATUSES.PUBLISHED) ||
               isArticlePublishing
             "
             @click="updateArticleStatus({ value: ARTICLE_STATUSES.PUBLISHED })"
