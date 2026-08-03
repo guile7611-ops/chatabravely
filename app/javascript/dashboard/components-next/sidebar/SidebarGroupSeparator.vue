@@ -52,7 +52,7 @@ const TREE_ELBOW =
       :type="collapsible ? 'button' : undefined"
       :aria-expanded="collapsible ? isExpanded : undefined"
       :title="label"
-      class="relative flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-n-slate-10 select-none"
+      class="relative flex h-9 w-full min-w-0 items-center justify-between gap-2.5 rounded-lg px-2 py-1.5 text-n-slate-10 select-none"
       :class="[
         showTreeLine && TREE_VERTICAL_LINE,
         showTreeLine &&
@@ -67,10 +67,10 @@ const TREE_ELBOW =
       ]"
       @click.stop="collapsible ? emit('toggle') : undefined"
     >
-      <div class="inline-flex min-w-0 items-center gap-2">
-        <Icon v-if="icon" :icon="icon" class="size-4 flex-shrink-0" />
+      <div class="inline-flex min-w-0 items-center gap-2.5">
+        <Icon v-if="icon" :icon="icon" class="size-5 flex-shrink-0" />
         <span
-          class="flex-grow truncate text-start text-sm font-medium leading-5"
+          class="flex-grow truncate text-start text-base font-medium leading-5"
         >
           {{ label }}
         </span>
