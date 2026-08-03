@@ -113,6 +113,22 @@ const isLoading = computed(() => isFetching.value || isSwitchingPortal.value);
 
 const totalArticlesCount = computed(() => props.meta.allArticlesCount);
 
+const filteredArticles = computed(() => {
+  const currentTab = route.params.tab || 'all';
+  if (!props.articles) return [];
+  
+  if (currentTab === 'draft') {
+    return props.articles.filter(a => a && (a.status === 'draft' || a.status === 0));
+  }
+  if (currentTab === 'archived') {
+    return props.articles.filter(a => a && (a.status === 'archived' || a.status === 2));
+  }
+  if (currentTab === 'mine') {
+    return props.articles.filter(a => a && (a.status === 'published' || a.status === 1 || !a.status));
+  }
+  return props.articles.filter(a => a && a.status !== 'archived' && a.status !== 2);
+});
+
 const hasNoArticlesInPortal = computed(
   () => totalArticlesCount.value === 0 && !props.isCategoryArticles
 );
@@ -449,7 +465,7 @@ watch(
           </BulkSelectBar>
         </div>
         <ArticleList
-          :articles="articles"
+          :articles="filteredArticles"
           :is-category-articles="isCategoryArticles"
           :is-searching="isSearching"
           :selected-article-ids="selectedArticleIds"
