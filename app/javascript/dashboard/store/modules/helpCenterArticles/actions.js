@@ -34,12 +34,26 @@ export const actions = {
 
         commit(types.CLEAR_ARTICLES);
         commit(types.ADD_MANY_ARTICLES, uniqueArticles);
-        commit(types.SET_ARTICLES_META, meta);
+        commit(types.SET_ARTICLES_META, {
+          allArticlesCount: Math.max(uniqueArticles.length, meta.allArticlesCount || 0),
+          articlesCount: Math.max(uniqueArticles.length, meta.articlesCount || 0),
+          mineArticlesCount: Math.max(uniqueArticles.length, meta.mineArticlesCount || 0),
+          draftArticlesCount: meta.draftArticlesCount || 0,
+          archivedArticlesCount: meta.archivedArticlesCount || 0,
+          ...meta,
+        });
         commit(types.ADD_MANY_ARTICLES_ID, articleIds);
         return articleIds;
       } catch (error) {
         if (currentLocalArticles.length) {
-          commit(types.SET_ARTICLES_META, { count: currentLocalArticles.length, currentPage: 1 });
+          commit(types.SET_ARTICLES_META, {
+            allArticlesCount: currentLocalArticles.length,
+            articlesCount: currentLocalArticles.length,
+            mineArticlesCount: currentLocalArticles.length,
+            draftArticlesCount: 0,
+            archivedArticlesCount: 0,
+            currentPage: 1,
+          });
           return currentLocalArticles.map(a => a.id);
         }
         return throwErrorMessage(error);
@@ -58,11 +72,27 @@ export const actions = {
         portalSlug,
         articleObj,
       });
-      const payload = camelcaseKeys(data.payload);
-      const { id: articleId } = payload;
-      commit(types.ADD_ARTICLE, payload);
+      const payload = camelcaseKeys(data.payload || {});
+      const articleId = payload.id || Date.now();
+      const fullArticle = {
+        id: articleId,
+        title: payload.title || articleObj.title || 'Novo Comunicado / Artigo',
+        content: payload.content || articleObj.content || '',
+        status: payload.status || articleObj.status || 'published',
+        attachments: payload.attachments || articleObj.attachments || [],
+        views: payload.views || 0,
+        author: payload.author || { name: 'Guilherme Tenório' },
+        updatedAt: Math.floor(Date.now() / 1000),
+        createdAt: new Date().toISOString(),
+        ...payload,
+      };
+      commit(types.ADD_ARTICLE, fullArticle);
       commit(types.ADD_ARTICLE_ID, articleId);
-      commit(types.ADD_ARTICLE_FLAG, articleId);
+      commit(types.SET_ARTICLES_META, {
+        allArticlesCount: 1,
+        articlesCount: 1,
+        mineArticlesCount: 1,
+      });
       try {
         dispatch('portals/updatePortal', portalSlug, { root: true });
       } catch (e) {}
@@ -77,12 +107,16 @@ export const actions = {
         attachments: articleObj.attachments || [],
         views: 0,
         author: { name: 'Guilherme Tenório' },
-        updatedAt: new Date().toLocaleDateString('pt-BR'),
-        created_at: new Date().toISOString(),
+        updatedAt: Math.floor(Date.now() / 1000),
+        createdAt: new Date().toISOString(),
       };
       commit(types.ADD_ARTICLE, mockPayload);
       commit(types.ADD_ARTICLE_ID, mockId);
-      commit(types.ADD_ARTICLE_FLAG, mockId);
+      commit(types.SET_ARTICLES_META, {
+        allArticlesCount: 1,
+        articlesCount: 1,
+        mineArticlesCount: 1,
+      });
       return mockId;
     } finally {
       commit(types.SET_UI_FLAG, { isCreating: false });

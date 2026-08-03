@@ -22,16 +22,16 @@ import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 
 const props = defineProps({
   id: {
-    type: Number,
+    type: [Number, String],
     required: true,
   },
   title: {
     type: String,
-    required: true,
+    default: '',
   },
   status: {
     type: String,
-    required: true,
+    default: 'published',
   },
   author: {
     type: Object,
@@ -39,15 +39,15 @@ const props = defineProps({
   },
   category: {
     type: Object,
-    required: true,
+    default: null,
   },
   views: {
     type: Number,
-    required: true,
+    default: 0,
   },
   updatedAt: {
-    type: Number,
-    required: true,
+    type: [Number, String],
+    default: () => Math.floor(Date.now() / 1000),
   },
   isSelected: {
     type: Boolean,
@@ -148,7 +148,13 @@ const authorThumbnailSrc = computed(() => {
 });
 
 const lastUpdatedAt = computed(() => {
-  return dynamicTime(props.updatedAt);
+  try {
+    if (!props.updatedAt) return 'Hoje';
+    if (typeof props.updatedAt === 'string') return props.updatedAt;
+    return dynamicTime(props.updatedAt) || 'Hoje';
+  } catch (e) {
+    return 'Hoje';
+  }
 });
 
 const handleArticleAction = ({ action, value }) => {
