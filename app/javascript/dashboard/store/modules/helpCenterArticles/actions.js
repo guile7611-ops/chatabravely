@@ -11,9 +11,21 @@ export const actions = {
   ) => {
     try {
       commit(types.SET_UI_FLAG, { isFetching: true });
-      const currentLocalArticles = (state.articles.allIds || [])
-        .map(id => state.articles.byId[id])
-        .filter(Boolean);
+      
+      const STORAGE_KEY = 'chatabravely_help_center_articles_v1';
+      let stored = [];
+      try {
+        const raw = window.localStorage?.getItem(STORAGE_KEY);
+        if (raw) stored = JSON.parse(raw);
+      } catch (e) {}
+
+      const currentLocalArticles = Array.from(
+        new Map(
+          [...(Array.isArray(stored) ? stored : []), ...(state.articles.allIds || []).map(id => state.articles.byId[id])]
+            .filter(Boolean)
+            .map(item => [item.id, item])
+        ).values()
+      );
 
       try {
         const { data } = await articlesAPI.getArticles({
@@ -46,6 +58,9 @@ export const actions = {
         return articleIds;
       } catch (error) {
         if (currentLocalArticles.length) {
+          commit(types.CLEAR_ARTICLES);
+          commit(types.ADD_MANY_ARTICLES, currentLocalArticles);
+          commit(types.ADD_MANY_ARTICLES_ID, currentLocalArticles.map(a => a.id));
           commit(types.SET_ARTICLES_META, {
             allArticlesCount: currentLocalArticles.length,
             articlesCount: currentLocalArticles.length,
