@@ -29,6 +29,9 @@ const hasTiktokConfigured = computed(() => {
 
 const isActive = computed(() => {
   const { key } = props.channel;
+  if (['whatsapp_official', 'whatsapp_qrcode', 'whatsapp'].includes(key)) {
+    return true;
+  }
   if (Object.keys(props.enabledFeatures).length === 0) {
     return false;
   }
