@@ -41,6 +41,24 @@ export const getters = {
       return article.status;
     },
   getMeta: state => {
-    return state.meta;
+    const list = (state.articles.allIds || [])
+      .map(id => state.articles.byId[id])
+      .filter(a => a && typeof a === 'object' && a.id);
+
+    const allArticlesCount = list.length;
+    const articlesCount = list.filter(a => a.status === 'published' || a.status === 1 || !a.status).length;
+    const mineArticlesCount = list.length;
+    const draftArticlesCount = list.filter(a => a.status === 'draft' || a.status === 0).length;
+    const archivedArticlesCount = list.filter(a => a.status === 'archived' || a.status === 2).length;
+
+    return {
+      ...state.meta,
+      count: allArticlesCount,
+      allArticlesCount,
+      articlesCount,
+      mineArticlesCount,
+      draftArticlesCount,
+      archivedArticlesCount,
+    };
   },
 };
