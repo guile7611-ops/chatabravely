@@ -93,10 +93,50 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: { updatedAt: 'desc' }
     });
 
+    const formattedPayload = conversations.map(c => {
+      const lastMsg = c.messages?.[0];
+      return {
+        id: c.id,
+        inbox_id: c.channelId || 1,
+        account_id: 1,
+        status: c.queue === 'CLOSED' || c.status === 'CLOSED' ? 'resolved' : (c.agentId ? 'open' : 'pending'),
+        assignee_id: c.agentId || null,
+        unread_count: c.unreadCount || 0,
+        created_at: Math.floor(new Date(c.createdAt).getTime() / 1000),
+        updated_at: Math.floor(new Date(c.updatedAt).getTime() / 1000),
+        meta: {
+          sender: {
+            id: c.contact?.id || 'contact_1',
+            name: c.contact?.name || 'Cliente WhatsApp',
+            phone_number: c.contact?.phone || '',
+            avatar_url: ''
+          },
+          channel: c.channel?.type || 'Channel::Whatsapp'
+        },
+        messages: lastMsg ? [
+          {
+            id: lastMsg.id,
+            content: lastMsg.content,
+            content_type: lastMsg.contentType?.toLowerCase() || 'text',
+            message_type: lastMsg.senderType === 'AGENT' ? 1 : 0,
+            created_at: Math.floor(new Date(lastMsg.createdAt).getTime() / 1000),
+            private: lastMsg.isPrivate || false
+          }
+        ] : []
+      };
+    });
+
     return res.json({
       success: true,
       count: conversations.length,
-      conversations
+      payload: formattedPayload,
+      meta: {
+        mine_count: formattedPayload.filter(c => c.assignee_id).length,
+        unassigned_count: formattedPayload.filter(c => !c.assignee_id).length,
+        all_count: formattedPayload.length,
+        assigned_count: formattedPayload.filter(c => c.assignee_id).length,
+      },
+      conversations: formattedPayload
     });
   } catch (error: any) {
     console.error('❌ Erro ao listar conversas:', error);

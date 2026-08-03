@@ -52,7 +52,13 @@ export const buildConversationList = (
   responseData,
   filterType
 ) => {
-  const { payload: conversationList, meta: metaData } = responseData;
+  const payloadData = responseData?.payload || responseData?.conversations || [];
+  const conversationList = Array.isArray(payloadData) ? payloadData : [];
+  const metaData = responseData?.meta || {
+    all_count: conversationList.length,
+    unassigned_count: conversationList.filter(c => !c.assignee_id).length,
+    mine_count: conversationList.filter(c => c.assignee_id).length,
+  };
   context.commit(types.SET_ALL_CONVERSATION, conversationList);
   context.dispatch('conversationStats/set', metaData);
   context.dispatch(
