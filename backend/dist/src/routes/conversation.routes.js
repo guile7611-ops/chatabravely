@@ -543,4 +543,64 @@ router.post('/:id/reopen', async (req, res) => {
         return res.status(500).json({ success: false, error: error.message });
     }
 });
+/**
+ * POST /api/v1/conversations/:id/send-template
+ * Enviar mensagem de template HSM via WhatsApp Meta Cloud API
+ */
+router.post('/:id/send-template', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { templateName, languageCode, parameters, templateText } = req.body;
+        const user = req.user;
+        const conversation = await findWorkspaceConversation(id, user.workspaceId);
+        if (!conversation) {
+            return res.status(404).json({ success: false, message: 'Conversa não encontrada.' });
+        }
+        if (conversation.channel.type !== 'META_CLOUD') {
+            return res.status(400).json({ success: false, message: 'Disparo de templates HSM é exclusivo para canais WhatsApp Meta Cloud API.' });
+        }
+        const { metaPhoneNumberId, metaToken } = conversation.channel;
+        if (!metaPhoneNumberId || !metaToken) {
+            return res.status(400).json({ success: false, message: 'Credenciais da Meta Cloud API não estão configuradas neste canal.' });
+        }
+        const recipientPhone = conversation.contact.phone || '';
+        if (!recipientPhone) {
+            return res.status(400).json({ success: false, message: 'Contato sem número de telefone cadastrado.' });
+        }
+        const paramArray = Array.isArray(parameters) ? parameters : [];
+        // Disparar template via Meta Cloud API
+        await meta_service_1.MetaService.sendTemplateMessage(metaPhoneNumberId, metaToken, recipientPhone, templateName, languageCode || 'pt_BR', paramArray);
+        // Formatar texto exibido no chat
+        let bodyContent = templateText || `[Template Meta: ${templateName}]`;
+        if (paramArray.length > 0) {
+            paramArray.forEach((val, idx) => {
+                bodyContent = bodyContent.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), val);
+            });
+        }
+        // Salvar mensagem no PostgreSQL
+        const message = await prisma_1.prisma.message.create({
+            data: {
+                conversationId: id,
+                content: bodyContent,
+                contentType: 'TEXT',
+                senderType: 'AGENT',
+                senderName: user.name,
+                avatarPill: user.name.slice(0, 2).toUpperCase()
+            }
+        });
+        await prisma_1.prisma.conversation.update({
+            where: { id },
+            data: { updatedAt: new Date() }
+        });
+        (0, socket_1.emitToWorkspace)(user.workspaceId, 'message:new', {
+            conversationId: id,
+            message
+        });
+        return res.json({ success: true, message });
+    }
+    catch (error) {
+        console.error('❌ Erro no envio de Template HSM:', error.message);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
 exports.default = router;

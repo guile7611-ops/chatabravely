@@ -9,7 +9,8 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const supertest_1 = __importDefault(require("supertest"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const socket_io_client_1 = require("socket.io-client");
+const socket_io_client_1 = __importDefault(require("socket.io-client"));
+const ioClient = socket_io_client_1.default;
 const prisma_1 = require("../lib/prisma");
 const socket_1 = require("../socket/socket");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
@@ -284,7 +285,7 @@ async function runIntegrationTests() {
         // -------------------------------------------------------------
         // CENÁRIO 12: Socket.io Autenticado e Emissão de Eventos
         // -------------------------------------------------------------
-        testSocketClient = (0, socket_io_client_1.io)(`http://localhost:${PORT}`, {
+        testSocketClient = ioClient(`http://localhost:${PORT}`, {
             auth: { token: tokenAdminWs1 },
             transports: ['websocket']
         });

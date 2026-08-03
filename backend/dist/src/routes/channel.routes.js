@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const prisma_1 = require("../lib/prisma");
 const evolution_service_1 = require("../services/evolution.service");
+const meta_service_1 = require("../services/meta.service");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const router = (0, express_1.Router)();
 // Aplicar autenticação JWT em todas as rotas de canais
@@ -91,24 +92,67 @@ router.post('/evolution/qr', async (req, res) => {
 router.post('/meta/save', async (req, res) => {
     try {
         const user = req.user;
-        const { name, metaPhoneNumberId, metaToken } = req.body;
+        const { name, metaPhoneNumberId, metaToken, metaWabaId } = req.body;
         const targetWorkspaceId = user.workspaceId;
         if (!metaPhoneNumberId || !metaToken) {
             return res.status(400).json({ success: false, message: 'metaPhoneNumberId e metaToken são obrigatórios' });
         }
+        // Tentar consultar os detalhes do número real na Meta Graph API
+        let fetchedDisplayPhone = undefined;
+        try {
+            const details = await meta_service_1.MetaService.getPhoneNumberDetails(metaPhoneNumberId, metaToken);
+            if (details?.display_phone_number) {
+                fetchedDisplayPhone = details.display_phone_number;
+            }
+        }
+        catch (e) { }
+        const channelName = name || (fetchedDisplayPhone ? `WhatsApp ${fetchedDisplayPhone}` : 'WhatsApp Meta Cloud API');
         const channel = await prisma_1.prisma.channel.create({
             data: {
-                name: name || 'WhatsApp Meta Cloud API',
+                name: channelName,
                 type: 'META_CLOUD',
                 connectionStatus: 'CONNECTED',
                 metaPhoneNumberId: metaPhoneNumberId,
                 metaToken: metaToken,
+                metaWabaId: metaWabaId || null,
                 workspaceId: targetWorkspaceId
             }
         });
         return res.json({
             success: true,
-            channel: channel
+            channel: {
+                ...channel,
+                displayPhone: fetchedDisplayPhone
+            }
+        });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
+/**
+ * GET /api/v1/channels/:id/templates
+ * Buscar templates de mensagem HSM aprovados na Meta Graph API para a conexão
+ */
+router.get('/:id/templates', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = req.user;
+        const channel = await prisma_1.prisma.channel.findFirst({
+            where: { id: id, workspaceId: user.workspaceId }
+        });
+        if (!channel) {
+            return res.status(404).json({ success: false, message: 'Canal não encontrado.' });
+        }
+        if (channel.type !== 'META_CLOUD') {
+            return res.status(400).json({ success: false, message: 'Este canal não é do tipo Meta Cloud API.' });
+        }
+        const wabaId = channel.metaWabaId || 'default_waba';
+        const metaToken = channel.metaToken || '';
+        const templates = await meta_service_1.MetaService.fetchTemplates(wabaId, metaToken);
+        return res.json({
+            success: true,
+            templates
         });
     }
     catch (error) {

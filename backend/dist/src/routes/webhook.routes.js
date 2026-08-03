@@ -47,6 +47,7 @@ router.get('/whatsapp/meta', (req, res) => {
  */
 router.post('/whatsapp/meta', async (req, res) => {
     try {
+        console.log('📩 [Webhook Meta] POST recebido:', JSON.stringify(req.body));
         const result = await webhook_service_1.WebhookService.processMetaWebhook(req.body);
         return res.status(200).json(result);
     }

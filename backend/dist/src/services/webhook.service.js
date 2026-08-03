@@ -200,12 +200,25 @@ class WebhookService {
                 const phoneNumberId = value.metadata?.phone_number_id;
                 const phone = '+' + msg.from.replace(/\D/g, '');
                 const pushName = contactInfo?.profile?.name || 'Cliente WhatsApp Meta';
-                // 1. Localizar canal Meta por Phone Number ID
-                const channel = await prisma_1.prisma.channel.findFirst({
-                    where: { metaPhoneNumberId: phoneNumberId }
+                // 1. Localizar canal Meta por Phone Number ID (com busca flexível e fallback por workspace)
+                const displayPhoneNumber = value.metadata?.display_phone_number;
+                const cleanDisplay = displayPhoneNumber ? displayPhoneNumber.replace(/\D/g, '') : '';
+                let channel = await prisma_1.prisma.channel.findFirst({
+                    where: {
+                        OR: [
+                            { metaPhoneNumberId: phoneNumberId },
+                            ...(cleanDisplay ? [{ metaPhoneNumberId: cleanDisplay }] : []),
+                            ...(displayPhoneNumber ? [{ metaPhoneNumberId: displayPhoneNumber }] : [])
+                        ]
+                    }
                 });
                 if (!channel) {
-                    console.warn(`⚠️ [WebhookService] Nenhum canal Meta encontrado para Phone Number ID: ${phoneNumberId}`);
+                    channel = await prisma_1.prisma.channel.findFirst({
+                        where: { type: 'META_CLOUD' }
+                    });
+                }
+                if (!channel) {
+                    console.warn(`⚠️ [WebhookService] Nenhum canal Meta encontrado no banco de dados.`);
                     return { success: false, reason: 'channel_not_found' };
                 }
                 let textContent = msg.text?.body || 'Mensagem oficial da Meta';

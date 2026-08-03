@@ -9,12 +9,14 @@ const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const prisma_1 = require("./lib/prisma");
 const socket_1 = require("./socket/socket");
+const account_routes_1 = __importDefault(require("./routes/account.routes"));
 const webhook_routes_1 = __importDefault(require("./routes/webhook.routes"));
 const channel_routes_1 = __importDefault(require("./routes/channel.routes"));
 const conversation_routes_1 = __importDefault(require("./routes/conversation.routes"));
 const ai_routes_1 = __importDefault(require("./routes/ai.routes"));
 const help_routes_1 = __importDefault(require("./routes/help.routes"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
+const department_routes_1 = __importDefault(require("./routes/department.routes"));
 dotenv_1.default.config();
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
     console.error('❌ [FATAL] Variável de ambiente JWT_SECRET não definida em ambiente de produção!');
@@ -28,13 +30,15 @@ app.use(express_1.default.json());
 const server = http_1.default.createServer(app);
 // Inicializar Servidor de WebSockets (Socket.io)
 (0, socket_1.initSocket)(server);
-// Registrar Rotas do Sistema (Webhooks, Canais, Conversas, IA, Central de Ajuda e Usuários/Equipe)
+// Registrar Rotas do Sistema (Account API para Chatwoot, Webhooks, Canais, Conversas, etc.)
+app.use('/api/v1/accounts/:accountId', account_routes_1.default);
 app.use('/api/v1/webhooks', webhook_routes_1.default);
 app.use('/api/v1/channels', channel_routes_1.default);
 app.use('/api/v1/conversations', conversation_routes_1.default);
 app.use('/api/v1/ai', ai_routes_1.default);
 app.use('/api/v1/help', help_routes_1.default);
 app.use('/api/v1/users', user_routes_1.default);
+app.use('/api/v1/departments', department_routes_1.default);
 // Rota de Health Check e Verificacao da Infraestrutura (PostgreSQL + Express + Socket.io)
 app.get('/api/v1/health', async (req, res) => {
     try {
