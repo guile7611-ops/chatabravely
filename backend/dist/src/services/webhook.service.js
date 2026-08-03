@@ -321,7 +321,71 @@ class WebhookService {
                         mediaUrl: mediaUrl
                     }
                 });
-                // 5. Emitir eventos WebSocket padronizados (NUNCA usar conversation:update)
+                // 5. Emitir eventos WebSocket no formato ActionCable (com notação de ponto) para atualização em tempo real do frontend
+                const nowSec = Math.floor(Date.now() / 1000);
+                const isUnattended = conversation.status === 'UNATTENDED' || conversation.queue === 'RECEPTION' || conversation.queue === 'DEPARTMENT' || !conversation.agentId;
+                const statusString = conversation.status === 'CLOSED' || conversation.queue === 'CLOSED' ? 'resolved' : (isUnattended ? 'pending' : 'open');
+                const formattedMsg = {
+                    id: newMessage.id,
+                    content: newMessage.content,
+                    account_id: 1,
+                    inbox_id: channel?.id || 1,
+                    conversation_id: conversation.id,
+                    message_type: newMessage.senderType === 'CUSTOMER' ? 0 : 1,
+                    created_at: nowSec,
+                    updated_at: nowSec,
+                    private: newMessage.isPrivate || false,
+                    status: 'sent',
+                    sender: {
+                        id: contact?.id || 1,
+                        name: newMessage.senderName || contact?.name || 'Cliente WhatsApp',
+                        type: 'contact'
+                    },
+                    conversation: {
+                        id: conversation.id,
+                        last_activity_at: nowSec
+                    }
+                };
+                const formattedConv = {
+                    id: conversation.id,
+                    account_id: 1,
+                    uuid: conversation.id,
+                    additional_attributes: {},
+                    agent_last_seen_at: 0,
+                    assignee_last_seen_at: 0,
+                    can_reply: true,
+                    created_at: Math.floor(new Date(conversation.createdAt || Date.now()).getTime() / 1000),
+                    custom_attributes: {},
+                    inbox_id: channel?.id || 1,
+                    labels: [],
+                    muted: false,
+                    snoozed_until: null,
+                    status: statusString,
+                    createdAt: Math.floor(new Date(conversation.createdAt || Date.now()).getTime() / 1000),
+                    timestamp: nowSec,
+                    unread_count: conversation.unreadCount || 1,
+                    meta: {
+                        sender: {
+                            id: contact?.id || 1,
+                            name: contact?.name || 'Cliente WhatsApp',
+                            avatar_url: '',
+                            type: 'contact',
+                            phone_number: contact?.phone || ''
+                        },
+                        assignee: null,
+                        team: null,
+                        hmac_verified: false
+                    },
+                    messages: [formattedMsg]
+                };
+                if (isNewConversation) {
+                    (0, socket_1.emitToWorkspace)(channel.workspaceId, 'conversation.created', formattedConv);
+                }
+                else {
+                    (0, socket_1.emitToWorkspace)(channel.workspaceId, 'conversation.updated', formattedConv);
+                }
+                (0, socket_1.emitToWorkspace)(channel.workspaceId, 'message.created', formattedMsg);
+                // Eventos legados
                 (0, socket_1.emitToWorkspace)(channel.workspaceId, 'message:new', {
                     message: newMessage,
                     conversationId: conversation.id
