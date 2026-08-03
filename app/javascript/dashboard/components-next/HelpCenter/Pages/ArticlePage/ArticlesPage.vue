@@ -308,17 +308,17 @@ watch(
     @update:current-page="handlePageChange"
   >
     <template #title-actions>
-      <Input
-        v-if="!isSwitchingPortal"
-        v-model="searchQuery"
-        :placeholder="
-          t('HELP_CENTER.ARTICLES_PAGE.ARTICLES_HEADER.SEARCH_PLACEHOLDER')
-        "
-        type="search"
-        size="sm"
-        class="w-full max-w-[16rem] min-w-0"
-        @input="debouncedSearch"
-      />
+      <div v-if="!isSwitchingPortal" class="relative flex items-center w-full max-w-[16rem]">
+        <span class="i-lucide-search absolute left-2.5 size-4 text-n-slate-10 pointer-events-none z-10" />
+        <Input
+          v-model="searchQuery"
+          placeholder="Pesquisar..."
+          type="search"
+          size="sm"
+          class="w-full !pl-8 min-w-0"
+          @input="debouncedSearch"
+        />
+      </div>
     </template>
     <template #header-actions>
       <div class="flex items-end justify-between">
