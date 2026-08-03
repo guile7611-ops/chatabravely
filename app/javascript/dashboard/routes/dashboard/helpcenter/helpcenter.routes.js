@@ -28,12 +28,6 @@ const meta = {
 };
 const portalRoutes = [
   {
-    path: getPortalRoute(':portalSlug/:locale/:categorySlug?/articles/:tab?'),
-    name: 'portals_articles_index',
-    meta,
-    component: PortalsArticlesIndexPage,
-  },
-  {
     path: getPortalRoute(':portalSlug/:locale/:categorySlug?/articles/new'),
     name: 'portals_articles_new',
     meta,
@@ -46,6 +40,12 @@ const portalRoutes = [
     name: 'portals_articles_edit',
     meta,
     component: PortalsArticlesEditPage,
+  },
+  {
+    path: getPortalRoute(':portalSlug/:locale/:categorySlug?/articles/:tab?'),
+    name: 'portals_articles_index',
+    meta,
+    component: PortalsArticlesIndexPage,
   },
 
   {

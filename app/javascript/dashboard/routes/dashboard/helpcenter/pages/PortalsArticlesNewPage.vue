@@ -95,16 +95,28 @@ const createNewArticle = async ({ title, content }) => {
 };
 
 const goBackToArticles = () => {
-  const { tab, categorySlug, locale } = route.params;
+  const { portalSlug, tab, categorySlug, locale } = route.params;
+  const targetPortalSlug = portalSlug || 'default';
+  const targetLocale = locale || 'pt_BR';
+
   if (isCategoryArticles.value) {
     router.push({
       name: 'portals_categories_articles_index',
-      params: { categorySlug, locale },
+      params: {
+        portalSlug: targetPortalSlug,
+        categorySlug: categorySlug || '',
+        locale: targetLocale,
+      },
     });
   } else {
     router.push({
       name: 'portals_articles_index',
-      params: { tab, categorySlug, locale },
+      params: {
+        portalSlug: targetPortalSlug,
+        tab: tab || 'mine',
+        categorySlug: categorySlug || '',
+        locale: targetLocale,
+      },
     });
   }
 };
