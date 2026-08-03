@@ -35,62 +35,66 @@ router.get('/conversations', async (req, res) => {
                 message: 'Banco de dados PostgreSQL offline. Inicie o servico ou container na porta 5432.'
             });
         }
-        const formattedPayload = dbConversations.map(conv => ({
-            id: conv.id,
-            account_id: 1,
-            uuid: conv.id,
-            additional_attributes: {},
-            agent_last_seen_at: 0,
-            assignee_last_seen_at: 0,
-            can_reply: true,
-            created_at: new Date(conv.createdAt).getTime(),
-            custom_attributes: {},
-            inbox_id: 1,
-            labels: [],
-            muted: false,
-            snoozed_until: null,
-            status: conv.status === 'CLOSED' ? 'resolved' : 'open',
-            createdAt: new Date(conv.createdAt).getTime(),
-            timestamp: new Date(conv.updatedAt).getTime(),
-            unread_count: conv.unreadCount || 0,
-            meta: {
-                sender: {
-                    id: conv.contact?.id || 1,
-                    name: conv.contact?.name || 'Cliente',
-                    avatar_url: '',
-                    type: 'contact',
-                    phone_number: conv.contact?.phone || ''
-                },
-                assignee: conv.agent ? {
-                    id: conv.agent.id,
-                    name: conv.agent.name,
-                    email: conv.agent.email,
-                    role: conv.agent.role
-                } : null,
-                team: conv.department ? {
-                    id: conv.department.id,
-                    name: conv.department.name
-                } : null,
-                hmac_verified: false
-            },
-            messages: conv.messages.map((m) => ({
-                id: m.id,
-                content: m.content,
+        const formattedPayload = dbConversations.map(conv => {
+            const isUnattended = conv.status === 'UNATTENDED' || conv.queue === 'RECEPTION' || conv.queue === 'DEPARTMENT' || !conv.agentId;
+            const statusString = conv.status === 'CLOSED' || conv.queue === 'CLOSED' ? 'resolved' : (isUnattended ? 'pending' : 'open');
+            return {
+                id: conv.id,
                 account_id: 1,
-                inbox_id: 1,
-                conversation_id: conv.id,
-                message_type: m.senderType === 'CONTACT' ? 0 : 1,
-                created_at: new Date(m.createdAt).getTime(),
-                updated_at: new Date(m.createdAt).getTime(),
-                private: m.isPrivate || false,
-                status: 'sent',
-                sender: {
-                    id: m.senderType === 'CONTACT' ? (conv.contact?.id || 1) : 1,
-                    name: m.senderName || 'Atendente',
-                    type: m.senderType === 'CONTACT' ? 'contact' : 'user'
-                }
-            }))
-        }));
+                uuid: conv.id,
+                additional_attributes: {},
+                agent_last_seen_at: 0,
+                assignee_last_seen_at: 0,
+                can_reply: true,
+                created_at: new Date(conv.createdAt).getTime(),
+                custom_attributes: {},
+                inbox_id: conv.channelId || 1,
+                labels: [],
+                muted: false,
+                snoozed_until: null,
+                status: statusString,
+                createdAt: new Date(conv.createdAt).getTime(),
+                timestamp: new Date(conv.updatedAt).getTime(),
+                unread_count: conv.unreadCount || 0,
+                meta: {
+                    sender: {
+                        id: conv.contact?.id || 1,
+                        name: conv.contact?.name || 'Cliente WhatsApp',
+                        avatar_url: '',
+                        type: 'contact',
+                        phone_number: conv.contact?.phone || ''
+                    },
+                    assignee: conv.agent ? {
+                        id: conv.agent.id,
+                        name: conv.agent.name,
+                        email: conv.agent.email,
+                        role: conv.agent.role
+                    } : null,
+                    team: conv.department ? {
+                        id: conv.department.id,
+                        name: conv.department.name
+                    } : null,
+                    hmac_verified: false
+                },
+                messages: conv.messages.map((m) => ({
+                    id: m.id,
+                    content: m.content,
+                    account_id: 1,
+                    inbox_id: conv.channelId || 1,
+                    conversation_id: conv.id,
+                    message_type: m.senderType === 'CUSTOMER' || m.senderType === 'CONTACT' ? 0 : 1,
+                    created_at: new Date(m.createdAt).getTime(),
+                    updated_at: new Date(m.createdAt).getTime(),
+                    private: m.isPrivate || false,
+                    status: 'sent',
+                    sender: {
+                        id: m.senderType === 'CUSTOMER' || m.senderType === 'CONTACT' ? (conv.contact?.id || 1) : 1,
+                        name: m.senderName || (m.senderType === 'CUSTOMER' ? conv.contact?.name : 'Atendente'),
+                        type: m.senderType === 'CUSTOMER' || m.senderType === 'CONTACT' ? 'contact' : 'user'
+                    }
+                }))
+            };
+        });
         return res.status(200).json({
             data: {
                 payload: formattedPayload,
