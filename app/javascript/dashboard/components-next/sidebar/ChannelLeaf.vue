@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue';
-import Icon from 'next/icon/Icon.vue';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import SidebarUnreadBadge from './SidebarUnreadBadge.vue';
 
@@ -24,22 +23,29 @@ const props = defineProps({
   },
 });
 
-const reauthorizationRequired = computed(() => {
-  return props.inbox.reauthorization_required;
+const isConnected = computed(() => {
+  if (props.inbox.reauthorization_required) return false;
+  if (
+    props.inbox.page_id === 'mock' ||
+    props.inbox.channel_type === 'Channel::Mock' ||
+    props.inbox.status === 'disconnected' ||
+    (props.inbox.phone_number && String(props.inbox.phone_number).toLowerCase().includes('mock'))
+  ) {
+    return false;
+  }
+  return true;
 });
 </script>
 
 <template>
-  <span class="size-4 grid place-content-center rounded-full">
-    <ChannelIcon :inbox="inbox" class="size-4" />
-  </span>
-  <div class="flex-1 truncate min-w-0">{{ label }}</div>
-  <SidebarUnreadBadge :count="badgeCount" />
-  <div
-    v-if="reauthorizationRequired"
-    v-tooltip.top-end="$t('SIDEBAR.REAUTHORIZE')"
-    class="grid place-content-center size-5 bg-n-ruby-5/60 rounded-full"
-  >
-    <Icon icon="i-woot-alert" class="size-3 text-n-ruby-9" />
+  <div class="relative flex items-center justify-center me-1">
+    <ChannelIcon :inbox="inbox" class="size-5 flex-shrink-0" />
+    <span
+      class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-n-solid-2"
+      :class="isConnected ? 'bg-emerald-500' : 'bg-amber-400'"
+      :title="isConnected ? 'Conectado' : 'Desconectado / Conexão Mockup'"
+    />
   </div>
+  <div class="flex-1 truncate min-w-0 text-base font-medium ms-1">{{ label }}</div>
+  <SidebarUnreadBadge :count="badgeCount" />
 </template>

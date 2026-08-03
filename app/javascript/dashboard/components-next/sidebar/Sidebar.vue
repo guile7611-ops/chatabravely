@@ -385,29 +385,6 @@ const menuItems = computed(() => {
           })),
         },
         {
-          name: 'Channels',
-          label: t('SIDEBAR.CHANNELS'),
-          icon: 'i-lucide-mailbox',
-          activeOn: ['conversation_through_inbox'],
-          ...buildSortConfig(SIDEBAR_SORT_SECTIONS.CHANNELS),
-          collapsible: true,
-          showTreeLine: true,
-          children: (sortedInboxes.value || []).map(inbox => ({
-            name: `${inbox.name}-${inbox.id}`,
-            label: inbox.name,
-            badgeCount: safeCall(getInboxUnreadCount, inbox.id, 0),
-            icon: h(ChannelIcon, { inbox, class: 'size-[16px]' }),
-            to: accountScopedRoute('inbox_dashboard', { inbox_id: inbox.id }),
-            component: leafProps =>
-              h(ChannelLeaf, {
-                label: leafProps.label,
-                active: leafProps.active,
-                inbox,
-                badgeCount: leafProps.badgeCount,
-              }),
-          })),
-        },
-        {
           name: 'Labels',
           label: t('SIDEBAR.LABELS'),
           icon: 'i-lucide-tag',
@@ -429,6 +406,28 @@ const menuItems = computed(() => {
           })),
         },
       ],
+    },
+    {
+      name: 'Channels',
+      label: t('SIDEBAR.CHANNELS'),
+      icon: 'i-lucide-radio',
+      collapsible: true,
+      showTreeLine: false,
+      activeOn: ['conversation_through_inbox'],
+      children: (sortedInboxes.value || []).map(inbox => ({
+        name: `${inbox.name}-${inbox.id}`,
+        label: inbox.name,
+        badgeCount: safeCall(getInboxUnreadCount, inbox.id, 0),
+        icon: h(ChannelIcon, { inbox, class: 'size-5' }),
+        to: accountScopedRoute('inbox_dashboard', { inbox_id: inbox.id }),
+        component: leafProps =>
+          h(ChannelLeaf, {
+            label: leafProps.label,
+            active: leafProps.active,
+            inbox,
+            badgeCount: leafProps.badgeCount,
+          }),
+      })),
     },
     {
       name: 'Contacts',
