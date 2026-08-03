@@ -56,7 +56,7 @@ const routeToLastActivePortal = () => {
   if (params) {
     return routeToView(navigateTo, params);
   }
-  return routeToView('portals_new', {});
+  return routeToView(navigateTo, { portalSlug: 'main', locale: 'pt_BR' });
 };
 
 const performRouting = async () => {
