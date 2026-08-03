@@ -35,7 +35,7 @@ const copyText = (text, type) => {
         <div class="flex items-center gap-2">
           <span class="text-2xl">⚡</span>
           <h1 class="text-2xl font-bold text-n-slate-12 tracking-tight">
-            Abravely Chat 1.0
+            Abravely Chat
           </h1>
         </div>
         <p class="text-n-slate-11 text-sm md:text-base">

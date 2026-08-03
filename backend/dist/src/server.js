@@ -47,7 +47,7 @@ app.get('/api/v1/health', async (req, res) => {
         const conversationCount = await prisma_1.prisma.conversation.count();
         return res.status(200).json({
             status: 'OK',
-            system: 'Abravely Chat 1.0 Commercial SaaS Backend',
+            system: 'Abravely Chat Commercial SaaS Backend (newabra)',
             timestamp: new Date().toISOString(),
             database: {
                 status: 'CONNECTED',
@@ -71,7 +71,7 @@ app.get('/api/v1/health', async (req, res) => {
     catch (error) {
         return res.status(500).json({
             status: 'ERROR',
-            system: 'Abravely Chat 1.0 Backend',
+            system: 'Abravely Chat Backend (newabra)',
             message: 'Falha na conexão com o banco de dados PostgreSQL',
             error: error.message
         });
@@ -80,12 +80,12 @@ app.get('/api/v1/health', async (req, res) => {
 // Endpoint base das APIs
 app.get('/api/v1', (req, res) => {
     return res.json({
-        name: 'Abravely Chat API',
+        name: 'Abravely Chat API (newabra)',
         version: '1.0.0',
         documentation: '/api/v1/health'
     });
 });
 server.listen(PORT, () => {
-    console.log(`🚀 Servidor Backend Abravely Chat 1.0 (REST + WebSockets) rodando na porta ${PORT}`);
+    console.log(`🚀 Servidor Backend Abravely Chat (newabra) (REST + WebSockets) rodando na porta ${PORT}`);
     console.log(`📡 Health check disponível em: http://localhost:${PORT}/api/v1/health`);
 });

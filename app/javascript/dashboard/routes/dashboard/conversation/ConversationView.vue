@@ -158,8 +158,10 @@ export default {
       }
     },
     findConversation() {
-      const conversationId = parseInt(this.conversationId, 10);
-      const [chat] = this.chatList.filter(c => c.id === conversationId);
+      const targetId = String(this.conversationId);
+      const chat = this.chatList.find(
+        c => String(c.id) === targetId || c.id === this.conversationId || Number(c.id) === Number(this.conversationId)
+      );
       return chat;
     },
     setActiveChat() {
