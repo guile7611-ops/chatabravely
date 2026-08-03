@@ -11,10 +11,11 @@ const STORAGE_KEY = 'chatabravely_help_center_articles_v1';
 
 const getArticlesFromStorage = () => {
   try {
-    const raw = window.localStorage?.getItem(STORAGE_KEY);
+    if (typeof window === 'undefined' || !window.localStorage) return [];
+    const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.filter(a => a && typeof a === 'object' && a.id) : [];
   } catch (e) {
     return [];
   }
@@ -38,8 +39,8 @@ const state = {
     allArticlesCount: initialStored.length,
     articlesCount: initialStored.length,
     mineArticlesCount: initialStored.length,
-    draftArticlesCount: initialStored.filter(a => a.status === 'draft').length,
-    archivedArticlesCount: initialStored.filter(a => a.status === 'archived').length,
+    draftArticlesCount: initialStored.filter(a => a && a.status === 'draft').length,
+    archivedArticlesCount: initialStored.filter(a => a && a.status === 'archived').length,
   },
   articles: {
     byId: initialById,

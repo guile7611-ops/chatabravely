@@ -15,14 +15,16 @@ export const actions = {
       const STORAGE_KEY = 'chatabravely_help_center_articles_v1';
       let stored = [];
       try {
-        const raw = window.localStorage?.getItem(STORAGE_KEY);
-        if (raw) stored = JSON.parse(raw);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const raw = window.localStorage.getItem(STORAGE_KEY);
+          if (raw) stored = JSON.parse(raw);
+        }
       } catch (e) {}
 
       const currentLocalArticles = Array.from(
         new Map(
           [...(Array.isArray(stored) ? stored : []), ...(state.articles.allIds || []).map(id => state.articles.byId[id])]
-            .filter(Boolean)
+            .filter(a => a && typeof a === 'object' && a.id)
             .map(item => [item.id, item])
         ).values()
       );

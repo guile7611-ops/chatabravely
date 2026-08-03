@@ -2,10 +2,11 @@ const STORAGE_KEY = 'chatabravely_help_center_articles_v1';
 
 const persistToStorage = ($state) => {
   try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
     const list = ($state.articles.allIds || [])
       .map(id => $state.articles.byId[id])
-      .filter(Boolean);
-    window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(list));
+      .filter(a => a && typeof a === 'object' && a.id);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch (e) {}
 };
 
