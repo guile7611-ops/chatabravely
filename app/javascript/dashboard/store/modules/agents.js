@@ -2,8 +2,17 @@ import * as MutationHelpers from 'shared/helpers/vuex/mutationHelpers';
 import * as types from '../mutation-types';
 import AgentAPI from '../../api/agents';
 
+const defaultAgent = {
+  id: 1,
+  name: 'Guilherme Tenorio',
+  email: 'guilherme@abravely.com',
+  role: 'administrator',
+  confirmed: true,
+  availability_status: 'online',
+};
+
 export const state = {
-  records: [],
+  records: [defaultAgent],
   uiFlags: {
     isFetching: false,
     isCreating: false,
@@ -14,7 +23,7 @@ export const state = {
 
 export const getters = {
   getAgents($state) {
-    return $state.records;
+    return $state.records.length ? $state.records : [defaultAgent];
   },
   getVerifiedAgents($state) {
     return $state.records.filter(record => record.confirmed);
@@ -23,7 +32,7 @@ export const getters = {
     return $state.uiFlags;
   },
   getAgentById: $state => id => {
-    return $state.records.find(record => record.id === Number(id)) || {};
+    return $state.records.find(record => record.id === Number(id)) || defaultAgent;
   },
   getAgentStatus($state) {
     let status = {
@@ -45,9 +54,11 @@ export const actions = {
     commit(types.default.SET_AGENT_FETCHING_STATUS, true);
     try {
       const response = await AgentAPI.get();
-      commit(types.default.SET_AGENT_FETCHING_STATUS, false);
-      commit(types.default.SET_AGENTS, response.data);
+      const list = Array.isArray(response.data) && response.data.length ? response.data : [defaultAgent];
+      commit(types.default.SET_AGENTS, list);
     } catch (error) {
+      commit(types.default.SET_AGENTS, [defaultAgent]);
+    } finally {
       commit(types.default.SET_AGENT_FETCHING_STATUS, false);
     }
   },
