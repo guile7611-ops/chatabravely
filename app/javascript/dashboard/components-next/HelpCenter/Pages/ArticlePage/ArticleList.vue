@@ -9,6 +9,7 @@ import { PORTALS_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { getArticleStatus } from 'dashboard/helper/portalHelper.js';
 import wootConstants from 'dashboard/constants/globals';
 
+import ArticleCard from 'dashboard/components-next/HelpCenter/ArticleCard/ArticleCard.vue';
 import ArticleDetailModal from 'dashboard/components-next/HelpCenter/ArticleDetailModal.vue';
 
 const props = defineProps({
@@ -64,6 +65,11 @@ const handleCardHover = (isHovered, id) => {
 };
 
 const getCategoryById = useMapGetter('categories/categoryById');
+
+const getCategory = categoryId => {
+  if (!categoryId) return null;
+  return getCategoryById.value ? getCategoryById.value(categoryId) : null;
+};
 
 const openArticle = id => {
   const article = localArticles.value.find(a => a.id === id);
@@ -225,14 +231,14 @@ watch(
     @end="onDragEnd"
   >
     <template #item="{ element }">
-      <li class="list-none rounded-2xl">
+      <li v-if="element && element.id" class="list-none rounded-2xl">
         <ArticleCard
           :id="element.id"
           :key="element.id"
           :title="element.title"
           :status="element.status"
           :author="element.author"
-          :category="getCategory(element.category.id)"
+          :category="getCategory(element?.category?.id || element?.categoryId)"
           :views="element.views || 0"
           :updated-at="element.updatedAt"
           :is-selected="selectedArticleIds.has(element.id)"
