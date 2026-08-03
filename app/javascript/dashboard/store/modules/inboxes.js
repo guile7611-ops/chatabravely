@@ -14,6 +14,30 @@ import { ACCOUNT_EVENTS } from '../../helper/AnalyticsHelper/events';
 import { channelActions, buildInboxData } from './inboxes/channelActions';
 
 const LOCAL_STORAGE_KEY = 'chatabravely_inboxes_v1';
+const DELETED_STORAGE_KEY = 'chatabravely_deleted_inbox_ids_v1';
+
+const getDeletedInboxIds = () => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return [];
+    const raw = window.localStorage.getItem(DELETED_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+const addDeletedInboxId = (id) => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const current = getDeletedInboxIds();
+    if (!current.includes(id)) {
+      current.push(id);
+      window.localStorage.setItem(DELETED_STORAGE_KEY, JSON.stringify(current));
+    }
+  } catch (e) {}
+};
 
 const getInboxesFromStorage = () => {
   try {
@@ -21,33 +45,42 @@ const getInboxesFromStorage = () => {
     const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : null;
+    if (!Array.isArray(parsed)) return null;
+    const deletedIds = getDeletedInboxIds();
+    return parsed.filter(item => item && !deletedIds.includes(item.id));
   } catch (e) {
     return null;
   }
 };
 
-const initialStoredInboxes = getInboxesFromStorage();
+const defaultInboxes = [
+  {
+    id: 1,
+    name: 'WhatsApp Oficial (Meta Cloud API)',
+    channel_type: 'Channel::Whatsapp',
+    phone_number: '+5511999999999',
+    avatar_url: '',
+    provider: 'default',
+  },
+  {
+    id: 2,
+    name: 'WhatsApp Vendas (Evolution API)',
+    channel_type: 'Channel::Whatsapp',
+    phone_number: '+5511988888888',
+    avatar_url: '',
+    provider: 'default',
+  },
+];
+
+const getInitialRecords = () => {
+  const stored = getInboxesFromStorage();
+  const list = stored !== null ? stored : defaultInboxes;
+  const deletedIds = getDeletedInboxIds();
+  return list.filter(item => item && !deletedIds.includes(item.id));
+};
 
 export const state = {
-  records: initialStoredInboxes || [
-    {
-      id: 1,
-      name: 'WhatsApp Oficial (Meta Cloud API)',
-      channel_type: 'Channel::Whatsapp',
-      phone_number: '+5511999999999',
-      avatar_url: '',
-      provider: 'default',
-    },
-    {
-      id: 2,
-      name: 'WhatsApp Vendas (Evolution API)',
-      channel_type: 'Channel::Whatsapp',
-      phone_number: '+5511988888888',
-      avatar_url: '',
-      provider: 'default',
-    },
-  ],
+  records: getInitialRecords(),
   uiFlags: {
     isFetching: false,
     isFetchingItem: false,
@@ -463,11 +496,23 @@ export const mutations = {
   [types.default.SET_INBOXES_UI_FLAG]($state, uiFlag) {
     $state.uiFlags = { ...$state.uiFlags, ...uiFlag };
   },
-  [types.default.SET_INBOXES]: MutationHelpers.set,
+  [types.default.SET_INBOXES]($state, records) {
+    const deletedIds = getDeletedInboxIds();
+    const filteredRecords = Array.isArray(records)
+      ? records.filter(item => item && !deletedIds.includes(item.id))
+      : [];
+    MutationHelpers.set($state, filteredRecords);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify($state.records));
+      }
+    } catch (e) {}
+  },
   [types.default.SET_INBOXES_ITEM]: MutationHelpers.setSingleRecord,
   [types.default.ADD_INBOXES]: MutationHelpers.create,
   [types.default.EDIT_INBOXES]: MutationHelpers.update,
   [types.default.DELETE_INBOXES]($state, inboxId) {
+    addDeletedInboxId(inboxId);
     MutationHelpers.destroy($state, inboxId);
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
