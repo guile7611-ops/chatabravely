@@ -6,28 +6,44 @@ import camelcaseKeys from 'camelcase-keys';
 import types from '../../mutation-types';
 export const actions = {
   index: async (
-    { commit },
+    { commit, state },
     { pageNumber, portalSlug, locale, status, authorId, categorySlug, query }
   ) => {
     try {
       commit(types.SET_UI_FLAG, { isFetching: true });
-      const { data } = await articlesAPI.getArticles({
-        pageNumber,
-        portalSlug,
-        locale,
-        status,
-        authorId,
-        categorySlug,
-        query,
-      });
-      const payload = camelcaseKeys(data.payload);
-      const meta = camelcaseKeys(data.meta);
-      const articleIds = payload.map(article => article.id);
-      commit(types.CLEAR_ARTICLES);
-      commit(types.ADD_MANY_ARTICLES, payload);
-      commit(types.SET_ARTICLES_META, meta);
-      commit(types.ADD_MANY_ARTICLES_ID, articleIds);
-      return articleIds;
+      const currentLocalArticles = (state.articles.allIds || [])
+        .map(id => state.articles.byId[id])
+        .filter(Boolean);
+
+      try {
+        const { data } = await articlesAPI.getArticles({
+          pageNumber,
+          portalSlug,
+          locale,
+          status,
+          authorId,
+          categorySlug,
+          query,
+        });
+        const payload = camelcaseKeys(data.payload || []);
+        const meta = camelcaseKeys(data.meta || {});
+        
+        const combined = [...currentLocalArticles, ...payload];
+        const uniqueArticles = Array.from(new Map(combined.map(item => [item.id, item])).values());
+        const articleIds = uniqueArticles.map(article => article.id);
+
+        commit(types.CLEAR_ARTICLES);
+        commit(types.ADD_MANY_ARTICLES, uniqueArticles);
+        commit(types.SET_ARTICLES_META, meta);
+        commit(types.ADD_MANY_ARTICLES_ID, articleIds);
+        return articleIds;
+      } catch (error) {
+        if (currentLocalArticles.length) {
+          commit(types.SET_ARTICLES_META, { count: currentLocalArticles.length, currentPage: 1 });
+          return currentLocalArticles.map(a => a.id);
+        }
+        return throwErrorMessage(error);
+      }
     } catch (error) {
       return throwErrorMessage(error);
     } finally {
@@ -55,12 +71,13 @@ export const actions = {
       const mockId = Date.now();
       const mockPayload = {
         id: mockId,
-        title: articleObj.title || 'Novo Artigo',
+        title: articleObj.title || 'Novo Comunicado / Artigo',
         content: articleObj.content || '',
         status: articleObj.status || 'published',
         attachments: articleObj.attachments || [],
-        views: 1,
+        views: 0,
         author: { name: 'Guilherme Tenório' },
+        updatedAt: new Date().toLocaleDateString('pt-BR'),
         created_at: new Date().toISOString(),
       };
       commit(types.ADD_ARTICLE, mockPayload);

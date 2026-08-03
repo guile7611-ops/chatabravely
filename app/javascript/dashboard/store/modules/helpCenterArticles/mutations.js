@@ -39,7 +39,7 @@ export const mutations = {
 
   [types.ADD_ARTICLE_ID]: ($state, articleId) => {
     if ($state.articles.allIds.includes(articleId)) return;
-    $state.articles.allIds.push(articleId);
+    $state.articles.allIds.unshift(articleId);
   },
   [types.UPDATE_ARTICLE_FLAG]: ($state, { articleId, uiFlags }) => {
     const flags = $state.articles.uiFlags.byId[articleId] || {};
