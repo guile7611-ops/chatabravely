@@ -118,12 +118,13 @@ const removeAttachment = (index) => {
 };
 
 const handlePublishNewArticle = (status = 'published') => {
-  const title = localTitle.value || 'Comunicado Sem Título';
+  const title = localTitle.value.trim() || 'Novo Comunicado / Artigo';
+  const content = localContent.value || '';
   emit('createArticle', {
     title,
-    content: localContent.value || '',
+    content,
     attachments: attachments.value,
-    status,
+    status: 'published',
   });
 };
 </script>

@@ -90,7 +90,7 @@ const updateArticleStatus = async ({ value }) => {
   const status = getArticleStatus(value);
 
   if (!props.articleId) {
-    emit('publishNewArticle', status);
+    emit('publishNewArticle', 'published');
     return;
   }
 

@@ -46,26 +46,31 @@ const setCategoryId = newCategoryId => {
   selectedCategoryId.value = newCategoryId;
 };
 
-const createNewArticle = async ({ title, content, attachments = [], status = 'published' } = {}) => {
-  if (title) article.value.title = title;
-  if (content) article.value.content = content;
+const createNewArticle = async (payload = {}) => {
+  const title = payload?.title || article.value.title || 'Novo Comunicado / Artigo';
+  const content = payload?.content || article.value.content || '';
+  const attachments = payload?.attachments || [];
 
-  if (!article.value.title || isUpdating.value) return;
+  article.value.title = title;
+  article.value.content = content;
+
+  if (isUpdating.value) return;
 
   isUpdating.value = true;
   try {
     const { locale, portalSlug: routePortalSlug } = route.params;
     const targetPortalSlug = routePortalSlug || portalSlug || 'default';
     const resolvedCategoryId = selectedCategoryId.value || categoryId.value;
+
     const articleId = await store.dispatch('articles/create', {
       portalSlug: targetPortalSlug,
-      content: article.value.content || '',
-      title: article.value.title,
+      content,
+      title,
       locale: locale || 'pt_BR',
       authorId: selectedAuthorId.value || currentUserId.value,
       categoryId: resolvedCategoryId,
       attachments,
-      status,
+      status: 'published',
     });
 
     useTrack(PORTALS_EVENTS.CREATE_ARTICLE, { locale });
@@ -75,7 +80,7 @@ const createNewArticle = async ({ title, content, attachments = [], status = 'pu
       name: 'portals_articles_index',
       params: {
         portalSlug: targetPortalSlug,
-        tab: 'published',
+        tab: 'all',
         locale: locale || 'pt_BR',
       },
     });
