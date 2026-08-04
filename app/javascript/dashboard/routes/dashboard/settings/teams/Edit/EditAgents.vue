@@ -7,12 +7,14 @@ import { useVuelidate } from '@vuelidate/core';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import PageHeader from '../../SettingsSubPageHeader.vue';
 import AgentSelector from '../AgentSelector.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 
 export default {
   components: {
     Spinner,
     PageHeader,
     AgentSelector,
+    Button,
   },
   validations: {
     selectedAgents: {
@@ -35,6 +37,7 @@ export default {
     ...mapGetters({
       agentList: 'agents/getAgents',
       uiFlags: 'teamMembers/getUIFlags',
+      memberError: 'teamMembers/getError',
     }),
 
     teamId() {
@@ -58,20 +61,21 @@ export default {
   },
 
   async mounted() {
-    const { teamId } = this.$route.params;
     this.$store.dispatch('agents/get');
-    try {
-      await this.$store.dispatch('teamMembers/get', {
-        teamId,
-      });
-      const members = this.teamMembers.map(item => item.id);
-      this.updateSelectedAgents(members);
-    } catch {
-      this.updateSelectedAgents([]);
-    }
+    await this.fetchMembers();
   },
 
   methods: {
+    async fetchMembers() {
+      const { teamId } = this.$route.params;
+      try {
+        await this.$store.dispatch('teamMembers/get', { teamId });
+        const members = this.teamMembers.map(item => item.id);
+        this.updateSelectedAgents(members);
+      } catch {
+        // preserve previous members in store
+      }
+    },
     updateSelectedAgents(newAgentList) {
       this.v$.selectedAgents.$touch();
       this.selectedAgents = [...newAgentList];
@@ -94,9 +98,10 @@ export default {
         });
         this.$store.dispatch('teams/get');
       } catch (error) {
-        useAlert(error.message);
+        useAlert(error.message || this.memberError);
+      } finally {
+        this.isCreating = false;
       }
-      this.isCreating = false;
     },
   },
 };
@@ -110,6 +115,20 @@ export default {
         :header-content="$t('TEAMS_SETTINGS.EDIT_FLOW.AGENTS.DESC')"
       />
 
+      <div
+        v-if="memberError"
+        class="mb-4 p-4 rounded-xl bg-n-ruby-2 border border-n-ruby-5 text-n-ruby-11 flex items-center justify-between gap-4"
+      >
+        <span class="text-body-main">{{ memberError }}</span>
+        <Button
+          :label="$t('TEAMS_SETTINGS.RETRY') || 'Tentar novamente'"
+          size="sm"
+          variant="secondary"
+          :disabled="isCreating || uiFlags.isFetching || uiFlags.isUpdating"
+          @click="fetchMembers"
+        />
+      </div>
+
       <div class="w-full h-full">
         <div v-if="v$.selectedAgents.$error">
           <p class="error-message pb-2">
@@ -121,12 +140,12 @@ export default {
           :agent-list="agentList"
           :selected-agents="selectedAgents"
           :update-selected-agents="updateSelectedAgents"
-          :is-working="isCreating"
+          :is-working="isCreating || uiFlags.isUpdating"
           :submit-button-text="
             $t('TEAMS_SETTINGS.EDIT_FLOW.AGENTS.BUTTON_TEXT')
           "
         />
-        <div v-else class="flex items-center justify-center py-6">
+        <div v-else-if="uiFlags.isFetching" class="flex items-center justify-center py-6">
           <Spinner class="text-n-blue-11" />
         </div>
       </div>
