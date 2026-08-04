@@ -22,12 +22,11 @@ describe('Real Production Bootstrap Integration Test for /app/login', () => {
     document.body.innerHTML = '';
   });
 
-  it('executes full production bootstrapDashboardApp on /app/login without mocks', async () => {
-    const { app, router, store } = bootstrapDashboardApp(container);
-    currentApp = app;
+  it('executes full production bootstrapDashboardApp on /app/login without mocks on initial load', async () => {
+    window.history.pushState({}, '', '/app/login');
 
-    await router.push('/app/login');
-    await router.isReady();
+    const { app, router, store } = await bootstrapDashboardApp(container);
+    currentApp = app;
 
     expect(store.getters.isLoggedIn).toBe(false);
     expect(router.currentRoute.value.path).toBe('/app/login');
@@ -41,12 +40,11 @@ describe('Real Production Bootstrap Integration Test for /app/login', () => {
     expect(submitButton).not.toBeNull();
   });
 
-  it('redirects unauthenticated access from /app/accounts/1/dashboard to /app/login via production router guard', async () => {
-    const { app, router } = bootstrapDashboardApp(container);
-    currentApp = app;
+  it('redirects unauthenticated access from /app/accounts/1/dashboard to /app/login on initial load', async () => {
+    window.history.pushState({}, '', '/app/accounts/1/dashboard');
 
-    await router.push('/app/accounts/1/dashboard');
-    await router.isReady();
+    const { app, router } = await bootstrapDashboardApp(container);
+    currentApp = app;
 
     expect(router.currentRoute.value.path).toBe('/app/login');
     expect(container.querySelector('input[data-testid="email_input"]')).not.toBeNull();

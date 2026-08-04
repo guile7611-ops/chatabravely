@@ -35,11 +35,13 @@ export const i18n = createI18n({
 
 export const pinia = createPinia();
 
-export const bootstrapDashboardApp = (mountTarget = '#app') => {
+export const bootstrapDashboardApp = async (mountTarget = '#app') => {
   const app = createApp(App);
   app.use(i18n);
   app.use(store);
   app.use(pinia);
+
+  initalizeRouter();
   app.use(router);
 
   app.use(VueDOMPurifyHTML, domPurifyConfig);
@@ -69,7 +71,7 @@ export const bootstrapDashboardApp = (mountTarget = '#app') => {
   window.WootConstants = constants;
   window.axios = createAxios(axios);
 
-  initalizeRouter();
+  await router.isReady();
 
   if (mountTarget) {
     const el = typeof mountTarget === 'string' ? document.querySelector(mountTarget) : mountTarget;
@@ -86,5 +88,5 @@ const isTestEnv =
   (typeof window !== 'undefined' && (window.__VITEST_ENVIRONMENT__ || window.__VITEST__));
 
 if (typeof window !== 'undefined' && document.querySelector('#app') && !isTestEnv) {
-  bootstrapDashboardApp('#app');
+  bootstrapDashboardApp('#app').catch(error => console.error('[Bootstrap]', error));
 }

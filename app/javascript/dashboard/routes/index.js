@@ -56,7 +56,12 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
   return true;
 };
 
+let isRouterInitialized = false;
+
 export const initalizeRouter = () => {
+  if (isRouterInitialized) return;
+  isRouterInitialized = true;
+
   const userAuthentication = store.dispatch('setUser');
 
   router.onError((error, to) => {
