@@ -14,6 +14,28 @@ describe('#getters', () => {
     });
   });
 
+  describe('#getCurrentAccountId', () => {
+    it('uses the account returned by the authenticated user when Vuex has no route module', () => {
+      expect(
+        getters.getCurrentAccountId(
+          { currentUser: { account_id: 1 } },
+          {},
+          {}
+        )
+      ).toEqual(1);
+    });
+
+    it('returns null when no real account is available', () => {
+      expect(
+        getters.getCurrentAccountId(
+          { currentUser: { account_id: null } },
+          {},
+          {}
+        )
+      ).toEqual(null);
+    });
+  });
+
   describe('#getCurrentUser', () => {
     it('returns current user object', () => {
       expect(
@@ -38,7 +60,7 @@ describe('#getters', () => {
           { currentUser: { accounts: [{ id: 1, role: 'admin' }] } },
           { getCurrentAccountId: 2 }
         )
-      ).toEqual(undefined);
+      ).toEqual(null);
     });
   });
 
@@ -58,7 +80,7 @@ describe('#getters', () => {
           { currentUser: { accounts: [{ id: 1, custom_role_id: 1 }] } },
           { getCurrentAccountId: 2 }
         )
-      ).toEqual(undefined);
+      ).toEqual(null);
     });
   });
 
@@ -108,7 +130,7 @@ describe('#getters', () => {
         getters.getCurrentAccount({
           currentUser: {},
         })
-      ).toEqual({});
+      ).toEqual(null);
       expect(
         getters.getCurrentAccount(
           {

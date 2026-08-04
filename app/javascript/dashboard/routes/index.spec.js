@@ -103,6 +103,20 @@ describe('#validateAuthenticateRoutePermission', () => {
 
         expect(next).toHaveBeenCalledWith();
       });
+
+      it('normalizes an invalid account id using the authenticated account', async () => {
+        const to = {
+          path: '/app/accounts/null/conversations/conversation-1',
+          params: { accountId: 'null' },
+          meta: { permissions: ['administrator'] },
+        };
+
+        await validateAuthenticateRoutePermission(to, next);
+
+        expect(next).toHaveBeenCalledWith(
+          '/app/accounts/1/conversations/conversation-1'
+        );
+      });
     });
   });
 });

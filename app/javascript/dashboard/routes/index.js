@@ -33,6 +33,24 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
     }
 
     const user = store?.getters?.getCurrentUser || {};
+    const routeAccountId = Number(to?.params?.accountId);
+    if (!Number.isInteger(routeAccountId) || routeAccountId <= 0) {
+      const actualAccountId = Number(
+        user.account_id || user.accounts?.[0]?.id
+      );
+      if (!Number.isInteger(actualAccountId) || actualAccountId <= 0) {
+        if (typeof next === 'function') return next('/app/login');
+        return '/app/login';
+      }
+
+      const normalizedPath = targetPath.replace(
+        /^\/app\/accounts\/[^/]+/,
+        `/app/accounts/${actualAccountId}`
+      );
+      if (typeof next === 'function') return next(normalizedPath);
+      return normalizedPath;
+    }
+
     const redirectUrl = validateLoggedInRoutes(to, user);
     if (redirectUrl) {
       const fullRedirect = redirectUrl.startsWith('/app/')

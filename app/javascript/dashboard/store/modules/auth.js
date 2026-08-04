@@ -65,10 +65,15 @@ export const getters = {
   },
 
   getCurrentAccountId($state, _, rootState) {
-    if (rootState?.route?.params?.accountId) {
-      return Number(rootState.route.params.accountId);
+    const routeAccountId = Number(rootState?.route?.params?.accountId);
+    if (Number.isInteger(routeAccountId) && routeAccountId > 0) {
+      return routeAccountId;
     }
-    return null;
+
+    const persistedAccountId = Number($state.currentUser?.account_id);
+    return Number.isInteger(persistedAccountId) && persistedAccountId > 0
+      ? persistedAccountId
+      : null;
   },
 
   getCurrentRole($state, $getters) {
