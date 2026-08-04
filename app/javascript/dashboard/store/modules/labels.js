@@ -20,7 +20,7 @@ export const getters = {
   getLabels(_state) {
     return _state.records;
   },
-  getError(_state) {
+  getLabelsError(_state) {
     return _state.error;
   },
   getUIFlags(_state) {

@@ -42,7 +42,7 @@ const records = computed(() =>
   getters.getSortedCannedResponses.value(sortOrder.value)
 );
 
-const cannedError = computed(() => getters.getError.value);
+const cannedError = computed(() => getters.getCannedError.value);
 
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim();

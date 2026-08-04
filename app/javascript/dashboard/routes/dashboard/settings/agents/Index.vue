@@ -40,7 +40,7 @@ const deleteMessage = computed(() => {
 
 const agentList = computed(() => getters['agents/getAgents'].value);
 const agentError = computed(
-  () => getters['agents/getError'].value
+  () => getters['agents/getAgentsError']?.value || getters.getAgentsError?.value
 );
 
 const fetchAgents = () => {

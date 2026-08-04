@@ -2,11 +2,11 @@ import { getters } from '../../teamMembers';
 import teamMembers from './fixtures';
 
 describe('#getters', () => {
-  it('getError', () => {
+  it('getTeamMembersError', () => {
     const state = {
       error: 'Erro de conexao',
     };
-    expect(getters.getError(state)).toEqual('Erro de conexao');
+    expect(getters.getTeamMembersError(state)).toEqual('Erro de conexao');
   });
 
   it('getTeamMembers', () => {

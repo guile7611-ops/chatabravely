@@ -71,22 +71,11 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     });
   }
 
-  it('calls Rails login with redirect:false and only sets window.location ONCE after Express JWT is stored', async () => {
-    const setAuthCredentialsSpy = vi.spyOn(apiUtils, 'setAuthCredentials');
-
+  it('calls Express login with redirect:false, commits user and sets window.location ONCE', async () => {
     authAPI.login.mockResolvedValue({
       success: true,
-      response: { data: { data: { id: 1 } }, headers: {} },
-      user: { id: 1 },
+      user: { id: 1, email: 'agente@abravely.com' },
       redirectUrl: '/app/accounts/1/dashboard',
-    });
-
-    dispatchMock.mockImplementation((action) => {
-      if (action === 'loginWithCredentials') {
-        window.chatwootConfig.abravelyJwtToken = 'header.payload.signature_real_xyz';
-        return Promise.resolve('header.payload.signature_real_xyz');
-      }
-      return Promise.resolve();
     });
 
     const wrapper = getWrapper();
@@ -104,33 +93,17 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
       { redirect: false }
     );
 
-    expect(dispatchMock).toHaveBeenCalledWith('loginWithCredentials', {
+    expect(mockStore.commit).toHaveBeenCalledWith('SET_CURRENT_USER', {
+      id: 1,
       email: 'agente@abravely.com',
-      password: 'minhasenha123',
     });
-
-    expect(getAbravelyJwtToken()).toBe('header.payload.signature_real_xyz');
-    expect(setAuthCredentialsSpy).toHaveBeenCalledTimes(1);
     expect(window.location).toBe('/app/accounts/1/dashboard');
   });
 
-  it('remains strictly on login page (http://localhost/app/login) and clears session when Express fails', async () => {
+  it('remains strictly on login page (http://localhost/app/login) when Express login fails', async () => {
     const clearCookiesSpy = vi.spyOn(apiUtils, 'clearBrowserSessionCookies');
-    const clearLocalStorageSpy = vi.spyOn(apiUtils, 'clearLocalStorageOnLogout');
 
-    authAPI.login.mockResolvedValue({
-      success: true,
-      response: { data: { data: { id: 1 } }, headers: {} },
-      user: { id: 1 },
-      redirectUrl: '/app/accounts/1/dashboard',
-    });
-
-    dispatchMock.mockImplementation((action) => {
-      if (action === 'loginWithCredentials') {
-        return Promise.reject(new Error('Falha ao autenticar no serviço Abravely WebSocket.'));
-      }
-      return Promise.resolve();
-    });
+    authAPI.login.mockRejectedValue(new Error('Credenciais inválidas: e-mail ou senha incorretos.'));
 
     const wrapper = getWrapper();
     wrapper.vm.credentials.email = 'agente@abravely.com';
@@ -140,7 +113,6 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     await flushPromises();
 
     expect(clearCookiesSpy).toHaveBeenCalled();
-    expect(clearLocalStorageSpy).toHaveBeenCalled();
     expect(getAbravelyJwtToken()).toBeNull();
 
     // PROVA ESTRITA: window.location permanece intacto na pagina de login

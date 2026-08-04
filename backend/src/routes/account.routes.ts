@@ -4,6 +4,26 @@ import { prisma } from '../lib/prisma';
 const router = Router({ mergeParams: true });
 
 /**
+ * GET /api/v1/accounts/:accountId
+ * Endpoint de dados da conta / workspace para a barra lateral e layout do frontend
+ */
+router.get('/', async (req: Request, res: Response) => {
+  const accountId = req.params.accountId || '1';
+  return res.status(200).json({
+    id: Number(accountId) || 1,
+    name: 'Abravely Workspace',
+    role: 'administrator',
+    locale: 'pt_BR',
+    domain: '',
+    support_email: 'suporte@abravely.com',
+    features: {
+      inbound_emails: true,
+      custom_attributes: true,
+    }
+  });
+});
+
+/**
  * GET /api/v1/accounts/:accountId/conversations
  * Endpoint de conversas compatível com o Chatwoot v4 Dashboard
  */

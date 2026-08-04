@@ -1,5 +1,5 @@
 export const getters = {
-  getError($state) {
+  getTeamsError($state) {
     return $state.error;
   },
   getTeams($state) {

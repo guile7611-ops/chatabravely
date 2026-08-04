@@ -28,7 +28,7 @@ export const state = {
 };
 
 export const getters = {
-  getError($state) {
+  getInboxesError($state) {
     return $state.error;
   },
   getInboxes($state) {

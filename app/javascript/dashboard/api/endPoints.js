@@ -8,7 +8,7 @@ const endPoints = {
     url: 'api/v1/accounts.json',
   },
   validityCheck: {
-    url: '/auth/validate_token',
+    url: '/api/v1/users/me',
   },
   profileUpdate: {
     url: '/api/v1/profile',

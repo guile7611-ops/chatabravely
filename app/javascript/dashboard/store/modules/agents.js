@@ -17,7 +17,7 @@ export const getters = {
   getAgents($state) {
     return $state.records;
   },
-  getError($state) {
+  getAgentsError($state) {
     return $state.error;
   },
   getVerifiedAgents($state) {

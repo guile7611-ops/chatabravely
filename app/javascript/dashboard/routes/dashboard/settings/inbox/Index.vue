@@ -38,7 +38,7 @@ const filteredInboxesList = computed(() => {
 });
 
 const uiFlags = computed(() => getters['inboxes/getUIFlags'].value);
-const inboxError = computed(() => getters['inboxes/getError'].value);
+const inboxError = computed(() => getters['inboxes/getInboxesError']?.value || getters.getInboxesError?.value);
 
 const fetchInboxes = () => {
   store.dispatch('inboxes/get');

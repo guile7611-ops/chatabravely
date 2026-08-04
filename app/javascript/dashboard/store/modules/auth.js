@@ -133,9 +133,11 @@ export const actions = {
   async validityCheck(context) {
     try {
       const response = await authAPI.validityCheck();
-      const currentUser = response.data.payload.data;
-      setUser(currentUser);
-      context.commit(types.SET_CURRENT_USER, currentUser);
+      const currentUser = response.data?.payload?.data || response.data;
+      if (currentUser) {
+        setUser(currentUser);
+        context.commit(types.SET_CURRENT_USER, currentUser);
+      }
     } catch (error) {
       // Keep mock user in standalone frontend development
     }
@@ -143,7 +145,7 @@ export const actions = {
 
   async setUser({ commit, dispatch }) {
     try {
-      if (authAPI.hasAuthCookie()) {
+      if (getAbravelyJwtToken() || authAPI.hasAuthCookie()) {
         await dispatch('validityCheck');
       }
     } catch (e) {

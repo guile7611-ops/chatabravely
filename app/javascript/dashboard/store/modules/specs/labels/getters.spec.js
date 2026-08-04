@@ -7,9 +7,9 @@ describe('#getters', () => {
     expect(getters.getLabels(state)).toEqual(labels);
   });
 
-  it('getError', () => {
+  it('getLabelsError', () => {
     const state = { error: 'Erro ao carregar' };
-    expect(getters.getError(state)).toEqual('Erro ao carregar');
+    expect(getters.getLabelsError(state)).toEqual('Erro ao carregar');
   });
 
   it('getLabelsOnSidebar', () => {

@@ -37,7 +37,7 @@ export default {
     ...mapGetters({
       agentList: 'agents/getAgents',
       uiFlags: 'teamMembers/getUIFlags',
-      memberError: 'teamMembers/getError',
+      memberError: 'teamMembers/getTeamMembersError',
     }),
 
     teamId() {

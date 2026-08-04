@@ -16,7 +16,7 @@ export const state = {
 };
 
 export const getters = {
-  getError(_state) {
+  getTeamMembersError(_state) {
     return _state.error;
   },
   getUIFlags(_state) {

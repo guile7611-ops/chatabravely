@@ -28,7 +28,7 @@ const selectedLabel = ref({});
 const searchQuery = ref('');
 
 const records = computed(() => getters['labels/getLabels'].value);
-const labelError = computed(() => getters['labels/getError'].value);
+const labelError = computed(() => getters['labels/getLabelsError']?.value || getters.getLabelsError?.value);
 
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim();

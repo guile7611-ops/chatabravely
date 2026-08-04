@@ -4,6 +4,7 @@ import {
   clearLocalStorageOnLogout,
   parseAPIErrorResponse,
 } from 'dashboard/store/utils/api';
+import { setAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
 import wootAPI from './apiClient';
 import {
   getLoginRedirectURL,
@@ -15,33 +16,53 @@ export const login = async (
   options = { redirect: true }
 ) => {
   try {
-    const response = await wootAPI.post('auth/sign_in', credentials);
+    const response = await wootAPI.post('api/v1/users/login', credentials);
 
     // Check if MFA is required
     if (response.status === 206 && response.data.mfa_required) {
-      // Return MFA data instead of throwing error
       return {
         mfaRequired: true,
         mfaToken: response.data.mfa_token,
       };
     }
 
+    const { token, user } = response.data || {};
+    if (token) {
+      setAbravelyJwtToken(token);
+    }
+
+    const formattedUser = {
+      id: user?.id || 1,
+      email: user?.email || credentials.email,
+      name: user?.name || 'Agente Abravely',
+      role: user?.role?.toLowerCase() || 'administrator',
+      account_id: 1,
+      accounts: [
+        {
+          id: 1,
+          name: 'Abravely Workspace',
+          role: user?.role?.toLowerCase() || 'administrator',
+          status: 'active',
+          availability: 'online',
+        },
+      ],
+    };
+
     const redirectUrl = getLoginRedirectURL({
       ssoAccountId,
       ssoConversationId,
-      user: response.data.data,
+      user: formattedUser,
     });
 
     if (options && options.redirect === false) {
       return {
         success: true,
         response,
-        user: response.data.data,
+        user: formattedUser,
         redirectUrl,
       };
     }
 
-    setAuthCredentials(response);
     clearLocalStorageOnLogout();
     window.location = redirectUrl;
     return null;

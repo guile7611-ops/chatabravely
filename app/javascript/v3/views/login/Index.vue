@@ -186,63 +186,26 @@ export default {
       };
 
       try {
-        // 1. Executar autenticação Rails sem redirecionar (redirect: false)
-        const railsResult = await login(credentials, { redirect: false });
+        // Autenticação única e atômica via backend Express
+        const authResult = await login(credentials, { redirect: false });
 
-        // Check if MFA is required
-        if (railsResult?.mfaRequired) {
+        if (authResult?.mfaRequired) {
           this.loginApi.showLoading = false;
           this.mfaRequired = true;
-          this.mfaToken = railsResult.mfaToken;
+          this.mfaToken = authResult.mfaToken;
           return;
         }
 
-        // Check if sessions limit reached
-        if (railsResult?.sessionsLimitReached) {
-          this.loginApi.showLoading = false;
-          this.sessionsLimitReached = true;
-          this.limitedSessions = railsResult.sessions;
-          AnalyticsHelper.track(SESSION_EVENTS.LIMIT_HIT);
-          return;
-        }
-
-        // 2. Para MFA/SSO/OAuth sem senha em memória, exigir credenciais para a sessão Express
-        if (!credentials.password) {
-          this.loginApi.hasErrored = true;
-          this.loginApi.showLoading = false;
-          this.showAlertMessage('Falha ao autenticar: Senha necessária para inicializar sessão Abravely.');
-          return;
-        }
-
-        // 3. Efetuar obtenção atômica do JWT Abravely Express
-        try {
-          await this.$store.dispatch('loginWithCredentials', {
-            email: credentials.email,
-            password: credentials.password,
-          });
-        } catch (expressErr) {
-          // Em caso de falha no Express: invalida os cookies temporários SEM acionar window.location!
-          clearBrowserSessionCookies();
-          clearLocalStorageOnLogout();
-          clearAbravelyJwtToken();
-          this.loginApi.hasErrored = true;
-          this.loginApi.showLoading = false;
-          this.showAlertMessage(
-            expressErr?.message || 'Falha ao autenticar no serviço Abravely WebSocket. O login foi cancelado.'
-          );
-          return;
-        }
-
-        // 4. Sucesso Duplo: Gravar credenciais Rails, executar impersonation e redirecionar UMA ÚNICA VEZ
-        if (railsResult.response) {
-          setAuthCredentials(railsResult.response);
+        if (authResult?.user) {
+          this.$store.commit('SET_CURRENT_USER', authResult.user);
           clearLocalStorageOnLogout();
         }
+
         this.handleImpersonation();
         this.showAlertMessage(this.$t('LOGIN.API.SUCCESS_MESSAGE'));
 
-        if (railsResult.redirectUrl) {
-          window.location = railsResult.redirectUrl;
+        if (authResult?.redirectUrl) {
+          window.location = authResult.redirectUrl;
         }
       } catch (response) {
         clearBrowserSessionCookies();

@@ -15,10 +15,10 @@ describe('#getCannedResponses', () => {
   });
 });
 
-describe('#getError', () => {
+describe('#getCannedError', () => {
   it('returns error state', () => {
     const state = { error: 'Erro ao carregar' };
-    expect(getters.getError(state)).toEqual('Erro ao carregar');
+    expect(getters.getCannedError(state)).toEqual('Erro ao carregar');
   });
 });
 

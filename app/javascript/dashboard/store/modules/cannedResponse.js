@@ -18,7 +18,7 @@ const getters = {
   getCannedResponses(_state) {
     return _state.records;
   },
-  getError(_state) {
+  getCannedError(_state) {
     return _state.error;
   },
   getSortedCannedResponses(_state) {

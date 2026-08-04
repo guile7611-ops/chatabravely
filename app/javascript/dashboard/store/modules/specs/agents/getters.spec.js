@@ -34,11 +34,11 @@ describe('#getters', () => {
     ]);
   });
 
-  it('getError', () => {
+  it('getAgentsError', () => {
     const state = {
       error: 'Mensagem de erro de teste',
     };
-    expect(getters.getError(state)).toEqual('Mensagem de erro de teste');
+    expect(getters.getAgentsError(state)).toEqual('Mensagem de erro de teste');
   });
 
   it('getVerifiedAgents', () => {

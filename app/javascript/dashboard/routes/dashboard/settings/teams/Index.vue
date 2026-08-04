@@ -22,7 +22,7 @@ const loading = ref({});
 const searchQuery = ref('');
 
 const teamsList = useMapGetter('teams/getTeams');
-const teamError = computed(() => getters['teams/getError'].value);
+const teamError = computed(() => getters['teams/getTeamsError']?.value || getters.getTeamsError?.value);
 const uiFlags = computed(() => getters['teams/getUIFlags'].value);
 
 const fetchTeams = () => {

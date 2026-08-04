@@ -67,8 +67,8 @@ describe('inboxes/getters', () => {
     },
   };
 
-  it('getError', () => {
-    expect(getters.getError(sampleState)).toEqual('Mensagem de erro de teste em inboxes');
+  it('getInboxesError', () => {
+    expect(getters.getInboxesError(sampleState)).toEqual('Mensagem de erro de teste em inboxes');
   });
 
   it('getInboxes', () => {
