@@ -71,14 +71,17 @@ export const bootstrapDashboardApp = async (mountTarget = '#app') => {
   window.WootConstants = constants;
   window.axios = createAxios(axios);
 
-  await router.isReady();
-
   if (mountTarget) {
     const el = typeof mountTarget === 'string' ? document.querySelector(mountTarget) : mountTarget;
     if (el) {
       app.mount(el);
     }
   }
+
+  // Vue Router needs the application mounted before the first route component
+  // can receive its instance reference. Awaiting isReady before mount leaves
+  // that reference null and crashes RouterView's devtools integration.
+  await router.isReady();
 
   return { app, store, router, i18n, pinia };
 };
