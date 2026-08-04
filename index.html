@@ -22,6 +22,17 @@
       };
       window.errorLoggingConfig = null;
     </script>
-    <script type="module" src="/app/javascript/entrypoints/dashboard.js"></script>
+    <script type="module">
+      const publicV3Route =
+        /^\/app\/(?:login(?:\/sso)?|auth\/(?:signup|confirmation|verify-email|password\/edit|reset\/password))$/.test(
+          window.location.pathname
+        ) || window.location.pathname === '/login';
+
+      if (publicV3Route) {
+        import('/app/javascript/entrypoints/v3app.js');
+      } else {
+        import('/app/javascript/entrypoints/dashboard.js');
+      }
+    </script>
   </body>
 </html>
