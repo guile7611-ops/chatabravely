@@ -71,9 +71,14 @@ const actions = {
     }
 
     try {
-      const {
-        data: { data },
-      } = await ConversationApi.get(params);
+      const response = await ConversationApi.get(params);
+      // O backend Abravely retorna a lista em `payload` (mantemos `data`
+      // para compatibilidade com respostas legadas do Chatwoot).
+      const data =
+        response?.data?.data ||
+        response?.data?.payload ||
+        response?.data?.conversations ||
+        [];
 
       failedFetchCount = 0;
       lastFailedParamsHash = '';

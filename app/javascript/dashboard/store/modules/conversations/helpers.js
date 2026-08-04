@@ -44,7 +44,11 @@ export const applyPageFilters = (conversation, filters) => {
   const team = meta.team || {};
   const { id: chatTeamId } = team;
 
-  let shouldFilter = filterByStatus(chatStatus, status);
+  // O backend Abravely usa `pending` para conversas na Recepção sem
+  // atendente; a interface mantém o filtro geral de conversas abertas.
+  const normalizedStatus =
+    status === 'open' && chatStatus === 'pending' ? 'open' : chatStatus;
+  let shouldFilter = filterByStatus(normalizedStatus, status);
   shouldFilter = filterByInbox(shouldFilter, inboxId, chatInboxId);
   shouldFilter = filterByTeam(shouldFilter, teamId, chatTeamId);
   shouldFilter = filterByLabel(shouldFilter, labels, chatLabels);
