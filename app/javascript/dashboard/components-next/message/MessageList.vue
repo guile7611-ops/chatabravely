@@ -163,7 +163,7 @@ const getInReplyToMessage = parentMessage => {
 </script>
 
 <template>
-  <ul class="px-4 bg-n-surface-1">
+  <ul class="chat-wallpaper px-4 bg-n-surface-1">
     <slot name="beforeAll" />
     <template v-for="(message, index) in allMessages" :key="message.id">
       <slot
@@ -184,3 +184,15 @@ const getInReplyToMessage = parentMessage => {
     <slot name="after" />
   </ul>
 </template>
+
+<style scoped>
+.chat-wallpaper {
+  background-color: #0b0f0d;
+  background-image:
+    linear-gradient(rgba(8, 12, 10, 0.18), rgba(8, 12, 10, 0.18)),
+    url('../../assets/images/chat-wallpaper.jpg');
+  background-position: center top;
+  background-repeat: repeat;
+  background-size: 540px auto;
+}
+</style>
