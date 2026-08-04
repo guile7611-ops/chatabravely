@@ -64,4 +64,23 @@ describe('Auth Store & Abravely Express JWT Integration (Strict Security Rules)'
     expect(getAbravelyJwtToken()).toBeNull();
     expect(commit).toHaveBeenCalledWith(types.CLEAR_USER);
   });
+
+  it('rejects login and guarantees no JWT token is stored when database is offline and API returns HTTP 503', async () => {
+    const errorResponse = {
+      response: {
+        status: 503,
+        data: { success: false, message: 'Serviço de banco de dados indisponível.' },
+      },
+    };
+    axios.post.mockRejectedValue(errorResponse);
+
+    await expect(
+      actions.loginWithCredentials(
+        { commit },
+        { email: 'agente@abravely.com', password: 'user-secret-password' }
+      )
+    ).rejects.toThrow();
+
+    expect(getAbravelyJwtToken()).toBeNull();
+  });
 });

@@ -27,22 +27,10 @@ export function initSocket(server: HTTPServer): SocketIOServer {
       const decoded: any = jwt.verify(token, getJwtSecret());
 
       // Validação estrita do usuário no Banco de Dados
-      let dbUser: any = null;
-      try {
-        dbUser = await prisma.user.findUnique({
-          where: { id: decoded.id },
-          select: { id: true, email: true, name: true, role: true, workspaceId: true }
-        });
-      } catch (dbErr) {
-        console.warn('⚠️ [Socket.io] Banco inacessível. Extraindo contexto do token JWT assinado.');
-        dbUser = {
-          id: decoded.id || 'user-dev-1',
-          email: decoded.email || 'agente@abravely.com',
-          name: decoded.name || 'Agente Abravely',
-          role: decoded.role || 'ADMIN',
-          workspaceId: decoded.workspaceId || 'workspace-dev-1'
-        };
-      }
+      const dbUser = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        select: { id: true, email: true, name: true, role: true, workspaceId: true }
+      });
 
       if (!dbUser) {
         return next(new Error('Autenticação WebSocket falhou: Usuário não localizado no banco de dados.'));
