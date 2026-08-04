@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { bootstrapDashboardApp } from '../../../../entrypoints/dashboard.js';
 import { clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
 
 describe('Real Production Bootstrap Integration Test for /app/login', () => {
   let container;
+  let currentApp;
 
   beforeEach(() => {
     clearAbravelyJwtToken();
@@ -13,8 +14,17 @@ describe('Real Production Bootstrap Integration Test for /app/login', () => {
     container = document.querySelector('#app');
   });
 
+  afterEach(() => {
+    if (currentApp) {
+      currentApp.unmount();
+      currentApp = null;
+    }
+    document.body.innerHTML = '';
+  });
+
   it('executes full production bootstrapDashboardApp on /app/login without mocks', async () => {
-    const { router, store } = bootstrapDashboardApp(container);
+    const { app, router, store } = bootstrapDashboardApp(container);
+    currentApp = app;
 
     await router.push('/app/login');
     await router.isReady();
@@ -32,7 +42,8 @@ describe('Real Production Bootstrap Integration Test for /app/login', () => {
   });
 
   it('redirects unauthenticated access from /app/accounts/1/dashboard to /app/login via production router guard', async () => {
-    const { router } = bootstrapDashboardApp(container);
+    const { app, router } = bootstrapDashboardApp(container);
+    currentApp = app;
 
     await router.push('/app/accounts/1/dashboard');
     await router.isReady();

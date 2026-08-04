@@ -1,9 +1,8 @@
-import * as Vue from 'vue';
+import { createApp } from 'vue';
 import { createI18n } from 'vue-i18n';
-import axios from 'axios';
 
-if (typeof globalThis !== 'undefined') globalThis.Vue = Vue;
-if (typeof window !== 'undefined') window.Vue = Vue;
+import axios from 'axios';
+import hljsVuePlugin from '@highlightjs/vue-plugin/dist/highlightjs-vue.esm.min.js';
 
 import { plugin, defaultConfig } from '@formkit/vue';
 import WootWizard from 'components/ui/Wizard.vue';
@@ -37,7 +36,7 @@ export const i18n = createI18n({
 export const pinia = createPinia();
 
 export const bootstrapDashboardApp = (mountTarget = '#app') => {
-  const app = Vue.createApp(App);
+  const app = createApp(App);
   app.use(i18n);
   app.use(store);
   app.use(pinia);
@@ -58,14 +57,7 @@ export const bootstrapDashboardApp = (mountTarget = '#app') => {
     arrowOverflow: false,
     disposeTimeout: 5000000,
   });
-
-  try {
-    const hljsVuePlugin = require('@highlightjs/vue-plugin');
-    const pluginComponent = hljsVuePlugin?.default || hljsVuePlugin;
-    if (pluginComponent) app.use(pluginComponent);
-  } catch (e) {
-    // Ignore highlightjs if not available in test runner
-  }
+  app.use(hljsVuePlugin);
 
   app.component('woot-wizard', WootWizard);
   app.component('fluent-icon', FluentIcon);
@@ -89,6 +81,10 @@ export const bootstrapDashboardApp = (mountTarget = '#app') => {
   return { app, store, router, i18n, pinia };
 };
 
-if (typeof window !== 'undefined' && document.querySelector('#app')) {
+const isTestEnv =
+  (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') ||
+  (typeof window !== 'undefined' && (window.__VITEST_ENVIRONMENT__ || window.__VITEST__));
+
+if (typeof window !== 'undefined' && document.querySelector('#app') && !isTestEnv) {
   bootstrapDashboardApp('#app');
 }
