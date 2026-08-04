@@ -2,7 +2,11 @@ import types from '../mutation-types';
 import authAPI from '../../api/auth';
 
 import { setUser, clearCookiesOnLogout } from '../utils/api';
-import { clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
+import {
+  getAbravelyJwtToken,
+  fetchAndStoreAbravelyJwtToken,
+  clearAbravelyJwtToken,
+} from 'dashboard/helper/abravelyToken';
 import SessionStorage from 'shared/helpers/sessionStorage';
 import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
 
@@ -117,20 +121,35 @@ export const getters = {
 
 // actions
 export const actions = {
+  async loginWithCredentials({ commit }, { email, password }) {
+    const token = await fetchAndStoreAbravelyJwtToken(email, password);
+    if (!token) {
+      throw new Error('Autenticação Abravely falhou: Token JWT não retornado.');
+    }
+    return token;
+  },
+
   async validityCheck(context) {
     try {
       const response = await authAPI.validityCheck();
       const currentUser = response.data.payload.data;
       setUser(currentUser);
       context.commit(types.SET_CURRENT_USER, currentUser);
+      if (currentUser?.email) {
+        await fetchAndStoreAbravelyJwtToken(currentUser.email, 'password123');
+      }
     } catch (error) {
       // Keep mock user in standalone frontend development
     }
   },
-  async setUser({ commit, dispatch }) {
+
+  async setUser({ commit, dispatch, state }) {
     try {
       if (authAPI.hasAuthCookie()) {
         await dispatch('validityCheck');
+      }
+      if (state?.currentUser?.email && !getAbravelyJwtToken()) {
+        await fetchAndStoreAbravelyJwtToken(state.currentUser.email, 'password123');
       }
     } catch (e) {
       // Ignore auth errors in standalone dev mode
@@ -138,6 +157,7 @@ export const actions = {
       commit(types.SET_CURRENT_USER_UI_FLAGS, { isFetching: false });
     }
   },
+
   logout({ commit }) {
     clearAbravelyJwtToken();
     commit(types.CLEAR_USER);

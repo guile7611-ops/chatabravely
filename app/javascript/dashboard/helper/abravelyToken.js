@@ -1,4 +1,4 @@
-/* global axios */
+import axios from 'axios';
 
 /**
  * Gerenciador da Fonte Única do JWT Abravely Chat no Frontend
