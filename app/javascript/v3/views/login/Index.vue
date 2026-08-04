@@ -3,7 +3,7 @@
 import { login } from '../../api/auth';
 import {
   setAuthCredentials,
-  clearCookiesOnLogout,
+  clearBrowserSessionCookies,
   clearLocalStorageOnLogout,
 } from 'dashboard/store/utils/api';
 import { clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
@@ -220,8 +220,8 @@ export default {
             password: credentials.password,
           });
         } catch (expressErr) {
-          // Em caso de falha no Express: invalida a sessão Rails temporária, limpa JWT e NÃO redireciona!
-          clearCookiesOnLogout();
+          // Em caso de falha no Express: invalida os cookies temporários SEM acionar window.location!
+          clearBrowserSessionCookies();
           clearLocalStorageOnLogout();
           clearAbravelyJwtToken();
           this.loginApi.hasErrored = true;
@@ -244,6 +244,7 @@ export default {
           window.location = railsResult.redirectUrl;
         }
       } catch (response) {
+        clearBrowserSessionCookies();
         clearAbravelyJwtToken();
         if (response?.errorCode === USER_NOT_CONFIRMED_ERROR_CODE) {
           this.loginApi.showLoading = false;
@@ -271,8 +272,30 @@ export default {
 
       this.submitLogin();
     },
-    handleMfaVerified() {
-      // MFA verification successful, continue with login
+    async handleMfaVerified() {
+      if (!this.credentials.password) {
+        clearBrowserSessionCookies();
+        clearLocalStorageOnLogout();
+        clearAbravelyJwtToken();
+        this.loginApi.hasErrored = true;
+        this.showAlertMessage('Falha ao autenticar no serviço Abravely WebSocket após MFA: Senha necessária.');
+        return;
+      }
+      try {
+        await this.$store.dispatch('loginWithCredentials', {
+          email: this.email ? decodeURIComponent(this.email) : this.credentials.email,
+          password: this.credentials.password,
+        });
+      } catch (expressErr) {
+        clearBrowserSessionCookies();
+        clearLocalStorageOnLogout();
+        clearAbravelyJwtToken();
+        this.loginApi.hasErrored = true;
+        this.showAlertMessage(
+          expressErr?.message || 'Falha ao autenticar no serviço Abravely WebSocket. O login foi cancelado.'
+        );
+        return;
+      }
       this.handleImpersonation();
       window.location = '/app';
     },
@@ -282,39 +305,14 @@ export default {
       this.mfaToken = null;
       this.credentials.password = '';
     },
-    retryLoginWithParams(extraParams) {
-      const credentials = {
-        email: this.email
-          ? decodeURIComponent(this.email)
-          : this.credentials.email,
-        password: this.credentials.password,
-        sso_auth_token: this.ssoAuthToken,
-        ssoAccountId: this.ssoAccountId,
-        ssoConversationId: this.ssoConversationId,
-        ...extraParams,
-      };
-
+    async retryLoginWithParams(extraParams) {
       this.sessionsLimitReached = false;
       this.limitedSessions = [];
-      this.loginApi.showLoading = true;
-      login(credentials)
-        .then(result => {
-          if (result?.sessionsLimitReached) {
-            this.loginApi.showLoading = false;
-            this.sessionsLimitReached = true;
-            this.limitedSessions = result.sessions;
-            AnalyticsHelper.track(SESSION_EVENTS.LIMIT_HIT);
-            return;
-          }
-          this.handleImpersonation();
-          this.showAlertMessage(this.$t('LOGIN.API.SUCCESS_MESSAGE'));
-        })
-        .catch(response => {
-          this.loginApi.hasErrored = true;
-          this.showAlertMessage(
-            response?.message || this.$t('LOGIN.API.UNAUTH')
-          );
-        });
+      this.credentials = {
+        ...this.credentials,
+        ...extraParams,
+      };
+      await this.submitLogin();
     },
     handleSessionRevoke(sessionId) {
       this.retryLoginWithParams({ revoke_session_id: sessionId });

@@ -77,7 +77,6 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     await wrapper.vm.submitLogin();
     await flushPromises();
 
-    // 1. Confirmar que o login Rails foi chamado com redirect: false
     expect(authAPI.login).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'agente@abravely.com',
@@ -86,22 +85,18 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
       { redirect: false }
     );
 
-    // 2. Confirmar dispatch para obter JWT Express
     expect(dispatchMock).toHaveBeenCalledWith('loginWithCredentials', {
       email: 'agente@abravely.com',
       password: 'minhasenha123',
     });
 
-    // 3. Confirmar persistencia do JWT
     expect(getAbravelyJwtToken()).toBe('header.payload.signature_real_xyz');
-
-    // 4. Confirmar que o redirecionamento via window.location ocorreu apenas ao final
     expect(setAuthCredentialsSpy).toHaveBeenCalledTimes(1);
     expect(window.location).toBe('/app/accounts/1/dashboard');
   });
 
-  it('invalidates Rails session and clears JWT when Express login fails, preventing redirect', async () => {
-    const clearCookiesSpy = vi.spyOn(apiUtils, 'clearCookiesOnLogout');
+  it('remains strictly on login page (http://localhost/app/login) and clears session when Express fails', async () => {
+    const clearCookiesSpy = vi.spyOn(apiUtils, 'clearBrowserSessionCookies');
     const clearLocalStorageSpy = vi.spyOn(apiUtils, 'clearLocalStorageOnLogout');
 
     authAPI.login.mockResolvedValue({
@@ -125,20 +120,37 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     await wrapper.vm.submitLogin();
     await flushPromises();
 
-    // 1. Confirmar tentativa de obtencao
-    expect(dispatchMock).toHaveBeenCalledWith('loginWithCredentials', {
-      email: 'agente@abravely.com',
-      password: 'senhaerrada',
-    });
-
-    // 2. Confirmar limpeza das sessoes Rails e JWT
+    // Confirmar limpeza dos cookies sem acionar redirecionamento
     expect(clearCookiesSpy).toHaveBeenCalled();
     expect(clearLocalStorageSpy).toHaveBeenCalled();
     expect(getAbravelyJwtToken()).toBeNull();
 
-    // 3. Confirmar que window.location NAO foi alterado para a URL do dashboard
+    // PROVA ESTRITA: window.location permanece intacto na pagina de login
     expect(wrapper.vm.loginApi.hasErrored).toBe(true);
-    expect(window.location).not.toBe('/app/accounts/1/dashboard');
+    expect(window.location.href).toBe('http://localhost/app/login');
+  });
+
+  it('executes atomic JWT fetch on handleMfaVerified before redirecting to /app', async () => {
+    dispatchMock.mockImplementation((action) => {
+      if (action === 'loginWithCredentials') {
+        window.chatwootConfig.abravelyJwtToken = 'mfa_jwt_token_123';
+        return Promise.resolve('mfa_jwt_token_123');
+      }
+      return Promise.resolve();
+    });
+
+    const wrapper = getWrapper();
+    wrapper.vm.credentials.email = 'agente@abravely.com';
+    wrapper.vm.credentials.password = 'senhaMfa123';
+
+    await wrapper.vm.handleMfaVerified();
+    await flushPromises();
+
+    expect(dispatchMock).toHaveBeenCalledWith('loginWithCredentials', {
+      email: 'agente@abravely.com',
+      password: 'senhaMfa123',
+    });
+    expect(window.location).toBe('/app');
   });
 
   it('guarantees that password is never persisted in storage or global config', async () => {
