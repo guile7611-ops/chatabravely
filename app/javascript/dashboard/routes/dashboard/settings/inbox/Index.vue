@@ -38,11 +38,15 @@ const filteredInboxesList = computed(() => {
 });
 
 const uiFlags = computed(() => getters['inboxes/getUIFlags'].value);
+const inboxError = computed(() => getters['inboxes/getError'].value);
+
+const fetchInboxes = () => {
+  store.dispatch('inboxes/get');
+};
 
 const deleteConfirmText = computed(
   () => `${t('INBOX_MGMT.DELETE.CONFIRM.YES')} ${selectedInbox.value.name}`
 );
-
 const deleteRejectText = computed(
   () => `${t('INBOX_MGMT.DELETE.CONFIRM.NO')} ${selectedInbox.value.name}`
 );
@@ -62,7 +66,8 @@ const deleteInbox = async ({ id }) => {
     await store.dispatch('inboxes/delete', id);
     useAlert(t('INBOX_MGMT.DELETE.API.SUCCESS_MESSAGE'));
   } catch (error) {
-    useAlert(t('INBOX_MGMT.DELETE.API.SUCCESS_MESSAGE'));
+    const errorMsg = getters['inboxes/getError'].value || error.message;
+    useAlert(errorMsg);
   }
 };
 const closeDelete = () => {
@@ -115,7 +120,7 @@ const getStatusDotClass = inbox => {
 
 <template>
   <SettingsLayout
-    :no-records-found="!inboxesList.length"
+    :no-records-found="!inboxesList.length && !inboxError && !uiFlags.isFetching"
     :no-records-message="$t('INBOX_MGMT.LIST.404')"
     :is-loading="uiFlags.isFetching"
   >
@@ -141,8 +146,20 @@ const getStatusDotClass = inbox => {
       </BaseSettingsHeader>
     </template>
     <template #body>
+      <div
+        v-if="inboxError"
+        class="bg-n-ruby-2 border border-n-ruby-4 text-n-ruby-11 p-4 rounded-xl flex items-center justify-between my-4"
+      >
+        <span>{{ inboxError }}</span>
+        <Button
+          label="Tentar novamente"
+          size="sm"
+          :disabled="uiFlags.isFetching"
+          @click="fetchInboxes"
+        />
+      </div>
       <span
-        v-if="!filteredInboxesList.length && searchQuery"
+        v-else-if="!filteredInboxesList.length && searchQuery"
         class="flex-1 flex items-center justify-center py-20 text-center text-body-main !text-base text-n-slate-11"
       >
         {{ $t('INBOX_MGMT.NO_RESULTS') }}

@@ -13,74 +13,9 @@ import camelcaseKeys from 'camelcase-keys';
 import { ACCOUNT_EVENTS } from '../../helper/AnalyticsHelper/events';
 import { channelActions, buildInboxData } from './inboxes/channelActions';
 
-const LOCAL_STORAGE_KEY = 'chatabravely_inboxes_v1';
-const DELETED_STORAGE_KEY = 'chatabravely_deleted_inbox_ids_v1';
-
-const getDeletedInboxIds = () => {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage) return [];
-    const raw = window.localStorage.getItem(DELETED_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    return [];
-  }
-};
-
-const addDeletedInboxId = (id) => {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage) return;
-    const current = getDeletedInboxIds();
-    if (!current.includes(id)) {
-      current.push(id);
-      window.localStorage.setItem(DELETED_STORAGE_KEY, JSON.stringify(current));
-    }
-  } catch (e) {}
-};
-
-const getInboxesFromStorage = () => {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage) return null;
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    const deletedIds = getDeletedInboxIds();
-    return parsed.filter(item => item && !deletedIds.includes(item.id));
-  } catch (e) {
-    return null;
-  }
-};
-
-const defaultInboxes = [
-  {
-    id: 1,
-    name: 'WhatsApp Oficial (Meta Cloud API)',
-    channel_type: 'Channel::Whatsapp',
-    phone_number: '+5511999999999',
-    avatar_url: '',
-    provider: 'default',
-  },
-  {
-    id: 2,
-    name: 'WhatsApp Vendas (Evolution API)',
-    channel_type: 'Channel::Whatsapp',
-    phone_number: '+5511988888888',
-    avatar_url: '',
-    provider: 'default',
-  },
-];
-
-const getInitialRecords = () => {
-  const stored = getInboxesFromStorage();
-  const list = stored !== null ? stored : defaultInboxes;
-  const deletedIds = getDeletedInboxIds();
-  return list.filter(item => item && !deletedIds.includes(item.id));
-};
-
 export const state = {
-  records: getInitialRecords(),
+  records: [],
+  error: null,
   uiFlags: {
     isFetching: false,
     isFetchingItem: false,
@@ -93,6 +28,9 @@ export const state = {
 };
 
 export const getters = {
+  getError($state) {
+    return $state.error;
+  },
   getInboxes($state) {
     return $state.records;
   },
@@ -135,22 +73,18 @@ export const getters = {
     }
 
     return templates.filter(template => {
-      // Ensure template has required properties
       if (!template || !template.status || !template.components) {
         return false;
       }
 
-      // Only show approved templates
       if (template.status.toLowerCase() !== 'approved') {
         return false;
       }
 
-      // Filter out authentication templates
       if (template.category === 'AUTHENTICATION') {
         return false;
       }
 
-      // Filter out CSAT templates (customer_satisfaction_survey and its versions)
       if (
         template.name &&
         template.name.startsWith('customer_satisfaction_survey')
@@ -158,7 +92,6 @@ export const getters = {
         return false;
       }
 
-      // Filter out interactive templates (LIST, PRODUCT, CATALOG), location templates, and call permission templates
       const hasUnsupportedComponents = template.components.some(
         component =>
           ['LIST', 'PRODUCT', 'CATALOG', 'CALL_PERMISSION_REQUEST'].includes(
@@ -268,60 +201,41 @@ export const actions = {
     }
   },
   get: async ({ commit }) => {
+    commit('SET_INBOX_ERROR', null);
     commit(types.default.SET_INBOXES_UI_FLAG, { isFetching: true });
     try {
       const response = await InboxesAPI.get(true);
-      commit(types.default.SET_INBOXES_UI_FLAG, { isFetching: false });
-      commit(types.default.SET_INBOXES, response.data.payload);
+      const payload = response.data?.payload || response.data || [];
+      commit(types.default.SET_INBOXES, Array.isArray(payload) ? payload : []);
+      commit('SET_INBOX_ERROR', null);
     } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao carregar caixas de entrada';
+      commit('SET_INBOX_ERROR', errorMessage);
+    } finally {
       commit(types.default.SET_INBOXES_UI_FLAG, { isFetching: false });
     }
   },
-  createMetaChannel: async ({ commit, state }, payload) => {
+  createMetaChannel: async ({ commit }, payload) => {
+    commit('SET_INBOX_ERROR', null);
     commit(types.default.SET_INBOXES_UI_FLAG, { isCreating: true });
     try {
-      let channelData = null;
-      try {
-        const response = await axios.post('/api/v1/channels/meta/save', payload);
-        if (response.data && response.data.channel) {
-          channelData = response.data.channel;
-        }
-      } catch (e) {
-        // Fallback para dev local
-      }
-
-      const mockId = channelData?.id || Date.now();
-      const newInbox = {
-        id: mockId,
-        name: payload.name || 'WhatsApp Meta Cloud API (Oficial)',
-        channel_type: 'Channel::MetaCloud',
-        phone_number: payload.phone_number || payload.metaPhoneNumberId || '',
-        avatar_url: '',
-        provider: 'whatsapp_cloud',
-        connection_status: 'CONNECTED',
-        status: 'CONNECTED',
-        reauthorization_required: false,
-        metaPhoneNumberId: payload.metaPhoneNumberId,
-        metaWabaId: payload.metaWabaId,
-        metaToken: payload.metaToken,
-        ...channelData,
-      };
-
+      const response = await axios.post('/api/v1/channels/meta/save', payload);
+      const newInbox = response.data?.channel || response.data;
       commit(types.default.ADD_INBOXES, newInbox);
-      commit(types.default.SET_INBOXES_UI_FLAG, { isCreating: false });
-
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          const list = [...state.records, newInbox];
-          const unique = Array.from(new Map(list.map(item => [item.id, item])).values());
-          window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(unique));
-        }
-      } catch (e) {}
-
+      commit('SET_INBOX_ERROR', null);
       return newInbox;
     } catch (error) {
-      commit(types.default.SET_INBOXES_UI_FLAG, { isCreating: false });
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao criar canal Meta Cloud API';
+      commit('SET_INBOX_ERROR', errorMessage);
       throw error;
+    } finally {
+      commit(types.default.SET_INBOXES_UI_FLAG, { isCreating: false });
     }
   },
   createChannel: async ({ commit }, params) => {
@@ -391,11 +305,6 @@ export const actions = {
     }
   },
   ...channelActions,
-  // TODO: Extract other create channel methods to separate files to reduce file size
-  // - createChannel
-  // - createWebsiteChannel
-  // - createTwilioChannel
-  // - createFBChannel
   updateInbox: async ({ commit }, { id, formData = true, ...inboxParams }) => {
     commit(types.default.SET_INBOXES_UI_FLAG, { isUpdating: true });
     try {
@@ -433,13 +342,20 @@ export const actions = {
     }
   },
   delete: async ({ commit }, inboxId) => {
+    commit('SET_INBOX_ERROR', null);
     commit(types.default.SET_INBOXES_UI_FLAG, { isDeleting: true });
     try {
       await InboxesAPI.delete(inboxId);
-    } catch (error) {
-      // Suppress error so connection is deleted locally
-    } finally {
       commit(types.default.DELETE_INBOXES, inboxId);
+      commit('SET_INBOX_ERROR', null);
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao remover caixa de entrada';
+      commit('SET_INBOX_ERROR', errorMessage);
+      throw error;
+    } finally {
       commit(types.default.SET_INBOXES_UI_FLAG, { isDeleting: false });
     }
   },
@@ -493,32 +409,20 @@ export const actions = {
 };
 
 export const mutations = {
+  SET_INBOX_ERROR($state, error) {
+    $state.error = error;
+  },
   [types.default.SET_INBOXES_UI_FLAG]($state, uiFlag) {
     $state.uiFlags = { ...$state.uiFlags, ...uiFlag };
   },
   [types.default.SET_INBOXES]($state, records) {
-    const deletedIds = getDeletedInboxIds();
-    const filteredRecords = Array.isArray(records)
-      ? records.filter(item => item && !deletedIds.includes(item.id))
-      : [];
-    MutationHelpers.set($state, filteredRecords);
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify($state.records));
-      }
-    } catch (e) {}
+    MutationHelpers.set($state, Array.isArray(records) ? records : []);
   },
   [types.default.SET_INBOXES_ITEM]: MutationHelpers.setSingleRecord,
   [types.default.ADD_INBOXES]: MutationHelpers.create,
   [types.default.EDIT_INBOXES]: MutationHelpers.update,
   [types.default.DELETE_INBOXES]($state, inboxId) {
-    addDeletedInboxId(inboxId);
     MutationHelpers.destroy($state, inboxId);
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify($state.records));
-      }
-    } catch (e) {}
   },
 };
 
