@@ -37,10 +37,12 @@ const isFeatureEnabledonAccount = useMapGetter(
 
 const showChatSupport = computed(() => {
   return (
+    typeof isFeatureEnabledonAccount?.value === 'function' &&
     isFeatureEnabledonAccount.value(
       accountId.value,
       FEATURE_FLAGS.CONTACT_CHATWOOT_SUPPORT_TEAM
-    ) && globalConfig.value.chatwootInboxToken
+    ) &&
+    Boolean(globalConfig.value?.chatwootInboxToken)
   );
 });
 

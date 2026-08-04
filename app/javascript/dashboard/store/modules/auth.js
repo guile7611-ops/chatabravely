@@ -134,12 +134,14 @@ export const actions = {
     try {
       const response = await authAPI.validityCheck();
       const currentUser = response.data?.payload?.data || response.data;
-      if (currentUser) {
+      if (currentUser && currentUser.id) {
         setUser(currentUser);
         context.commit(types.SET_CURRENT_USER, currentUser);
       }
     } catch (error) {
-      // Keep mock user in standalone frontend development
+      if (error.response && (error.response.status === 401 || error.response.status === 404)) {
+        clearAbravelyJwtToken();
+      }
     }
   },
 

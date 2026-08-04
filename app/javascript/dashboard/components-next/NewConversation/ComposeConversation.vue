@@ -76,7 +76,7 @@ const sendWithSignature = computed(() =>
 );
 
 const directUploadsEnabled = computed(
-  () => globalConfig.value.directUploadsEnabled
+  () => Boolean(globalConfig.value?.directUploadsEnabled)
 );
 
 const activeContact = computed(() => contactById.value(props.contactId));

@@ -15,6 +15,8 @@ import NoAccounts from './noAccounts/Index.vue';
 import OnboardingAccountDetails from './onboarding/Index.vue';
 import OnboardingInboxSetup from './onboarding/InboxSetup.vue';
 
+import LoginView from 'v3/views/login/Index.vue';
+
 export default {
   routes: [
     {
@@ -27,11 +29,13 @@ export default {
     },
     {
       path: '/app/login',
-      redirect: '/app/accounts/1/dashboard',
+      name: 'login',
+      component: LoginView,
     },
     {
       path: '/login',
-      redirect: '/app/accounts/1/dashboard',
+      name: 'auth_login',
+      component: LoginView,
     },
     {
       path: frontendURL('accounts/:accountId'),
