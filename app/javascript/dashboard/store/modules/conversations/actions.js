@@ -52,6 +52,7 @@ const actions = {
   },
 
   fetchAllConversations: async ({ commit, state, dispatch }) => {
+    commit(types.SET_CONVERSATIONS_ERROR, null);
     const params = state.conversationFilters;
     const paramsHash = JSON.stringify(params || {});
     const now = Date.now();
@@ -83,10 +84,16 @@ const actions = {
         data,
         params.assigneeType
       );
+      commit(types.SET_CONVERSATIONS_ERROR, null);
     } catch (error) {
       failedFetchCount += 1;
       lastFailedParamsHash = paramsHash;
       lastFailedTime = Date.now();
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao carregar conversas';
+      commit(types.SET_CONVERSATIONS_ERROR, errorMessage);
       console.warn(
         '[API 500 Circuit Breaker] Interrompendo chamadas em loop de conversas:',
         paramsHash

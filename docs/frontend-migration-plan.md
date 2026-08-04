@@ -14,7 +14,7 @@ Os seguintes elementos são mantidos como infraestrutura de interface (UI Shell)
 
 - **Shell Principal**: `App.vue`, `Dashboard.vue` e barra lateral (`NextSidebar` / `Sidebar.vue`).
 - **Hierarquia de Roteamento**: `<router-view>` em `Dashboard.vue` e `SettingsWrapper.vue`.
-- **URLs Legadas**: Compatibilidade temporária mantida para `/app/accounts/:accountId/dashboard`, `/app/accounts/:accountId/settings/*`.
+- **URLs Legadas**: Compatibilidade temporária mantida para `/app/accounts/:accountId/dashboard`, `/app/accounts/:accountId/settings/*`, `/app/accounts/:accountId/conversations/*`.
 - **Componentes Básicos de Design**: Componentes de UI genéricos (botões, modais, formulários, ícones).
 
 ---
@@ -58,41 +58,23 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
-│ Fase 6: Painel Central de Conversas (dashboard / socket.io) │
+│ Fase 6: Painel Central de Conversas (Em Progresso)          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Detalhes da Fase 3 (Caixas de Entrada / Canais)
-- **Regras Removidas**:
-  - Eliminados os registros de inboxes fictícios em memória (`defaultInboxes`).
-  - Eliminada a persistência paralela e fallbacks em `localStorage` (`chatabravely_inboxes_v1`).
-  - Eliminada a exclusão local falsa (`fake delete`) quando a API de exclusão falhava.
-- **Adaptadores Temporários Mantidos**:
-  - Adaptadores de payload e de criação para canais legados (`WebChannel`, `FBChannel`, `TwilioChannel`, `WhatsappChannel`, `channelActions`, `buildInboxData`).
-- **Pendências Futuras (Meta Cloud & Evolution API)**:
-  - **Meta Cloud API**: Integração completa do callback de verificação de Webhook via backend e geração dinâmica de Verify Token.
-  - **Evolution API**: Lifecycle em tempo real via WebSocket de status da instância (polling do QR code e sincronização de desconexão).
+### Detalhes da Fase 6 (Painel Central de Conversas, Recepção e Tempo Real)
 
-### Detalhes da Fase 4 (Times, Departamentos e Membros)
-- **Regras Removidas & Refatorações**:
-  - Removido o comportamento de limpeza imediata da lista (`CLEAR_TEAMS`) antes da resposta de erro da API. A lista anterior é totalmente preservada em falhas de atualização/busca.
-  - Adicionado tratamento de erro real com `error: null` nos módulos `teams` e `teamMembers`, com getters `getError` correspondentes.
-  - A ação `teamMembers/get` armazena a mensagem de erro real, encerra `isFetching` no `finally` e relança a exceção (`throw error`) para permitir tratamento adequado nos componentes consumidores.
-  - Conectado aviso visual de erro com botão "Tentar novamente" (*retry*) em `settings/teams/Index.vue`, `AddAgents.vue` e `EditAgents.vue`.
-  - Garantido encerramento de todas as `uiFlags` (`isFetching`, `isCreating`, `isUpdating`, `isDeleting`) no bloco `finally`.
-  - Impedido o fechamento da tela/modal como sucesso falso quando houver erro de API ao adicionar ou remover membros.
-- **Autoridade Única do Backend**:
-  - O frontend atua estritamente como consumidor dos departamentos e membros cadastrados. Nenhuma decisão de roteamento ou atribuição de conversas por departamento é calculada no cliente.
-
-### Detalhes da Fase 5 (Etiquetas e Respostas Rápidas)
-- **Recursos Puramente Operacionais**:
-  - Etiquetas e Respostas Rápidas atuam estritamente como ferramentas visuais e de produtividade no atendimento. Não influenciam regras de conversa, filas, triagem ou atribuição de departamentos.
-- **Regras Removidas & Refatorações**:
-  - Eliminado o engolimento silencioso de erros (`catch (error) {}`) em `labels/get`, `labels/create`, `labels/update`, `labels/delete` e em `getCannedResponse`, `createCannedResponse`, `updateCannedResponse`, `deleteCannedResponse`.
-  - Adicionado estado `error: null` em ambos os módulos Vuex, mutações `SET_LABEL_ERROR` e `SET_CANNED_ERROR`, e getters `getError`.
-  - Todas as ações relançam exceções (`throw error`) quando a API falha, garantindo que formulários e modais permaneçam abertos em falha com mensagens reais e sem fechamento falso.
-  - Conectados banners de erro com botão **"Tentar novamente"** em `settings/labels/Index.vue` e `settings/canned/Index.vue`, desabilitados durante o carregamento.
-  - Garantido encerramento de todas as `uiFlags` no bloco `finally`.
+- **Fluxo Atual vs. Fluxo-Alvo**:
+  - *Fluxo Atual*: O frontend dependia do ActionCable do Rails e de calculadores de filtro locais no Chatwoot para definir status, atendentes e abas de conversas.
+  - *Fluxo-Alvo*: O backend Abravely Chat é a autoridade única. Toda mensagem sem atendente é enviada para a **Recepção** (`unassigned`). A conversa transiciona para **Minhas/Ativas** exclusivamente após a atribuição real confirmada pela API. O departamento (`departmentId`) é estritamente gerenciado pelo backend.
+- **Isolamento e Migração Segura do ActionCable**:
+  - O conector legado do ActionCable é mantido para presença de usuários e notificações secundárias de sistema.
+  - O conector **Socket.io** (`socketIoConnector.js`) assume o controle em tempo real de eventos de conversa (`conversation.created`, `conversation.updated`, `message.created`, `conversation.assigned`, `conversation.status_updated`).
+  - Transição gradual: remoção do ActionCable ocorrerá apenas em fase posterior após validação completa da suíte de tempo real Abravely.
+- **Contrato Abravely Chat e Adaptadores Temporários**:
+  - **Conversa**: `{ id, status, inboxId, assignedAgentId, departmentId, unreadCount, lastMessageAt, contact, messages }`
+  - **Mensagem**: `{ id, conversationId, content, direction, createdAt, sender }`
+  - **Adaptador (`abravelyAdapter.js`)**: Converte o payload e eventos Abravely para os campos legados esperados pelos componentes da UI (`meta.assignee`, `meta.team`, `meta.sender`, `message_type`, `created_at`).
 
 ---
 
@@ -101,7 +83,7 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 Para evitar a remoção brusca de código e garantir zero regressão visual:
 
 1. **Facade de API**: Todas as chamadas do frontend passarão por um módulo central `src/api/abravelyClient.ts`.
-2. **Data Mappers (Adaptadores)**: Mapeamento direto dos payloads retornados pelos nossos endpoints Prisma/Express para os formatos consumidos pela UI.
+2. **Data Mappers (Adaptadores)**: Mapeamento direto dos payloads retornados pelos nossos endpoints Prisma/Express para os formatos consumidos pela UI (`abravelyAdapter.js`).
 3. **Tratamento Transparente de Erros**:
    - Proibido o uso de mock fallbacks (dados fictícios inseridos em memória para ocultar falhas).
    - Erros de rede ou permissão devem ser apresentados ao usuário via estados visuais de erro ou notificações (toasts).

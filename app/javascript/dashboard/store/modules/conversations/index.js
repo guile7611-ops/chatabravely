@@ -10,6 +10,7 @@ import { CONTENT_TYPES } from 'dashboard/components-next/message/constants.js';
 
 const state = {
   allConversations: [],
+  error: null,
   attachments: {},
   listLoadingStatus: false,
   chatStatusFilter: wootConstants.STATUS_TYPE.OPEN,
@@ -31,6 +32,9 @@ const getConversationById = _state => conversationId => {
 
 // mutations
 export const mutations = {
+  [types.SET_CONVERSATIONS_ERROR](_state, error) {
+    _state.error = error;
+  },
   [types.SET_ALL_CONVERSATION](_state, conversationList) {
     const newAllConversations = [..._state.allConversations];
     conversationList.forEach(conversation => {

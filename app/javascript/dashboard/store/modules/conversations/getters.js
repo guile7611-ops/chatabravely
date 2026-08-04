@@ -176,6 +176,8 @@ const getters = {
   getCopilotAssistant: _state => {
     return _state.copilotAssistant;
   },
+
+  getError: _state => _state.error,
 };
 
 export default getters;
