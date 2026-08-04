@@ -308,14 +308,14 @@ export default {
   >
     <section class="max-w-5xl mx-auto">
       <img
-        :src="globalConfig.logo"
-        :alt="globalConfig.installationName"
+        :src="globalConfig?.logo || '/brand-assets/logo.svg'"
+        :alt="globalConfig?.installationName || 'Abravely Chat'"
         class="block w-auto h-8 mx-auto dark:hidden"
       />
       <img
-        v-if="globalConfig.logoDark"
-        :src="globalConfig.logoDark"
-        :alt="globalConfig.installationName"
+        v-if="globalConfig?.logoDark"
+        :src="globalConfig?.logoDark || '/brand-assets/logo_dark.svg'"
+        :alt="globalConfig?.installationName || 'Abravely Chat'"
         class="hidden w-auto h-8 mx-auto dark:block"
       />
       <h2 class="mt-6 text-3xl font-medium text-center text-n-slate-12">
@@ -405,7 +405,7 @@ export default {
             :has-error="v$.credentials.password.$error"
             @input="v$.credentials.password.$touch"
           >
-            <p v-if="!globalConfig.disableUserProfileUpdate">
+            <p v-if="!globalConfig?.disableUserProfileUpdate">
               <router-link
                 to="auth/reset/password"
                 class="text-sm text-link"
