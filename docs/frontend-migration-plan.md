@@ -64,11 +64,14 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 
 - **Status das Fases**:
   - **Fase 6A (Integração Real Socket.io & Adaptadores)**: CONCLUÍDA.
+    - Fonte única do JWT Abravely implementada em `abravelyToken.js`, eliminando uso de headers Devise/Rails (`cw_d_session_info` / `access-token`).
+    - Validação estrita: O conector `socketIoConnector.js` recusa a conexão e exibe mensagem explícita caso não exista JWT Abravely assinado pelo Express.
     - Dependência `socket.io-client` instalada e versionada em `pnpm-lock.yaml`.
-    - Cliente real Socket.io implementado em `socketIoConnector.js` com ciclo de vida completo (`connect`, `disconnect`, `connect_error`, `reconnect`, `reconnect_failed`).
+    - Cliente real Socket.io implementado com ciclo de vida completo (`connect`, `disconnect`, `connect_error`, `reconnect`, `reconnect_failed`).
     - Eventos de domínio em tempo real integrados com deduplicação rotativa em memória: `conversation.created`, `conversation.updated`, `message.created`, `conversation.assigned`, `conversation.status_updated`.
     - Instância singleton gerenciada no ciclo de vida da aplicação Vue em `App.vue` (`initializeSocketIo`/`destroySocketIo`).
     - Tratamento visual de erros e reconexão ("Tentar novamente") na tela de conversas (`ConversationView.vue`).
+    - Suíte de testes unitários e de integração real (`socketIoIntegration.spec.js`) validada.
   - **Fase 6 (Validação Completa em Produção)**: PENDENTE até validação E2E final em ambiente de produção com backend Abravely.
 
 ### Detalhes da Fase 6 (Painel Central de Conversas, Recepção e Tempo Real)

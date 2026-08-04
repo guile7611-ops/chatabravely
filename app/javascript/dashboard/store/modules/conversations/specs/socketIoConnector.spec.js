@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import SocketIoConnector, { getAuthToken, getSocketUrl } from 'dashboard/helper/socketIoConnector';
+import SocketIoConnector, { getSocketUrl } from 'dashboard/helper/socketIoConnector';
+import { setAbravelyJwtToken, clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
 import { io } from 'socket.io-client';
 
 const eventHandlers = {};
@@ -19,17 +20,6 @@ vi.mock('socket.io-client', () => ({
   })),
 }));
 
-vi.mock('js-cookie', () => ({
-  default: {
-    get: vi.fn((key) => {
-      if (key === 'cw_d_session_info') {
-        return JSON.stringify({ token: 'mock-jwt-token-123' });
-      }
-      return null;
-    }),
-  },
-}));
-
 const mockDispatch = vi.fn();
 const mockCommit = vi.fn();
 
@@ -46,24 +36,35 @@ const mockApp = {
 
 describe('SocketIoConnector Real Authenticated Integration', () => {
   let connector;
+  const validJwt = 'header.payload.signature';
 
   beforeEach(() => {
     mockDispatch.mockClear();
     mockCommit.mockClear();
     Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key]);
+    clearAbravelyJwtToken();
     connector = new SocketIoConnector(mockApp);
-    connector.connect();
   });
 
-  it('extracts JWT token and passes token in handshake auth without query string', () => {
-    const token = getAuthToken();
-    expect(token).toBe('mock-jwt-token-123');
+  it('refuses connection if no valid Abravely JWT is present', () => {
+    connector.connect();
+    expect(connector.isConnected).toBe(false);
+    expect(mockCommit).toHaveBeenCalledWith(
+      'SET_CONVERSATIONS_ERROR',
+      expect.stringContaining('JWT Abravely não localizado')
+    );
+    expect(io).not.toHaveBeenCalled();
+  });
+
+  it('connects and passes token in handshake auth when valid Abravely JWT exists', () => {
+    setAbravelyJwtToken(validJwt);
+    connector.connect();
 
     expect(io).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
         auth: {
-          token: 'mock-jwt-token-123',
+          token: validJwt,
         },
       })
     );
@@ -75,6 +76,9 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
   });
 
   it('handles connect_error by committing SET_CONVERSATIONS_ERROR mutation', () => {
+    setAbravelyJwtToken(validJwt);
+    connector.connect();
+
     eventHandlers['connect_error']({ message: 'Autenticação WebSocket falhou' });
     expect(mockCommit).toHaveBeenCalledWith(
       'SET_CONVERSATIONS_ERROR',
@@ -83,11 +87,17 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
   });
 
   it('handles reconnect by resetting SET_CONVERSATIONS_ERROR mutation', () => {
+    setAbravelyJwtToken(validJwt);
+    connector.connect();
+
     eventHandlers['reconnect']();
     expect(mockCommit).toHaveBeenCalledWith('SET_CONVERSATIONS_ERROR', null);
   });
 
   it('deduplicates duplicate canonical and alias events', () => {
+    setAbravelyJwtToken(validJwt);
+    connector.connect();
+
     const payload = {
       id: 99,
       conversationId: 'uuid-conversa-123',
@@ -108,6 +118,9 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
   });
 
   it('handles conversation.assigned by dispatching updateConversation', () => {
+    setAbravelyJwtToken(validJwt);
+    connector.connect();
+
     const payload = {
       id: 'uuid-conversa-123',
       assignedAgentId: 5,
@@ -126,6 +139,9 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
   });
 
   it('cleans up handlers on disconnect', () => {
+    setAbravelyJwtToken(validJwt);
+    connector.connect();
+
     connector.disconnect();
     expect(connector.socket).toBeNull();
     expect(connector.isConnected).toBe(false);

@@ -1,32 +1,10 @@
 import { io } from 'socket.io-client';
-import Cookies from 'js-cookie';
-import Auth from 'dashboard/api/auth';
+import { getAbravelyJwtToken } from './abravelyToken';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { toUIConversation, toUIMessage } from 'dashboard/store/modules/conversations/abravelyAdapter';
 
 const DEDUPLICATION_LIMIT = 200;
-
-export const getAuthToken = () => {
-  if (Auth && typeof Auth.getAuthData === 'function' && Auth.hasAuthCookie()) {
-    const authData = Auth.getAuthData() || {};
-    return (
-      authData.token ||
-      authData['access-token'] ||
-      authData.auth_token ||
-      authData['auth-token'] ||
-      Cookies.get('auth_token') ||
-      Cookies.get('cw_d_session_info') ||
-      ''
-    );
-  }
-  return (
-    Cookies.get('auth_token') ||
-    Cookies.get('cw_d_session_info') ||
-    (typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : '') ||
-    ''
-  );
-};
 
 export const getSocketUrl = () => {
   const { websocketURL = '' } = window.chatwootConfig || {};
@@ -39,6 +17,7 @@ export const getSocketUrl = () => {
 
 /**
  * Conector Socket.io Autenticado do Abravely Chat
+ * Validação Estrita de JWT do Express
  */
 class SocketIoConnector {
   constructor(app, options = {}) {
@@ -70,7 +49,20 @@ class SocketIoConnector {
       return;
     }
 
-    const token = getAuthToken();
+    const token = getAbravelyJwtToken();
+
+    // Se não houver JWT Abravely válido, recusa a conexão e registra erro explícito na store
+    if (!token) {
+      this.isConnected = false;
+      if (this.app?.$store) {
+        this.app.$store.commit(
+          'SET_CONVERSATIONS_ERROR',
+          'Autenticação WebSocket falhou: JWT Abravely não localizado. Faça login novamente.'
+        );
+      }
+      return;
+    }
+
     const targetUrl = getSocketUrl();
 
     this.socket = io(targetUrl, {
@@ -106,7 +98,7 @@ class SocketIoConnector {
 
     this.socket.on('connect_error', (error) => {
       this.isConnected = false;
-      const errorMsg = error?.message || 'Autenticação WebSocket falhou: Token JWT inválido ou ausente.';
+      const errorMsg = error?.message || 'Autenticação WebSocket falhou: Token JWT inválido ou expirado.';
       if (this.app?.$store) {
         this.app.$store.commit('SET_CONVERSATIONS_ERROR', errorMsg);
       }
@@ -130,7 +122,7 @@ class SocketIoConnector {
       }
     });
 
-    // Mapeamento dos eventos canônicos e aliases
+    // Mapeamento de eventos canônicos e aliases
     const handleConversationCreated = (payload) => this.onConversationCreated(payload);
     const handleConversationUpdated = (payload) => this.onConversationUpdated(payload);
     const handleMessageCreated = (payload) => this.onMessageCreated(payload);
