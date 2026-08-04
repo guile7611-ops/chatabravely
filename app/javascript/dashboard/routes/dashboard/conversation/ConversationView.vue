@@ -21,11 +21,11 @@ export default {
     ConversationSidebar,
     Button,
   },
-  beforeRouteLeave() {
+  beforeRouteLeave(to, from, next) {
     if (this.conversationId) {
       this.$store.dispatch('clearSelectedState');
     }
-    return true;
+    next();
   },
   props: {
     inboxId: {
@@ -111,7 +111,6 @@ export default {
   },
 
   mounted() {
-    window.addEventListener('keydown', this.handleConversationShortcut);
     this.$store.dispatch('agents/get');
     this.initialize();
     this.$watch('$route.params', (newParams, oldParams) => {
@@ -125,21 +124,7 @@ export default {
       }
     });
   },
-  beforeUnmount() {
-    window.removeEventListener('keydown', this.handleConversationShortcut);
-  },
-
   methods: {
-    handleConversationShortcut(event) {
-      if (event.key !== 'Escape' || !this.conversationId) return;
-
-      event.preventDefault();
-      this.$store.dispatch('clearSelectedState');
-      this.$router.push({
-        name: 'home',
-        params: { accountId: this.accountId },
-      });
-    },
     retryConnection() {
       if (window.__abravelySocketConnector) {
         window.__abravelySocketConnector.connect();

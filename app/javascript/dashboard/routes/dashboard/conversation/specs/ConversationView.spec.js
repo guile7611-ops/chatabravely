@@ -107,31 +107,16 @@ describe('ConversationView', () => {
     );
   });
 
-  it('closes the active conversation on Escape', async () => {
-    const { wrapper, dispatch, routerPush } = mountView({
-      conversationId: 'conversation-1',
-      currentChat: conversation,
-    });
-
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    await wrapper.vm.$nextTick();
-
-    expect(dispatch).toHaveBeenCalledWith('clearSelectedState');
-    expect(routerPush).toHaveBeenCalledWith({
-      name: 'home',
-      params: { accountId: 1 },
-    });
-  });
-
-  it('authorizes leaving an open conversation using the Vue Router 4 return contract', () => {
+  it('clears the selected state and completes the route leave guard', () => {
     const { wrapper, dispatch } = mountView({
       conversationId: 'conversation-1',
       currentChat: conversation,
     });
+    const next = vi.fn();
 
-    const result = wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm);
+    wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm, {}, {}, next);
 
     expect(dispatch).toHaveBeenCalledWith('clearSelectedState');
-    expect(result).toBe(true);
+    expect(next).toHaveBeenCalledOnce();
   });
 });

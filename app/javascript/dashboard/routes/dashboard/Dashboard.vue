@@ -12,7 +12,6 @@ import { useWindowSize } from '@vueuse/core';
 import wootConstants from 'dashboard/constants/globals';
 
 import MobileSidebarLauncher from 'dashboard/components-next/sidebar/MobileSidebarLauncher.vue';
-import { isAConversationRoute } from 'dashboard/helper/routeHelpers';
 
 export default {
   components: {
@@ -42,19 +41,6 @@ export default {
     };
   },
   computed: {
-    routeViewKey() {
-      if (isAConversationRoute(this.$route?.name, true, true)) {
-        return 'conversations';
-      }
-
-      const path = this.$route?.path || '';
-      const accountPathPrefix = `/app/accounts/${this.accountId}/`;
-      if (path.startsWith(accountPathPrefix)) {
-        return path.slice(accountPathPrefix.length).split('/')[0] || 'account';
-      }
-
-      return this.$route?.name || path || 'dashboard';
-    },
     isSmallScreen() {
       return this.windowWidth < wootConstants.SMALL_SCREEN_BREAKPOINT;
     },
@@ -121,7 +107,7 @@ export default {
     />
 
     <main class="flex flex-1 h-full w-full min-h-0 px-0 overflow-hidden bg-n-surface-1">
-      <router-view :key="routeViewKey" />
+      <router-view />
       <MobileSidebarLauncher
         :is-mobile-sidebar-open="isMobileSidebarOpen"
         @toggle="toggleMobileSidebar"
