@@ -16,6 +16,7 @@ import { useFontSize } from 'dashboard/composables/useFontSize';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import SocketIoConnector from './helper/socketIoConnector';
 import { getAbravelyJwtToken } from './helper/abravelyToken';
+import { isAConversationRoute } from './helper/routeHelpers';
 
 export default {
   name: 'App',
@@ -64,6 +65,22 @@ export default {
     isAccountRoute() {
       const path = this.$route?.path || '';
       return path.startsWith('/app/accounts/') && Boolean(this.currentAccountId);
+    },
+    appRouteViewKey() {
+      const route = this.$route;
+      const path = route?.path || '';
+
+      if (isAConversationRoute(route?.name, true, true)) {
+        return `account-${route?.params?.accountId || 'unknown'}-conversations`;
+      }
+
+      const accountRoute = path.match(/^\/app\/accounts\/([^/]+)(?:\/([^/]+))?/);
+      if (accountRoute) {
+        const [, accountId, section = 'account'] = accountRoute;
+        return `account-${accountId}-${section}`;
+      }
+
+      return route?.name || path || 'app';
     },
   },
 
@@ -148,7 +165,9 @@ export default {
     class="flex flex-col w-full h-screen min-h-0 bg-n-background text-white dark"
     :dir="isRTL ? 'rtl' : 'ltr'"
   >
-    <router-view />
+    <router-view v-slot="{ Component }">
+      <component :is="Component" :key="appRouteViewKey" />
+    </router-view>
     <WootSnackbarBox />
   </div>
 </template>
