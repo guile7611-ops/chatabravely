@@ -29,11 +29,11 @@ describe('#actions', () => {
       ]);
     });
 
-    it('sends correct actions if API is error and stores real error message', async () => {
+    it('sends correct actions if API is error and stores real error message before rejecting', async () => {
       axios.get.mockRejectedValue({
         response: { data: { message: 'Erro ao carregar membros do time' } },
       });
-      await actions.get({ commit }, { teamId: 1 });
+      await expect(actions.get({ commit }, { teamId: 1 })).rejects.toThrow();
       expect(commit.mock.calls).toEqual([
         [SET_TEAM_MEMBERS_ERROR, null],
         [SET_TEAM_MEMBERS_UI_FLAG, { isFetching: true }],

@@ -41,6 +41,7 @@ export const actions = {
         error.message ||
         'Erro ao carregar membros do time';
       commit(SET_TEAM_MEMBERS_ERROR, errorMessage);
+      throw error;
     } finally {
       commit(SET_TEAM_MEMBERS_UI_FLAG, { isFetching: false });
     }

@@ -1,7 +1,14 @@
 import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createI18n } from 'vue-i18n';
-import EditAgents from '../Edit/EditAgents.vue';
+import AddAgents from '../Create/AddAgents.vue';
+import router from '../../../../index';
+
+vi.mock('../../../../index', () => ({
+  default: {
+    replace: vi.fn(),
+  },
+}));
 
 const i18n = createI18n({
   legacy: false,
@@ -41,23 +48,20 @@ vi.mock('dashboard/components-next/button/Button.vue', () => ({
   },
 }));
 
-vi.mock('dashboard/components-next/spinner/Spinner.vue', () => ({
-  default: { name: 'Spinner', template: '<div class="spinner" />' },
-}));
-
 const mockDispatch = vi.fn();
 const mockRoute = { params: { teamId: 1 } };
 
 const createWrapper = ({
   agents = [{ id: 1, name: 'Agent 1' }],
-  teamMembers = [{ id: 1, name: 'Agent 1' }],
-  isFetching = false,
-  isUpdating = false,
+  isCreating = false,
   error = null,
+  shouldFailCreate = false,
 }) => {
   mockDispatch.mockImplementation((action) => {
-    if (action === 'teamMembers/get') {
-      return error ? Promise.reject(new Error(error)) : Promise.resolve();
+    if (action === 'teamMembers/create') {
+      return shouldFailCreate
+        ? Promise.reject(new Error('Erro ao adicionar membros ao time'))
+        : Promise.resolve();
     }
     return Promise.resolve();
   });
@@ -66,8 +70,7 @@ const createWrapper = ({
     dispatch: mockDispatch,
     getters: {
       'agents/getAgents': agents,
-      'teamMembers/getTeamMembers': () => teamMembers,
-      'teamMembers/getUIFlags': { isFetching, isCreating: false, isUpdating, isDeleting: false },
+      'teamMembers/getUIFlags': { isFetching: false, isCreating, isUpdating: false, isDeleting: false },
       'teamMembers/getError': error,
       'teams/getTeam': () => ({ id: 1, name: 'Support Team' }),
       getCurrentRole: 'administrator',
@@ -75,7 +78,7 @@ const createWrapper = ({
     },
   };
 
-  return mount(EditAgents, {
+  return mount(AddAgents, {
     global: {
       plugins: [i18n],
       config: {
@@ -99,43 +102,56 @@ const createWrapper = ({
   });
 };
 
-describe('EditAgents.vue', () => {
+describe('AddAgents.vue', () => {
   beforeEach(() => {
     mockDispatch.mockClear();
+    vi.clearAllMocks();
   });
 
-  it('fetches members on mount and renders agent selector', async () => {
-    const wrapper = createWrapper({ error: null });
-    expect(mockDispatch).toHaveBeenCalledWith('agents/get');
-    expect(mockDispatch).toHaveBeenCalledWith('teamMembers/get', { teamId: 1 });
-    expect(wrapper.find('.agent-selector').exists()).toBe(true);
+  it('renders real error message when memberError exists', () => {
+    const wrapper = createWrapper({ error: 'Erro ao adicionar membros ao time' });
+    expect(wrapper.text()).toContain('Erro ao adicionar membros ao time');
   });
 
-  it('renders error banner and retry button on fetch failure', () => {
-    const wrapper = createWrapper({ error: 'Erro ao carregar membros do time' });
-    expect(wrapper.text()).toContain('Erro ao carregar membros do time');
+  it('retry button triggers addAgents operation again', async () => {
+    const wrapper = createWrapper({ error: 'Erro ao adicionar membros ao time' });
+    mockDispatch.mockClear();
     const retryBtn = wrapper.find('.retry-btn');
     expect(retryBtn.exists()).toBe(true);
+    await retryBtn.trigger('click');
+    expect(mockDispatch).toHaveBeenCalledWith('teamMembers/create', expect.any(Object));
   });
 
-  it('preserves existing selectedAgents on fetch failure', async () => {
-    const wrapper = createWrapper({ error: 'Erro ao carregar membros' });
-    wrapper.vm.selectedAgents = [1, 2];
-    await wrapper.vm.fetchMembers();
-    expect(wrapper.vm.selectedAgents).toEqual([1, 2]);
-  });
-
-  it('disables submit button during isUpdating state', () => {
-    const wrapper = createWrapper({ isUpdating: true, error: null });
+  it('disables buttons while isCreating is true', () => {
+    const wrapper = createWrapper({ isCreating: true });
     const submitBtn = wrapper.find('.submit-btn');
     expect(submitBtn.attributes('disabled')).toBeDefined();
   });
 
-  it('retry button triggers fetchMembers', async () => {
-    const wrapper = createWrapper({ error: 'Erro ao carregar membros do time' });
-    mockDispatch.mockClear();
-    const retryBtn = wrapper.find('.retry-btn');
-    await retryBtn.trigger('click');
-    expect(mockDispatch).toHaveBeenCalledWith('teamMembers/get', { teamId: 1 });
+  it('does NOT navigate/redirect on API failure', async () => {
+    const wrapper = createWrapper({ shouldFailCreate: true });
+    wrapper.vm.selectedAgents = [1];
+    await wrapper.vm.addAgents();
+
+    expect(mockDispatch).toHaveBeenCalledWith('teamMembers/create', {
+      teamId: 1,
+      agentsList: [1],
+    });
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it('navigates only after API confirmation on success', async () => {
+    const wrapper = createWrapper({ shouldFailCreate: false });
+    wrapper.vm.selectedAgents = [1];
+    await wrapper.vm.addAgents();
+
+    expect(mockDispatch).toHaveBeenCalledWith('teamMembers/create', {
+      teamId: 1,
+      agentsList: [1],
+    });
+    expect(router.replace).toHaveBeenCalledWith({
+      name: 'settings_teams_finish',
+      params: { page: 'new', teamId: 1 },
+    });
   });
 });

@@ -77,6 +77,7 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 - **Regras Removidas & Refatorações**:
   - Removido o comportamento de limpeza imediata da lista (`CLEAR_TEAMS`) antes da resposta de erro da API. A lista anterior é totalmente preservada em falhas de atualização/busca.
   - Adicionado tratamento de erro real com `error: null` nos módulos `teams` e `teamMembers`, com getters `getError` correspondentes.
+  - A ação `teamMembers/get` armazena a mensagem de erro real, encerra `isFetching` no `finally` e relança a exceção (`throw error`) para permitir tratamento adequado nos componentes consumidores.
   - Conectado aviso visual de erro com botão "Tentar novamente" (*retry*) em `settings/teams/Index.vue`, `AddAgents.vue` e `EditAgents.vue`.
   - Garantido encerramento de todas as `uiFlags` (`isFetching`, `isCreating`, `isUpdating`, `isDeleting`) no bloco `finally`.
   - Impedido o fechamento da tela/modal como sucesso falso quando houver erro de API ao adicionar ou remover membros.
