@@ -90,7 +90,11 @@ const openDelete = inbox => {
 };
 const getInboxProvider = inbox => {
   const provider = String(
-    inbox.provider || inbox.channel_provider || inbox.medium || ''
+    inbox.provider ||
+      inbox.channel_provider ||
+      inbox.medium ||
+      inbox.type ||
+      ''
   ).toUpperCase();
 
   if (
@@ -108,6 +112,9 @@ const getInboxProvider = inbox => {
 const isOfficialApi = inbox => getInboxProvider(inbox) === 'META_CLOUD';
 
 const getInboxType = inbox => (isOfficialApi(inbox) ? 'API Oficial' : 'QR Code');
+
+const getInboxSubtitle = inbox =>
+  isOfficialApi(inbox) ? 'WhatsApp API Oficial' : 'WhatsApp QR Code';
 
 const getConnectionStatus = inbox =>
   String(
@@ -226,6 +233,7 @@ const getChannelIconClass = inbox =>
                   class="size-6"
                   :class="getChannelIconClass(inbox)"
                   :inbox="inbox"
+                  use-brand-icon
                 />
               </div>
               <div class="flex flex-col min-w-0">
@@ -235,7 +243,7 @@ const getChannelIconClass = inbox =>
                   {{ inbox.name }}
                 </span>
                 <span class="text-xs text-n-slate-10 font-medium">
-                  WhatsApp
+                  {{ getInboxSubtitle(inbox) }}
                 </span>
               </div>
             </div>

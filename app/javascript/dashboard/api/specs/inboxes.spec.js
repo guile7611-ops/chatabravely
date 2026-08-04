@@ -9,6 +9,7 @@ describe('#InboxesAPI', () => {
     expect(inboxesAPI).toHaveProperty('create');
     expect(inboxesAPI).toHaveProperty('update');
     expect(inboxesAPI).toHaveProperty('delete');
+    expect(inboxesAPI).toHaveProperty('createMetaChannel');
     expect(inboxesAPI).toHaveProperty('getCampaigns');
     expect(inboxesAPI).toHaveProperty('getAgentBot');
     expect(inboxesAPI).toHaveProperty('setAgentBot');
@@ -46,6 +47,19 @@ describe('#InboxesAPI', () => {
       inboxesAPI.delete('channel-meta-1');
       expect(axiosMock.delete).toHaveBeenCalledWith(
         '/api/v1/channels/channel-meta-1'
+      );
+    });
+
+    it('#createMetaChannel uses the authenticated Abravely API client', () => {
+      const payload = {
+        name: 'Meta Oficial',
+        metaPhoneNumberId: '123456',
+        metaToken: 'token',
+      };
+      inboxesAPI.createMetaChannel(payload);
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/v1/channels/meta/save',
+        payload
       );
     });
 

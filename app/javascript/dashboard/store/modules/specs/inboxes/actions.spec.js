@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { actions } from '../../inboxes';
 import * as types from '../../../mutation-types';
@@ -8,9 +7,6 @@ import FBChannel from '../../../../api/channel/fbChannel';
 
 const commit = vi.fn();
 const dispatch = vi.fn();
-global.axios = axios;
-
-vi.mock('axios');
 vi.mock('../../../../api/inboxes');
 vi.mock('../../../../api/channel/webChannel');
 vi.mock('../../../../api/channel/fbChannel');
@@ -84,24 +80,43 @@ describe('inboxes/actions', () => {
         apiKey: 'token123',
       };
       const createdChannel = { id: 10, name: 'WhatsApp Meta Test', channel_type: 'Channel::MetaCloud' };
-      axios.post.mockResolvedValue({ data: { channel: createdChannel } });
+      InboxesAPI.createMetaChannel.mockResolvedValue({
+        data: { channel: createdChannel },
+      });
 
       const result = await actions.createMetaChannel({ commit }, payload);
 
       expect(commit.mock.calls).toEqual([
         ['SET_INBOX_ERROR', null],
         [types.default.SET_INBOXES_UI_FLAG, { isCreating: true }],
-        [types.default.ADD_INBOXES, createdChannel],
+        [
+          types.default.ADD_INBOXES,
+          {
+            ...createdChannel,
+            channel_id: createdChannel.id,
+            channel_type: 'Channel::Whatsapp',
+            provider: 'META_CLOUD',
+            medium: 'meta',
+            connection_status: undefined,
+          },
+        ],
         ['SET_INBOX_ERROR', null],
         [types.default.SET_INBOXES_UI_FLAG, { isCreating: false }],
       ]);
-      expect(result).toEqual(createdChannel);
+      expect(result).toEqual({
+        ...createdChannel,
+        channel_id: createdChannel.id,
+        channel_type: 'Channel::Whatsapp',
+        provider: 'META_CLOUD',
+        medium: 'meta',
+        connection_status: undefined,
+      });
     });
 
     it('handles API failure, saves real error message, does NOT add local inbox to records and sets isCreating to false in finally', async () => {
       const payload = { name: 'WhatsApp Meta Fail' };
       const apiError = { response: { data: { message: 'Token Meta inválido' } } };
-      axios.post.mockRejectedValue(apiError);
+      InboxesAPI.createMetaChannel.mockRejectedValue(apiError);
 
       await expect(actions.createMetaChannel({ commit }, payload)).rejects.toEqual(apiError);
 

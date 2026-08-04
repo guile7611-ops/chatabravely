@@ -77,7 +77,9 @@ export default {
         }, 3000);
       } catch (error) {
         useAlert(
-          error.message || this.$t('INBOX_MGMT.ADD.WHATSAPP.API.ERROR_MESSAGE')
+          error.response?.data?.message ||
+            error.message ||
+            this.$t('INBOX_MGMT.ADD.WHATSAPP.API.ERROR_MESSAGE')
         );
       }
     },

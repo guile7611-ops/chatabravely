@@ -105,14 +105,22 @@ router.post('/meta/save', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'metaPhoneNumberId e metaToken são obrigatórios' });
     }
 
-    // Tentar consultar os detalhes do número real na Meta Graph API
-    let fetchedDisplayPhone: string | undefined = undefined;
-    try {
-      const details = await MetaService.getPhoneNumberDetails(metaPhoneNumberId, metaToken);
-      if (details?.display_phone_number) {
-        fetchedDisplayPhone = details.display_phone_number;
-      }
-    } catch (e) {}
+    // A conexão só pode ser persistida depois que a Meta confirmar que o
+    // Phone Number ID pertence ao token informado.
+    const details = await MetaService.getPhoneNumberDetails(
+      metaPhoneNumberId,
+      metaToken
+    );
+    if (!details?.id) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Não foi possível validar o Phone Number ID e o token na Meta. Confira as credenciais e tente novamente.',
+      });
+    }
+
+    const fetchedDisplayPhone: string | undefined =
+      details.display_phone_number;
 
     const channelName = name || (fetchedDisplayPhone ? `WhatsApp ${fetchedDisplayPhone}` : 'WhatsApp Meta Cloud API');
 

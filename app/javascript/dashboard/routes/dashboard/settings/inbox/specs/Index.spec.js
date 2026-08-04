@@ -138,6 +138,28 @@ describe('inbox/Index.vue', () => {
     expect(typeBadge.text()).toContain('API Oficial');
     expect(typeBadge.classes()).toContain('bg-n-blue-2');
     expect(statusBadge.classes()).toContain('text-n-blue-11');
+    expect(card.text()).toContain('WhatsApp API Oficial');
+  });
+
+  it('recognizes a newly created raw Meta channel as official', () => {
+    const wrapper = createWrapper({
+      inboxes: [
+        {
+          id: 'meta-new',
+          name: 'Teste',
+          type: 'META_CLOUD',
+          connectionStatus: 'CONNECTED',
+          channel_type: 'Channel::Whatsapp',
+        },
+      ],
+    });
+
+    const card = wrapper.find('[data-channel-provider="META_CLOUD"]');
+    expect(card.exists()).toBe(true);
+    expect(card.text()).toContain('WhatsApp API Oficial');
+    expect(card.find('[data-test-id="channel-type-badge"]').text()).toContain(
+      'API Oficial'
+    );
   });
 
   it('keeps Evolution QR Code channels teal', () => {

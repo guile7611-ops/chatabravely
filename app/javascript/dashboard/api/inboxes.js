@@ -17,6 +17,10 @@ class Inboxes extends CacheEnabledApiClient {
     return axios.delete(`/api/v1/channels/${inboxId}`);
   }
 
+  createMetaChannel(payload) {
+    return axios.post('/api/v1/channels/meta/save', payload);
+  }
+
   getCampaigns(inboxId) {
     return axios.get(`${this.url}/${inboxId}/campaigns`);
   }

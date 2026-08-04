@@ -1,4 +1,3 @@
-import axios from 'axios';
 import * as MutationHelpers from 'shared/helpers/vuex/mutationHelpers';
 import * as types from '../mutation-types';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
@@ -224,8 +223,17 @@ export const actions = {
     commit('SET_INBOX_ERROR', null);
     commit(types.default.SET_INBOXES_UI_FLAG, { isCreating: true });
     try {
-      const response = await axios.post('/api/v1/channels/meta/save', payload);
-      const newInbox = response.data?.channel || response.data;
+      const response = await InboxesAPI.createMetaChannel(payload);
+      const channel = response.data?.channel || response.data;
+      const newInbox = {
+        ...channel,
+        channel_id: channel.id,
+        channel_type: 'Channel::Whatsapp',
+        provider: 'META_CLOUD',
+        medium: 'meta',
+        connection_status:
+          channel.connection_status || channel.connectionStatus,
+      };
       commit(types.default.ADD_INBOXES, newInbox);
       commit('SET_INBOX_ERROR', null);
       return newInbox;
