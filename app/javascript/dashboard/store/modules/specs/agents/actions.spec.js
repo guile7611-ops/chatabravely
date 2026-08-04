@@ -10,22 +10,51 @@ vi.mock('axios');
 
 describe('#actions', () => {
   describe('#get', () => {
-    it('sends correct actions if API is success', async () => {
+    it('sends correct actions if API is success with list', async () => {
       axios.get.mockResolvedValue({ data: agentList });
       await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
+        ['SET_AGENT_ERROR', null],
         [types.default.SET_AGENT_FETCHING_STATUS, true],
-        [types.default.SET_AGENT_FETCHING_STATUS, false],
         [types.default.SET_AGENTS, agentList],
+        ['SET_AGENT_ERROR', null],
+        [types.default.SET_AGENT_FETCHING_STATUS, false],
       ]);
     });
-    it('sends correct actions if API is error', async () => {
-      axios.get.mockRejectedValue({ message: 'Incorrect header' });
+
+    it('sends correct actions if API is success with empty list', async () => {
+      commit.mockClear();
+      axios.get.mockResolvedValue({ data: [] });
       await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
+        ['SET_AGENT_ERROR', null],
         [types.default.SET_AGENT_FETCHING_STATUS, true],
+        [types.default.SET_AGENTS, []],
+        ['SET_AGENT_ERROR', null],
         [types.default.SET_AGENT_FETCHING_STATUS, false],
       ]);
+    });
+
+    it('handles API failure, saves error message, preserves list and finishes fetching status as false', async () => {
+      commit.mockClear();
+      const apiError = { response: { data: { message: 'Erro ao buscar agentes' } } };
+      axios.get.mockRejectedValue(apiError);
+      await actions.get({ commit });
+      expect(commit.mock.calls).toEqual([
+        ['SET_AGENT_ERROR', null],
+        [types.default.SET_AGENT_FETCHING_STATUS, true],
+        ['SET_AGENT_ERROR', 'Erro ao buscar agentes'],
+        [types.default.SET_AGENT_FETCHING_STATUS, false],
+      ]);
+    });
+
+    it('clears error on a new successful attempt after failure', async () => {
+      commit.mockClear();
+      axios.get.mockResolvedValue({ data: agentList });
+      await actions.get({ commit });
+      expect(commit.mock.calls[0]).toEqual(['SET_AGENT_ERROR', null]);
+      expect(commit.mock.calls[3]).toEqual(['SET_AGENT_ERROR', null]);
+      expect(commit.mock.calls[4]).toEqual([types.default.SET_AGENT_FETCHING_STATUS, false]);
     });
   });
 

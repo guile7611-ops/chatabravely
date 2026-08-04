@@ -2,6 +2,14 @@ import * as types from '../../../mutation-types';
 import { mutations } from '../../agents';
 
 describe('#mutations', () => {
+  describe('#SET_AGENT_ERROR', () => {
+    it('set agent error state', () => {
+      const state = { error: null };
+      mutations.SET_AGENT_ERROR(state, 'Erro ao carregar atendentes');
+      expect(state.error).toEqual('Erro ao carregar atendentes');
+    });
+  });
+
   describe('#SET_AGENTS', () => {
     it('set agent records', () => {
       const state = { records: [] };

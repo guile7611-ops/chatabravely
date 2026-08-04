@@ -39,6 +39,13 @@ const deleteMessage = computed(() => {
 });
 
 const agentList = computed(() => getters['agents/getAgents'].value);
+const agentError = computed(
+  () => getters['agents/getError'].value
+);
+
+const fetchAgents = () => {
+  store.dispatch('agents/get');
+};
 
 const filteredAgentList = computed(() => {
   const query = searchQuery.value.trim();
@@ -51,7 +58,7 @@ const currentUserId = computed(() => getters.getCurrentUserID.value);
 const customRoles = useMapGetter('customRole/getCustomRoles');
 
 onMounted(() => {
-  store.dispatch('agents/get');
+  fetchAgents();
   store.dispatch('customRole/getCustomRole');
 });
 
@@ -177,14 +184,21 @@ const confirmDeletion = () => {
     <template #body>
       <div
         v-if="!uiFlags.isFetching && agentError"
-        class="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-n-amber-5 bg-n-amber-2 text-n-slate-12 text-center my-4"
+        class="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-n-amber-5 bg-n-amber-2 text-n-slate-12 text-center my-4 gap-3"
       >
-        <span class="text-base font-semibold text-red-600 mb-1">
+        <span class="text-base font-semibold text-red-600">
           Erro ao carregar atendentes
         </span>
         <span class="text-sm text-n-slate-11">
           {{ agentError }}
         </span>
+        <Button
+          label="Tentar novamente"
+          size="sm"
+          variant="secondary"
+          :disabled="uiFlags.isFetching"
+          @click="fetchAgents"
+        />
       </div>
       <span
         v-else-if="!filteredAgentList.length && searchQuery"
