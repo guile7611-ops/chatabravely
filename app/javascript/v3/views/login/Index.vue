@@ -98,19 +98,23 @@ export default {
   computed: {
     ...mapGetters({ globalConfig: 'globalConfig/get' }),
     allowedLoginMethods() {
-      return window.chatwootConfig.allowedLoginMethods || ['email'];
+      return window.chatwootConfig?.allowedLoginMethods || ['email'];
     },
     showGoogleOAuth() {
       return (
+        Array.isArray(this.allowedLoginMethods) &&
         this.allowedLoginMethods.includes('google_oauth') &&
-        Boolean(window.chatwootConfig.googleOAuthClientId)
+        Boolean(window.chatwootConfig?.googleOAuthClientId)
       );
     },
     showSignupLink() {
-      return window.chatwootConfig.signupEnabled === 'true';
+      return window.chatwootConfig?.signupEnabled === 'true';
     },
     showSamlLogin() {
-      return this.allowedLoginMethods.includes('saml');
+      return (
+        Array.isArray(this.allowedLoginMethods) &&
+        this.allowedLoginMethods.includes('saml')
+      );
     },
   },
   created() {
@@ -304,7 +308,7 @@ export default {
 
 <template>
   <main
-    class="flex flex-col w-full min-h-screen py-20 bg-n-brand/5 dark:bg-n-background sm:px-6 lg:px-8"
+    class="flex flex-col w-full h-full min-h-screen py-20 bg-n-brand/5 dark:bg-n-background sm:px-6 lg:px-8 overflow-y-auto"
   >
     <section class="max-w-5xl mx-auto">
       <img
