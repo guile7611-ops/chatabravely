@@ -66,11 +66,30 @@ describe('ConversationView', () => {
   });
 
   it('clears a stale selected conversation when the route has no conversation id', () => {
-    const { dispatch } = mountView({
+    const { wrapper, dispatch } = mountView({
       conversationId: 0,
       currentChat: { id: 'previous-conversation' },
     });
 
     expect(dispatch).toHaveBeenCalledWith('clearSelectedState');
+    expect(wrapper.findComponent({ name: 'ConversationBox' }).exists()).toBe(
+      false
+    );
+  });
+
+  it('keeps the message panel mounted while a routed conversation loads', () => {
+    const { wrapper, dispatch } = mountView({
+      conversationId: 'conversation-not-in-list-yet',
+      currentChat: {},
+      chatList: [],
+    });
+
+    expect(dispatch).toHaveBeenCalledWith(
+      'getConversation',
+      'conversation-not-in-list-yet'
+    );
+    expect(wrapper.findComponent({ name: 'ConversationBox' }).exists()).toBe(
+      true
+    );
   });
 });

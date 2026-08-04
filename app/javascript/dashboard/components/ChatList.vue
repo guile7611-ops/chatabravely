@@ -110,7 +110,6 @@ const currentAccountId = useMapGetter('getCurrentAccountId');
 // We can't useFunctionGetter here since it needs to be called on setup?
 const getTeamFn = useMapGetter('teams/getTeam');
 const getConversationById = useMapGetter('getConversationById');
-const selectedChat = useMapGetter('getSelectedChat');
 const conversationsError = useMapGetter('getConversationsError');
 
 const {
@@ -623,28 +622,6 @@ function updateAssigneeTab(selectedTab) {
   }
 }
 
-function clearStaleSelectedConversation() {
-  if (
-    hasAppliedFiltersOrActiveFolders.value ||
-    chatListLoading.value ||
-    conversationsError.value
-  )
-    return;
-  if (!route.params.conversation_id || !selectedChat.value?.id) return;
-
-  const expectedQueue = queueForTab(activeAssigneeTab.value);
-  const belongsToCurrentQueue =
-    selectedChat.value.queue === expectedQueue &&
-    conversationList.value.some(
-      conversation => String(conversation.id) === String(selectedChat.value.id)
-    );
-
-  if (!belongsToCurrentQueue) {
-    store.dispatch('clearSelectedState');
-    redirectToConversationList();
-  }
-}
-
 function onBasicFilterChange(value, type) {
   if (type === 'status') {
     activeStatus.value = value;
@@ -921,12 +898,6 @@ watch(activeFolder, (newVal, oldVal) => {
 watch(chatLists, () => {
   chatsOnView.value = conversationList.value;
 });
-
-watch(
-  [conversationList, chatListLoading, activeAssigneeTab, selectedChat],
-  clearStaleSelectedConversation,
-  { flush: 'post' }
-);
 
 watch(conversationFilters, (newVal, oldVal) => {
   if (JSON.stringify(newVal) !== JSON.stringify(oldVal)) {

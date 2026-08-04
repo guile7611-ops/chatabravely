@@ -76,7 +76,7 @@ export default {
       return this.isOnExpandedLayout ? !this.conversationId : true;
     },
     showMessageView() {
-      return this.conversationId ? true : !this.isOnExpandedLayout;
+      return Boolean(this.conversationId);
     },
     isOnExpandedLayout() {
       const {
