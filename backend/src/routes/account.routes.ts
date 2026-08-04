@@ -202,10 +202,75 @@ router.get('/conversations', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/v1/accounts/:accountId/conversations/unread_count
+ * GET /api/v1/accounts/:accountId/conversations/unread_counts
+ *
+ * Chatwoot's dashboard uses this payload to render the badges in the sidebar.
+ * The counts are derived from the authenticated user's workspace; no local
+ * fallback data is used here.
  */
-router.get('/conversations/unread_count', (req: Request, res: Response) => {
-  return res.status(200).json({ mine_count: 0, unassigned_count: 0, assigned_count: 0 });
+router.get('/conversations/unread_counts', async (req: Request, res: Response) => {
+  try {
+    const conversations = await prisma.conversation.findMany({
+      where: { workspaceId: req.user!.workspaceId },
+      select: {
+        unreadCount: true,
+        channelId: true,
+        departmentId: true,
+      },
+    });
+
+    const inboxes: Record<string, number> = {};
+    const teams: Record<string, number> = {};
+    let allCount = 0;
+
+    conversations.forEach(conversation => {
+      const unreadCount = Math.max(0, Number(conversation.unreadCount) || 0);
+      if (!unreadCount) return;
+
+      allCount += unreadCount;
+      inboxes[conversation.channelId] = (inboxes[conversation.channelId] || 0) + unreadCount;
+
+      if (conversation.departmentId) {
+        teams[conversation.departmentId] = (teams[conversation.departmentId] || 0) + unreadCount;
+      }
+    });
+
+    return res.status(200).json({
+      payload: {
+        all_count: allCount,
+        inboxes,
+        labels: {},
+        teams,
+      },
+    });
+  } catch (error: any) {
+    return res.status(503).json({
+      success: false,
+      message: 'ServiÃ§o de banco de dados indisponÃ­vel.',
+    });
+  }
+});
+
+/**
+ * Legacy singular endpoint kept for callers that still use it.
+ */
+router.get('/conversations/unread_count', async (req: Request, res: Response) => {
+  try {
+    const result = await prisma.conversation.aggregate({
+      where: { workspaceId: req.user!.workspaceId },
+      _sum: { unreadCount: true },
+    });
+    return res.status(200).json({
+      mine_count: 0,
+      unassigned_count: 0,
+      assigned_count: result._sum.unreadCount || 0,
+    });
+  } catch (error: any) {
+    return res.status(503).json({
+      success: false,
+      message: 'ServiÃ§o de banco de dados indisponÃ­vel.',
+    });
+  }
 });
 
 /**
@@ -220,6 +285,24 @@ router.get('/cache_keys', (req: Request, res: Response) => {
  */
 router.get('/notifications', (req: Request, res: Response) => {
   return res.status(200).json({ data: { meta: { unread_count: 0, count: 0 }, payload: [] } });
+});
+
+/**
+ * GET /api/v1/accounts/:accountId/notifications/unread_count
+ * Notifications are not persisted by the Abravely backend yet, therefore the
+ * real current count is zero rather than an error/placeholder response.
+ */
+router.get('/notifications/unread_count', (req: Request, res: Response) => {
+  return res.status(200).json(0);
+});
+
+/**
+ * GET /api/v1/accounts/:accountId/custom_filters
+ * Saved custom filters have not been implemented in the new backend. There
+ * are consequently no saved filters for the authenticated workspace.
+ */
+router.get('/custom_filters', (req: Request, res: Response) => {
+  return res.status(200).json([]);
 });
 
 /**

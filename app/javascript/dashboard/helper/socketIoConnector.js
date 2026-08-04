@@ -6,11 +6,17 @@ import { toUIConversation, toUIMessage } from 'dashboard/store/modules/conversat
 
 const DEDUPLICATION_LIMIT = 200;
 
-export const getSocketUrl = () => {
+export const getSocketUrl = (location = window.location) => {
   const { websocketURL = '' } = window.chatwootConfig || {};
   if (websocketURL) return websocketURL;
-  if (typeof window !== 'undefined' && window.location) {
-    return window.location.origin;
+  if (typeof window !== 'undefined' && location) {
+    // During local development, connect straight to Express. This avoids a
+    // second WebSocket hop through Vite, which can otherwise surface as a
+    // delayed Socket.IO "timeout" despite the backend being available.
+    if (location.port === '5173') {
+      return 'http://localhost:3000';
+    }
+    return location.origin;
   }
   return '';
 };

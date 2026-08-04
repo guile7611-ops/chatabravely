@@ -75,6 +75,15 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
     expect(resolvedUrl).toBe(window.location.origin);
   });
 
+  it('connects directly to the Express backend when served by Vite in development', () => {
+    expect(
+      getSocketUrl({
+        origin: 'http://localhost:5173',
+        port: '5173',
+      })
+    ).toBe('http://localhost:3000');
+  });
+
   it('handles connect_error by committing SET_CONVERSATIONS_ERROR mutation', () => {
     setAbravelyJwtToken(validJwt);
     connector.connect();
