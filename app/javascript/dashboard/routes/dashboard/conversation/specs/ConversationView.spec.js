@@ -18,12 +18,20 @@ const conversation = {
   messages: [],
 };
 
+let mountedWrapper;
+
+afterEach(() => {
+  mountedWrapper?.unmount();
+  mountedWrapper = null;
+});
+
 const mountView = ({
   conversationId = 'conversation-1',
   currentChat = {},
   chatList = [conversation],
 } = {}) => {
   const dispatch = vi.fn().mockResolvedValue();
+  const routerPush = vi.fn().mockResolvedValue();
   const store = {
     dispatch,
     getters: {
@@ -39,6 +47,7 @@ const mountView = ({
       mocks: {
         $store: store,
         $route: { params: {}, query: {} },
+        $router: { push: routerPush },
       },
       stubs: {
         ChatList: true,
@@ -51,8 +60,9 @@ const mountView = ({
       },
     },
   });
+  mountedWrapper = wrapper;
 
-  return { wrapper, dispatch };
+  return { wrapper, dispatch, routerPush };
 };
 
 describe('ConversationView', () => {
@@ -95,5 +105,21 @@ describe('ConversationView', () => {
     expect(wrapper.findComponent({ name: 'ConversationBox' }).exists()).toBe(
       true
     );
+  });
+
+  it('closes the active conversation on Escape', async () => {
+    const { wrapper, dispatch, routerPush } = mountView({
+      conversationId: 'conversation-1',
+      currentChat: conversation,
+    });
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await wrapper.vm.$nextTick();
+
+    expect(dispatch).toHaveBeenCalledWith('clearSelectedState');
+    expect(routerPush).toHaveBeenCalledWith({
+      name: 'home',
+      params: { accountId: 1 },
+    });
   });
 });
