@@ -54,7 +54,9 @@ export const buildCreatePayload = ({
 
 class MessageApi extends ApiClient {
   constructor() {
-    super('conversations', { accountScoped: true });
+    // As rotas Abravely são isoladas pelo workspace do JWT, sem o prefixo
+    // legado /accounts/:accountId.
+    super('conversations');
   }
 
   create({

@@ -223,8 +223,12 @@ export const mutations = {
     } else {
       chat.messages.push(message);
       chat.timestamp = message.created_at;
-      const { conversation: { unread_count: unreadCount = 0 } = {} } = message;
-      chat.unread_count = unreadCount;
+      const unreadCount = message.conversation?.unread_count;
+      if (unreadCount !== undefined) {
+        chat.unread_count = unreadCount;
+      } else if (message.message_type === 0 && selectedChatId !== conversationId) {
+        chat.unread_count = (chat.unread_count || 0) + 1;
+      }
       if (selectedChatId === conversationId) {
         emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE);
       }

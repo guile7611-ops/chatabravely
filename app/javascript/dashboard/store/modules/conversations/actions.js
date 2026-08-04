@@ -52,6 +52,14 @@ const actions = {
 
       const normalizedConversation = {
         ...conversation,
+        created_at: conversation.created_at ||
+          (conversation.createdAt
+            ? Math.floor(new Date(conversation.createdAt).getTime() / 1000)
+            : Math.floor(Date.now() / 1000)),
+        updated_at: conversation.updated_at ||
+          (conversation.updatedAt
+            ? Math.floor(new Date(conversation.updatedAt).getTime() / 1000)
+            : Math.floor(Date.now() / 1000)),
         messages: (conversation.messages || []).map(message => {
           const rawCreatedAt = message.created_at || message.createdAt;
           const createdAt =
@@ -107,13 +115,11 @@ const actions = {
 
     try {
       const response = await ConversationApi.get(params);
-      // O backend Abravely retorna a lista em `payload` (mantemos `data`
-      // para compatibilidade com respostas legadas do Chatwoot).
-      const data =
-        response?.data?.data ||
-        response?.data?.payload ||
-        response?.data?.conversations ||
-        [];
+      // O backend Abravely retorna a lista em `payload`; preservamos o
+      // envelope porque buildConversationList também usa `meta` para os
+      // contadores das abas.
+      const rawData = response?.data?.data || response?.data || {};
+      const data = Array.isArray(rawData) ? { payload: rawData } : rawData;
 
       failedFetchCount = 0;
       lastFailedParamsHash = '';
