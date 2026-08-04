@@ -1,9 +1,15 @@
 import { getters } from '../../labels';
 import labels from './fixtures';
+
 describe('#getters', () => {
   it('getLabels', () => {
     const state = { records: labels };
     expect(getters.getLabels(state)).toEqual(labels);
+  });
+
+  it('getError', () => {
+    const state = { error: 'Erro ao carregar' };
+    expect(getters.getError(state)).toEqual('Erro ao carregar');
   });
 
   it('getLabelsOnSidebar', () => {

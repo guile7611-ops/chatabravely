@@ -54,7 +54,7 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
-│ Fase 5: Etiquetas e Respostas Rápidas (labels / canned)     │
+│ Fase 5: Etiquetas e Respostas Rápidas (Concluída)           │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -83,6 +83,16 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
   - Impedido o fechamento da tela/modal como sucesso falso quando houver erro de API ao adicionar ou remover membros.
 - **Autoridade Única do Backend**:
   - O frontend atua estritamente como consumidor dos departamentos e membros cadastrados. Nenhuma decisão de roteamento ou atribuição de conversas por departamento é calculada no cliente.
+
+### Detalhes da Fase 5 (Etiquetas e Respostas Rápidas)
+- **Recursos Puramente Operacionais**:
+  - Etiquetas e Respostas Rápidas atuam estritamente como ferramentas visuais e de produtividade no atendimento. Não influenciam regras de conversa, filas, triagem ou atribuição de departamentos.
+- **Regras Removidas & Refatorações**:
+  - Eliminado o engolimento silencioso de erros (`catch (error) {}`) em `labels/get`, `labels/create`, `labels/update`, `labels/delete` e em `getCannedResponse`, `createCannedResponse`, `updateCannedResponse`, `deleteCannedResponse`.
+  - Adicionado estado `error: null` em ambos os módulos Vuex, mutações `SET_LABEL_ERROR` e `SET_CANNED_ERROR`, e getters `getError`.
+  - Todas as ações relançam exceções (`throw error`) quando a API falha, garantindo que formulários e modais permaneçam abertos em falha com mensagens reais e sem fechamento falso.
+  - Conectados banners de erro com botão **"Tentar novamente"** em `settings/labels/Index.vue` e `settings/canned/Index.vue`, desabilitados durante o carregamento.
+  - Garantido encerramento de todas as `uiFlags` no bloco `finally`.
 
 ---
 

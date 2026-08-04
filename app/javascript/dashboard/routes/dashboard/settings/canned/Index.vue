@@ -42,6 +42,8 @@ const records = computed(() =>
   getters.getSortedCannedResponses.value(sortOrder.value)
 );
 
+const cannedError = computed(() => getters.getError.value);
+
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim();
   if (!query) return records.value;
@@ -74,7 +76,7 @@ const fetchCannedResponses = async () => {
   try {
     await store.dispatch('getCannedResponse');
   } catch (error) {
-    // Ignore Error
+    // Error stored in Vuex error state
   }
 };
 
@@ -142,7 +144,7 @@ const tableHeaders = computed(() => {
   <SettingsLayout
     :is-loading="uiFlags.fetchingList"
     :loading-message="$t('CANNED_MGMT.LOADING')"
-    :no-records-found="!records.length"
+    :no-records-found="!records.length && !cannedError && !uiFlags.fetchingList"
     :no-records-message="$t('CANNED_MGMT.LIST.404')"
   >
     <template #header>
@@ -170,7 +172,22 @@ const tableHeaders = computed(() => {
     </template>
 
     <template #body>
+      <div
+        v-if="cannedError"
+        class="p-4 mb-4 rounded-lg bg-n-ruby-2 border border-n-ruby-5 text-n-ruby-11 flex items-center justify-between"
+      >
+        <span>{{ cannedError }}</span>
+        <Button
+          label="Tentar novamente"
+          size="sm"
+          slate
+          :disabled="uiFlags.fetchingList"
+          @click="fetchCannedResponses"
+        />
+      </div>
+
       <BaseTable
+        v-if="!cannedError || records.length"
         :headers="tableHeaders"
         :items="filteredRecords"
         :no-data-message="

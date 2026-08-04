@@ -1,10 +1,10 @@
-import { throwErrorMessage } from 'dashboard/store/utils/api';
 import * as MutationHelpers from 'shared/helpers/vuex/mutationHelpers';
 import * as types from '../mutation-types';
 import CannedResponseAPI from '../../api/cannedResponse';
 
 const state = {
   records: [],
+  error: null,
   uiFlags: {
     fetchingList: false,
     fetchingItem: false,
@@ -17,6 +17,9 @@ const state = {
 const getters = {
   getCannedResponses(_state) {
     return _state.records;
+  },
+  getError(_state) {
+    return _state.error;
   },
   getSortedCannedResponses(_state) {
     return sortOrder =>
@@ -37,12 +40,21 @@ const actions = {
     { commit },
     { searchKey } = {}
   ) {
+    commit(types.default.SET_CANNED_ERROR, null);
     commit(types.default.SET_CANNED_UI_FLAG, { fetchingList: true });
     try {
       const response = await CannedResponseAPI.get({ searchKey });
       commit(types.default.SET_CANNED, response.data);
-      commit(types.default.SET_CANNED_UI_FLAG, { fetchingList: false });
+      commit(types.default.SET_CANNED_ERROR, null);
+      return response.data;
     } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao carregar respostas rápidas';
+      commit(types.default.SET_CANNED_ERROR, errorMessage);
+      throw error;
+    } finally {
       commit(types.default.SET_CANNED_UI_FLAG, { fetchingList: false });
     }
   },
@@ -51,15 +63,22 @@ const actions = {
     { commit },
     cannedObj
   ) {
+    commit(types.default.SET_CANNED_ERROR, null);
     commit(types.default.SET_CANNED_UI_FLAG, { creatingItem: true });
     try {
       const response = await CannedResponseAPI.create(cannedObj);
       commit(types.default.ADD_CANNED, response.data);
-      commit(types.default.SET_CANNED_UI_FLAG, { creatingItem: false });
+      commit(types.default.SET_CANNED_ERROR, null);
       return response.data;
     } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao criar resposta rápida';
+      commit(types.default.SET_CANNED_ERROR, errorMessage);
+      throw new Error(errorMessage);
+    } finally {
       commit(types.default.SET_CANNED_UI_FLAG, { creatingItem: false });
-      return throwErrorMessage(error);
     }
   },
 
@@ -67,28 +86,42 @@ const actions = {
     { commit },
     { id, ...updateObj }
   ) {
+    commit(types.default.SET_CANNED_ERROR, null);
     commit(types.default.SET_CANNED_UI_FLAG, { updatingItem: true });
     try {
       const response = await CannedResponseAPI.update(id, updateObj);
       commit(types.default.EDIT_CANNED, response.data);
-      commit(types.default.SET_CANNED_UI_FLAG, { updatingItem: false });
+      commit(types.default.SET_CANNED_ERROR, null);
       return response.data;
     } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao atualizar resposta rápida';
+      commit(types.default.SET_CANNED_ERROR, errorMessage);
+      throw new Error(errorMessage);
+    } finally {
       commit(types.default.SET_CANNED_UI_FLAG, { updatingItem: false });
-      return throwErrorMessage(error);
     }
   },
 
   deleteCannedResponse: async function deleteCannedResponse({ commit }, id) {
+    commit(types.default.SET_CANNED_ERROR, null);
     commit(types.default.SET_CANNED_UI_FLAG, { deletingItem: true });
     try {
       await CannedResponseAPI.delete(id);
       commit(types.default.DELETE_CANNED, id);
-      commit(types.default.SET_CANNED_UI_FLAG, { deletingItem: true });
+      commit(types.default.SET_CANNED_ERROR, null);
       return id;
     } catch (error) {
-      commit(types.default.SET_CANNED_UI_FLAG, { deletingItem: true });
-      return throwErrorMessage(error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao excluir resposta rápida';
+      commit(types.default.SET_CANNED_ERROR, errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      commit(types.default.SET_CANNED_UI_FLAG, { deletingItem: false });
     }
   },
 };
@@ -99,6 +132,9 @@ const mutations = {
       ..._state.uiFlags,
       ...data,
     };
+  },
+  [types.default.SET_CANNED_ERROR](_state, error) {
+    _state.error = error;
   },
 
   [types.default.SET_CANNED]: MutationHelpers.set,

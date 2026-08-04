@@ -1,12 +1,21 @@
 import types from '../../../mutation-types';
 import { mutations } from '../../labels';
 import labels from './fixtures';
+
 describe('#mutations', () => {
   describe('#SET_LABELS', () => {
     it('set label records', () => {
       const state = { records: [] };
       mutations[types.SET_LABELS](state, labels);
       expect(state.records).toEqual(labels);
+    });
+  });
+
+  describe('#SET_LABEL_ERROR', () => {
+    it('sets error state', () => {
+      const state = { error: null };
+      mutations[types.SET_LABEL_ERROR](state, 'Erro ao carregar');
+      expect(state.error).toEqual('Erro ao carregar');
     });
   });
 

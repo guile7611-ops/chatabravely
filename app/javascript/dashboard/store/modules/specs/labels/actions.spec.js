@@ -8,6 +8,10 @@ global.axios = axios;
 vi.mock('axios');
 
 describe('#actions', () => {
+  beforeEach(() => {
+    commit.mockClear();
+  });
+
   describe('#get', () => {
     it('sends correct actions if API is success', async () => {
       const mockedGet = vi.fn(url => {
@@ -17,7 +21,6 @@ describe('#actions', () => {
         if (url === '/api/v1/accounts//cache_keys') {
           return Promise.resolve({ data: { cache_keys: { labels: 0 } } });
         }
-        // Return default value or throw an error for unexpected requests
         return Promise.reject(new Error('Unexpected request: ' + url));
       });
 
@@ -25,16 +28,21 @@ describe('#actions', () => {
 
       await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isFetching: true }],
         [types.default.SET_LABELS, labelsList],
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isFetching: false }],
       ]);
     });
-    it('sends correct actions if API is error', async () => {
+
+    it('sends correct actions if API is error and throws', async () => {
       axios.get.mockRejectedValue({ message: 'Incorrect header' });
-      await actions.get({ commit });
+      await expect(actions.get({ commit })).rejects.toThrow();
       expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isFetching: true }],
+        [types.default.SET_LABEL_ERROR, 'Incorrect header'],
         [types.default.SET_LABEL_UI_FLAG, { isFetching: false }],
       ]);
     });
@@ -45,16 +53,21 @@ describe('#actions', () => {
       axios.post.mockResolvedValue({ data: labelsList[0] });
       await actions.create({ commit }, labelsList[0]);
       expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isCreating: true }],
         [types.default.ADD_LABEL, labelsList[0]],
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isCreating: false }],
       ]);
     });
+
     it('sends correct actions if API is error', async () => {
       axios.post.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(actions.create({ commit })).rejects.toThrow(Error);
+      await expect(actions.create({ commit })).rejects.toThrow('Incorrect header');
       expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isCreating: true }],
+        [types.default.SET_LABEL_ERROR, 'Incorrect header'],
         [types.default.SET_LABEL_UI_FLAG, { isCreating: false }],
       ]);
     });
@@ -65,18 +78,23 @@ describe('#actions', () => {
       axios.patch.mockResolvedValue({ data: labelsList[0] });
       await actions.update({ commit }, labelsList[0]);
       expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isUpdating: true }],
         [types.default.EDIT_LABEL, labelsList[0]],
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isUpdating: false }],
       ]);
     });
+
     it('sends correct actions if API is error', async () => {
       axios.patch.mockRejectedValue({ message: 'Incorrect header' });
       await expect(actions.update({ commit }, labelsList[0])).rejects.toThrow(
-        Error
+        'Incorrect header'
       );
       expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isUpdating: true }],
+        [types.default.SET_LABEL_ERROR, 'Incorrect header'],
         [types.default.SET_LABEL_UI_FLAG, { isUpdating: false }],
       ]);
     });
@@ -87,18 +105,23 @@ describe('#actions', () => {
       axios.delete.mockResolvedValue({ data: labelsList[0] });
       await actions.delete({ commit }, labelsList[0].id);
       expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isDeleting: true }],
         [types.default.DELETE_LABEL, labelsList[0].id],
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isDeleting: false }],
       ]);
     });
+
     it('sends correct actions if API is error', async () => {
       axios.delete.mockRejectedValue({ message: 'Incorrect header' });
       await expect(
         actions.delete({ commit }, labelsList[0].id)
-      ).rejects.toThrow(Error);
+      ).rejects.toThrow('Incorrect header');
       expect(commit.mock.calls).toEqual([
+        [types.default.SET_LABEL_ERROR, null],
         [types.default.SET_LABEL_UI_FLAG, { isDeleting: true }],
+        [types.default.SET_LABEL_ERROR, 'Incorrect header'],
         [types.default.SET_LABEL_UI_FLAG, { isDeleting: false }],
       ]);
     });

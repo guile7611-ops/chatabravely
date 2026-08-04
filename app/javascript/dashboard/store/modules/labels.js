@@ -6,10 +6,12 @@ import { LABEL_EVENTS } from '../../helper/AnalyticsHelper/events';
 
 export const state = {
   records: [],
+  error: null,
   uiFlags: {
     isFetching: false,
     isFetchingItem: false,
     isCreating: false,
+    isUpdating: false,
     isDeleting: false,
   },
 };
@@ -17,6 +19,9 @@ export const state = {
 export const getters = {
   getLabels(_state) {
     return _state.records;
+  },
+  getError(_state) {
+    return _state.error;
   },
   getUIFlags(_state) {
     return _state.uiFlags;
@@ -45,6 +50,7 @@ export const actions = {
   },
 
   get: async function getLabels({ commit }) {
+    commit(types.SET_LABEL_ERROR, null);
     commit(types.SET_LABEL_UI_FLAG, { isFetching: true });
     try {
       const response = await LabelsAPI.get(true);
@@ -52,21 +58,34 @@ export const actions = {
         a.title.localeCompare(b.title)
       );
       commit(types.SET_LABELS, sortedLabels);
+      commit(types.SET_LABEL_ERROR, null);
     } catch (error) {
-      // Ignore error
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao carregar etiquetas';
+      commit(types.SET_LABEL_ERROR, errorMessage);
+      throw error;
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isFetching: false });
     }
   },
 
   create: async function createLabels({ commit }, cannedObj) {
+    commit(types.SET_LABEL_ERROR, null);
     commit(types.SET_LABEL_UI_FLAG, { isCreating: true });
     try {
       const response = await LabelsAPI.create(cannedObj);
       AnalyticsHelper.track(LABEL_EVENTS.CREATE);
       commit(types.ADD_LABEL, response.data);
+      commit(types.SET_LABEL_ERROR, null);
+      return response.data;
     } catch (error) {
-      const errorMessage = error?.response?.data?.message;
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao criar etiqueta';
+      commit(types.SET_LABEL_ERROR, errorMessage);
       throw new Error(errorMessage);
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isCreating: false });
@@ -74,26 +93,42 @@ export const actions = {
   },
 
   update: async function updateLabels({ commit }, { id, ...updateObj }) {
+    commit(types.SET_LABEL_ERROR, null);
     commit(types.SET_LABEL_UI_FLAG, { isUpdating: true });
     try {
       const response = await LabelsAPI.update(id, updateObj);
       AnalyticsHelper.track(LABEL_EVENTS.UPDATE);
       commit(types.EDIT_LABEL, response.data);
+      commit(types.SET_LABEL_ERROR, null);
+      return response.data;
     } catch (error) {
-      throw new Error(error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao atualizar etiqueta';
+      commit(types.SET_LABEL_ERROR, errorMessage);
+      throw new Error(errorMessage);
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isUpdating: false });
     }
   },
 
   delete: async function deleteLabels({ commit }, id) {
+    commit(types.SET_LABEL_ERROR, null);
     commit(types.SET_LABEL_UI_FLAG, { isDeleting: true });
     try {
       await LabelsAPI.delete(id);
       AnalyticsHelper.track(LABEL_EVENTS.DELETED);
       commit(types.DELETE_LABEL, id);
+      commit(types.SET_LABEL_ERROR, null);
+      return id;
     } catch (error) {
-      throw new Error(error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao excluir etiqueta';
+      commit(types.SET_LABEL_ERROR, errorMessage);
+      throw new Error(errorMessage);
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isDeleting: false });
     }
@@ -106,6 +141,9 @@ export const mutations = {
       ..._state.uiFlags,
       ...data,
     };
+  },
+  [types.SET_LABEL_ERROR](_state, error) {
+    _state.error = error;
   },
 
   [types.SET_LABELS]: MutationHelpers.set,

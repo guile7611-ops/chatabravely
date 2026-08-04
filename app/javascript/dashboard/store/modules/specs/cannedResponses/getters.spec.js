@@ -15,6 +15,13 @@ describe('#getCannedResponses', () => {
   });
 });
 
+describe('#getError', () => {
+  it('returns error state', () => {
+    const state = { error: 'Erro ao carregar' };
+    expect(getters.getError(state)).toEqual('Erro ao carregar');
+  });
+});
+
 describe('#getSortedCannedResponses', () => {
   it('returns sort canned responses in ascending order', () => {
     const state = { records: CANNED_RESPONSES };

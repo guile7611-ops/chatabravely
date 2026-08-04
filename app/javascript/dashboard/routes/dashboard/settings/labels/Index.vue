@@ -28,6 +28,7 @@ const selectedLabel = ref({});
 const searchQuery = ref('');
 
 const records = computed(() => getters['labels/getLabels'].value);
+const labelError = computed(() => getters['labels/getError'].value);
 
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim();
@@ -101,7 +102,7 @@ onBeforeMount(() => {
   <SettingsLayout
     :is-loading="uiFlags.isFetching"
     :loading-message="$t('LABEL_MGMT.LOADING')"
-    :no-records-found="!records.length"
+    :no-records-found="!records.length && !labelError && !uiFlags.isFetching"
     :no-records-message="$t('LABEL_MGMT.LIST.404')"
   >
     <template #header>
@@ -128,7 +129,22 @@ onBeforeMount(() => {
       </BaseSettingsHeader>
     </template>
     <template #body>
+      <div
+        v-if="labelError"
+        class="p-4 mb-4 rounded-lg bg-n-ruby-2 border border-n-ruby-5 text-n-ruby-11 flex items-center justify-between"
+      >
+        <span>{{ labelError }}</span>
+        <Button
+          label="Tentar novamente"
+          size="sm"
+          slate
+          :disabled="uiFlags.isFetching"
+          @click="store.dispatch('labels/get')"
+        />
+      </div>
+
       <BaseTable
+        v-if="!labelError || records.length"
         :headers="tableHeaders"
         :items="filteredRecords"
         :no-data-message="
