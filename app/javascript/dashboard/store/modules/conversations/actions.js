@@ -52,15 +52,24 @@ const actions = {
 
       const normalizedConversation = {
         ...conversation,
-        messages: (conversation.messages || []).map(message => ({
-          ...message,
-          conversation_id: message.conversationId || message.conversation_id,
-          message_type:
-            message.message_type ??
-            (message.senderType === 'AGENT' ? 1 : 0),
-          created_at: message.created_at || message.createdAt,
-          content_type: message.content_type || message.contentType,
-        })),
+        messages: (conversation.messages || []).map(message => {
+          const rawCreatedAt = message.created_at || message.createdAt;
+          const createdAt =
+            typeof rawCreatedAt === 'number'
+              ? (rawCreatedAt > 1e12 ? rawCreatedAt / 1000 : rawCreatedAt)
+              : rawCreatedAt
+                ? new Date(rawCreatedAt).getTime() / 1000
+                : Math.floor(Date.now() / 1000);
+          return {
+            ...message,
+            conversation_id: message.conversationId || message.conversation_id,
+            message_type:
+              message.message_type ??
+              (message.senderType === 'AGENT' ? 1 : 0),
+            created_at: createdAt,
+            content_type: message.content_type || message.contentType || 'text',
+          };
+        }),
         meta: conversation.meta || {
           sender: conversation.contact || null,
         },

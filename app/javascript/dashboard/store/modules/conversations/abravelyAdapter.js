@@ -22,13 +22,21 @@ export function toUIMessage(data = {}) {
 
   const directionStr = String(data.direction || 'inbound').toLowerCase();
   const messageType = DIRECTION_MAP[directionStr] !== undefined ? DIRECTION_MAP[directionStr] : 0;
+  const rawCreatedAt = data.createdAt || data.created_at;
+  const createdAt =
+    typeof rawCreatedAt === 'number'
+      ? (rawCreatedAt > 1e12 ? rawCreatedAt / 1000 : rawCreatedAt)
+      : rawCreatedAt
+        ? new Date(rawCreatedAt).getTime() / 1000
+        : Math.floor(Date.now() / 1000);
 
   return {
     id: data.id,
     conversation_id: data.conversationId || data.conversation_id,
     content: data.content || '',
     message_type: messageType,
-    created_at: data.createdAt ? new Date(data.createdAt).getTime() / 1000 : data.created_at || Math.floor(Date.now() / 1000),
+    created_at: createdAt,
+    content_type: data.contentType || data.content_type || 'text',
     sender: data.sender || null,
     private: Boolean(data.private),
     status: data.status || 'sent',
