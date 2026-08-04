@@ -1,17 +1,14 @@
 import { validateRouteAccess, isOnOnboardingView } from '../RouteHelper';
 import { clearBrowserSessionCookies } from 'dashboard/store/utils/api';
-import { replaceRouteWithReload } from '../CommonHelper';
-import Cookies from 'js-cookie';
 
 const next = vi.fn();
 vi.mock('dashboard/store/utils/api', () => ({
   clearBrowserSessionCookies: vi.fn(),
 }));
-vi.mock('../CommonHelper', () => ({ replaceRouteWithReload: vi.fn() }));
 
 describe('#validateRouteAccess', () => {
   beforeEach(() => {
-    vi.spyOn(Cookies, 'set');
+    next.mockClear();
   });
 
   afterEach(() => {
@@ -42,13 +39,10 @@ describe('#validateRouteAccess', () => {
     expect(next).toHaveBeenCalledTimes(1);
   });
 
-  it('redirects to dashboard if auth cookie is present', () => {
-    vi.spyOn(Cookies, 'get').mockReturnValueOnce(true);
-
+  it('continues to the login page even when a legacy browser cookie exists', () => {
     validateRouteAccess({ name: 'login' }, next);
     expect(clearBrowserSessionCookies).not.toHaveBeenCalled();
-    expect(replaceRouteWithReload).toHaveBeenCalledWith('/app/');
-    expect(next).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
   });
 
   it('redirects to login if route is empty', () => {

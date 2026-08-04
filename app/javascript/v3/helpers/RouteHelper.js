@@ -1,8 +1,5 @@
 import { frontendURL } from 'dashboard/helper/URLHelper';
 import { clearBrowserSessionCookies } from 'dashboard/store/utils/api';
-import { hasAuthCookie } from './AuthHelper';
-import { DEFAULT_REDIRECT_URL } from 'dashboard/constants/globals';
-import { replaceRouteWithReload } from './CommonHelper';
 
 const validateSSOLoginParams = to => {
   const isLoginRoute = to.name === 'login';
@@ -23,13 +20,6 @@ export const validateRouteAccess = (to, next, chatwootConfig = {}) => {
   if (validateSSOLoginParams(to)) {
     clearBrowserSessionCookies();
     next();
-    return;
-  }
-
-  // Redirect to dashboard if a cookie is present, the cookie
-  // cleanup and token validation happens in the application pack.
-  if (hasAuthCookie()) {
-    replaceRouteWithReload(DEFAULT_REDIRECT_URL);
     return;
   }
 
