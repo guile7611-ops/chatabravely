@@ -56,6 +56,7 @@ import { isFileTypeAllowedForChannel } from 'shared/helpers/FileHelper';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
+import ConversationApi from 'dashboard/api/inbox/conversation';
 const EmojiIconPicker = defineAsyncComponent(
   () =>
     import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
@@ -165,7 +166,12 @@ export default {
       const templates = this.$store.getters['inboxes/getWhatsAppTemplates'](
         this.inboxId
       );
-      return !!(templates && templates.length) && !this.isPrivate;
+      return (
+        !!(templates && templates.length) &&
+        !this.isPrivate &&
+        this.currentChat?.queue === 'CONVERSATION' &&
+        this.currentChat?.can_reply === true
+      );
     },
     showContentTemplates() {
       return this.isATwilioWhatsAppChannel && !this.isPrivate;
@@ -209,6 +215,9 @@ export default {
     },
     messagePlaceHolder() {
       if (this.isEditorDisabled) {
+        if (this.isMetaWindowExpired) {
+          return 'Janela de 24 horas expirada. Envie um template Meta aprovado.';
+        }
         if (this.isAWhatsAppChannel) {
           return this.$t('CONVERSATION.FOOTER.MESSAGING_RESTRICTED_WHATSAPP');
         }
@@ -439,10 +448,30 @@ export default {
       return !this.showAudioRecorderEditor && !this.copilot.isActive.value;
     },
     isEditorDisabled() {
+      if (['RECEPTION', 'DEPARTMENT'].includes(this.currentChat?.queue)) {
+        return true;
+      }
+      if (this.isMetaWindowExpired && !this.isOnPrivateNote) {
+        return true;
+      }
       return (
         (this.isAWhatsAppChannel || this.isAPIInbox) &&
         !this.isOnPrivateNote &&
         !this.currentChat.can_reply
+      );
+    },
+    isMetaWindowExpired() {
+      const isMetaChannel =
+        this.isAWhatsAppCloudChannel ||
+        this.inbox?.provider === 'META_CLOUD' ||
+        this.inbox?.channel_type === 'META_CLOUD';
+      if (!isMetaChannel || this.currentChat?.queue !== 'CONVERSATION') {
+        return false;
+      }
+      const lastInbound = this.currentChat?.last_customer_message_at;
+      return (
+        !lastInbound ||
+        Date.now() - new Date(lastInbound).getTime() >= 24 * 60 * 60 * 1000
       );
     },
   },
@@ -907,10 +936,33 @@ export default {
       }
     },
     async onSendWhatsAppReply(messagePayload) {
-      this.sendMessage({
-        conversationId: this.currentChat.id,
-        ...messagePayload,
-      });
+      if (messagePayload.templateParams) {
+        try {
+          const templateParams = messagePayload.templateParams;
+          const parameters = Object.values(
+            templateParams.processed_params?.body || {}
+          );
+          await ConversationApi.sendTemplate(this.currentChat.id, {
+            templateName: templateParams.name,
+            languageCode: templateParams.language || 'pt_BR',
+            parameters,
+            templateText: messagePayload.message,
+          });
+          await this.$store.dispatch('getConversation', this.currentChat.id);
+          useAlert('Template Meta enviado com sucesso.');
+        } catch (error) {
+          useAlert(
+            error?.response?.data?.message ||
+              error?.message ||
+              'Não foi possível enviar o template Meta.'
+          );
+        }
+      } else {
+        this.sendMessage({
+          conversationId: this.currentChat.id,
+          ...messagePayload,
+        });
+      }
       this.hideWhatsappTemplatesModal();
     },
     async onSendContentTemplateReply(messagePayload) {

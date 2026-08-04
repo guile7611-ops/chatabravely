@@ -333,7 +333,8 @@ export class WebhookService {
                 channelId: channel.id,
                 contactId: contact.id,
                 agentId: null,
-                departmentId: null
+                departmentId: null,
+                lastCustomerMessageAt: new Date()
               }
             });
 
@@ -345,12 +346,15 @@ export class WebhookService {
               }
             }).catch(() => {});
           } else {
-            const forceReception = conversation.agentId === null || conversation.queue === 'CLOSED' || conversation.status === 'CLOSED';
+            const wasClosed = conversation.queue === 'CLOSED' || conversation.status === 'CLOSED';
             conversation = await prisma.conversation.update({
               where: { id: conversation.id },
               data: {
-                queue: forceReception ? 'RECEPTION' : conversation.queue,
-                status: forceReception ? 'UNATTENDED' : conversation.status,
+                queue: wasClosed ? 'RECEPTION' : conversation.queue,
+                status: wasClosed ? 'UNATTENDED' : conversation.status,
+                agentId: wasClosed ? null : conversation.agentId,
+                departmentId: wasClosed ? null : conversation.departmentId,
+                lastCustomerMessageAt: new Date(),
                 unreadCount: { increment: 1 },
                 updatedAt: new Date()
               }
@@ -403,8 +407,9 @@ export class WebhookService {
           id: conversation.id,
           channelId: channel.id || 1,
           status: 'UNATTENDED',
-          queue: 'RECEPTION',
-          agentId: null,
+          queue: conversation.queue || 'RECEPTION',
+          agentId: conversation.agentId || null,
+          departmentId: conversation.departmentId || null,
           unreadCount: (conversation.unreadCount || 0) + 1,
           createdAt: conversation.createdAt || new Date(),
           updatedAt: new Date(),
@@ -448,12 +453,13 @@ export class WebhookService {
 
         const formattedConv = {
           id: conversation.id,
+          queue: conversation.queue,
+          can_reply: conversation.queue === 'CONVERSATION' && Boolean(conversation.agentId),
           account_id: 1,
           uuid: conversation.id,
           additional_attributes: {},
           agent_last_seen_at: 0,
           assignee_last_seen_at: 0,
-          can_reply: true,
           created_at: Math.floor(new Date(conversation.createdAt || Date.now()).getTime() / 1000),
           custom_attributes: {},
           inbox_id: channel?.id || 1,
@@ -464,6 +470,7 @@ export class WebhookService {
           createdAt: Math.floor(new Date(conversation.createdAt || Date.now()).getTime() / 1000),
           timestamp: nowSec,
           unread_count: conversation.unreadCount || 1,
+          last_customer_message_at: conversation.lastCustomerMessageAt || nowSec,
           meta: {
             sender: {
               id: contact?.id || 1,
@@ -472,8 +479,8 @@ export class WebhookService {
               type: 'contact',
               phone_number: contact?.phone || ''
             },
-            assignee: null,
-            team: null,
+            assignee: conversation.agentId ? { id: conversation.agentId } : null,
+            team: conversation.departmentId ? { id: conversation.departmentId } : null,
             hmac_verified: false
           },
           messages: [formattedMsg]

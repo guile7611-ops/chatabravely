@@ -21,6 +21,10 @@ class Inboxes extends CacheEnabledApiClient {
     return axios.post('/api/v1/channels/meta/save', payload);
   }
 
+  getApprovedTemplates(channelId) {
+    return axios.get(`/api/v1/channels/${channelId}/templates`);
+  }
+
   getCampaigns(inboxId) {
     return axios.get(`${this.url}/${inboxId}/campaigns`);
   }

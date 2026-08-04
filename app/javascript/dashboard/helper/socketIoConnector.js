@@ -47,6 +47,14 @@ class SocketIoConnector {
       'conversation:assigned',
       'conversation.status_updated',
       'conversation:status_updated',
+      'conversation.transferred',
+      'conversation:transferred',
+      'conversation.claimed',
+      'conversation:claimed',
+      'conversation.closed',
+      'conversation:closed',
+      'conversation.reopened',
+      'conversation:reopened',
     ];
   }
 
@@ -134,6 +142,7 @@ class SocketIoConnector {
     const handleMessageCreated = (payload) => this.onMessageCreated(payload);
     const handleConversationAssigned = (payload) => this.onConversationAssigned(payload);
     const handleConversationStatusUpdated = (payload) => this.onConversationStatusUpdated(payload);
+    const handleConversationQueueChanged = (payload) => this.onConversationQueueChanged(payload);
 
     this.socket.on('conversation.created', handleConversationCreated);
     this.socket.on('conversation:created', handleConversationCreated);
@@ -150,6 +159,15 @@ class SocketIoConnector {
 
     this.socket.on('conversation.status_updated', handleConversationStatusUpdated);
     this.socket.on('conversation:status_updated', handleConversationStatusUpdated);
+
+    this.socket.on('conversation.transferred', handleConversationQueueChanged);
+    this.socket.on('conversation:transferred', handleConversationQueueChanged);
+    this.socket.on('conversation.claimed', handleConversationQueueChanged);
+    this.socket.on('conversation:claimed', handleConversationQueueChanged);
+    this.socket.on('conversation.closed', handleConversationQueueChanged);
+    this.socket.on('conversation:closed', handleConversationQueueChanged);
+    this.socket.on('conversation.reopened', handleConversationQueueChanged);
+    this.socket.on('conversation:reopened', handleConversationQueueChanged);
   }
 
   disconnect() {
@@ -198,14 +216,16 @@ class SocketIoConnector {
   }
 
   onConversationCreated(payload) {
-    if (this.isDuplicateConversationEvent(payload?.id, 'created')) return;
-    const uiConversation = toUIConversation(payload);
+    const conversation = payload?.conversation || payload;
+    if (this.isDuplicateConversationEvent(conversation?.id, 'created')) return;
+    const uiConversation = toUIConversation(conversation);
     this.app?.$store?.dispatch('addConversation', uiConversation);
   }
 
   onConversationUpdated(payload) {
-    if (this.isDuplicateConversationEvent(payload?.id, 'updated')) return;
-    const uiConversation = toUIConversation(payload);
+    const conversation = payload?.conversation || payload;
+    if (this.isDuplicateConversationEvent(conversation?.id, 'updated')) return;
+    const uiConversation = toUIConversation(conversation);
     this.app?.$store?.dispatch('updateConversation', uiConversation);
   }
 
@@ -225,14 +245,23 @@ class SocketIoConnector {
   }
 
   onConversationAssigned(payload) {
-    if (this.isDuplicateConversationEvent(payload?.id, 'assigned')) return;
-    const uiConversation = toUIConversation(payload);
+    const conversation = payload?.conversation || payload;
+    if (this.isDuplicateConversationEvent(conversation?.id, 'assigned')) return;
+    const uiConversation = toUIConversation(conversation);
     this.app?.$store?.dispatch('updateConversation', uiConversation);
   }
 
   onConversationStatusUpdated(payload) {
-    if (this.isDuplicateConversationEvent(payload?.id, 'status_updated')) return;
-    const uiConversation = toUIConversation(payload);
+    const conversation = payload?.conversation || payload;
+    if (this.isDuplicateConversationEvent(conversation?.id, 'status_updated')) return;
+    const uiConversation = toUIConversation(conversation);
+    this.app?.$store?.dispatch('updateConversation', uiConversation);
+  }
+
+  onConversationQueueChanged(payload) {
+    const conversation = payload?.conversation || payload;
+    if (this.isDuplicateConversationEvent(conversation?.id, 'queue_changed')) return;
+    const uiConversation = toUIConversation(conversation);
     this.app?.$store?.dispatch('updateConversation', uiConversation);
   }
 }

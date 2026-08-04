@@ -52,6 +52,16 @@ const actions = {
 
       const normalizedConversation = {
         ...conversation,
+        queue: conversation.queue || null,
+        can_reply:
+          conversation.can_reply ??
+          (conversation.queue === 'CONVERSATION' && Boolean(conversation.agentId)),
+        status:
+          conversation.queue === 'CLOSED' || conversation.status === 'CLOSED'
+            ? 'resolved'
+            : conversation.queue === 'CONVERSATION' || conversation.status === 'OPEN'
+              ? 'open'
+              : 'pending',
         created_at: conversation.created_at ||
           (conversation.createdAt
             ? Math.floor(new Date(conversation.createdAt).getTime() / 1000)
@@ -128,7 +138,7 @@ const actions = {
         { commit, dispatch },
         params,
         data,
-        params.assigneeType
+        params.queue || params.assigneeType || 'reception'
       );
       commit(types.SET_CONVERSATIONS_ERROR, null);
     } catch (error) {

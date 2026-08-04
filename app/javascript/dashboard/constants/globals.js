@@ -1,6 +1,10 @@
 export default {
   GRAVATAR_URL: 'https://www.gravatar.com/avatar/',
   ASSIGNEE_TYPE: {
+    RECEPTION: 'reception',
+    DEPARTMENTS: 'departments',
+    ACTIVE: 'active',
+    CLOSED: 'closed',
     ME: 'me',
     UNASSIGNED: 'unassigned',
     ALL: 'all',

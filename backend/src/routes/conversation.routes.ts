@@ -49,26 +49,41 @@ router.get('/', async (req: Request, res: Response) => {
     };
 
     if (queue) {
-      whereClause.queue = queue;
-    } else if (status) {
-      if (assigneeType === 'unassigned' || status === 'UNATTENDED') {
-        whereClause.queue = { in: ['RECEPTION', 'DEPARTMENT'] };
-      } else if (status === 'OPEN') {
-        whereClause.queue = 'CONVERSATION';
-      } else if (status === 'CLOSED') {
-        whereClause.queue = 'CLOSED';
+      if (!['RECEPTION', 'DEPARTMENT', 'CONVERSATION', 'CLOSED'].includes(queue)) {
+        return res.status(400).json({ success: false, message: 'Fila de conversa inválida.' });
       }
+      whereClause.queue = queue;
     } else if (assigneeType === 'unassigned') {
-      // A aba Recepção representa conversas sem atendente, que ficam nas filas
-      // RECEPTION/DEPARTMENT no contrato Abravely.
-      whereClause.queue = { in: ['RECEPTION', 'DEPARTMENT'] };
+      whereClause.queue = 'RECEPTION';
+    } else if (assigneeType === 'me') {
+      whereClause.queue = 'CONVERSATION';
+      whereClause.agentId = user.id;
+    } else if (assigneeType === 'all') {
+      whereClause.queue = 'DEPARTMENT';
+    } else if (status === 'CLOSED') {
+      whereClause.queue = 'CLOSED';
+    } else if (status === 'OPEN') {
+      whereClause.queue = 'CONVERSATION';
+      whereClause.agentId = user.id;
+    } else if (status === 'UNATTENDED') {
+      whereClause.queue = 'RECEPTION';
+    }
+
+    if (whereClause.queue === 'DEPARTMENT' && user.role !== 'ADMIN') {
+      const departmentIds = user.departmentIds || [];
+      whereClause.departmentId = departmentId
+        ? departmentId
+        : { in: departmentIds };
     }
 
     if (departmentId) {
+      if (whereClause.queue === 'DEPARTMENT' && user.role !== 'ADMIN' && !(user.departmentIds || []).includes(departmentId)) {
+        return res.status(403).json({ success: false, message: 'Você não pertence a este departamento.' });
+      }
       whereClause.departmentId = departmentId;
     }
 
-    if (agentId) {
+    if (agentId && !whereClause.agentId) {
       whereClause.agentId = agentId;
     }
 
@@ -98,18 +113,31 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: { updatedAt: 'desc' }
     });
 
+    const counterRows = await prisma.conversation.findMany({
+      where: { workspaceId: user.workspaceId },
+      select: { queue: true, agentId: true }
+    });
+
     const formattedPayload = conversations.map(c => {
       const lastMsg = c.messages?.[0];
       return {
         id: c.id,
         inbox_id: c.channelId || 1,
         account_id: 1,
+        queue: c.queue,
+        can_reply: c.queue === 'CONVERSATION' && c.agentId === user.id,
         status: c.queue === 'CLOSED' || c.status === 'CLOSED' ? 'resolved' : (c.agentId ? 'open' : 'pending'),
         assignee_id: c.agentId || null,
+        department_id: c.departmentId || null,
         unread_count: c.unreadCount || 0,
         created_at: Math.floor(new Date(c.createdAt).getTime() / 1000),
         updated_at: Math.floor(new Date(c.updatedAt).getTime() / 1000),
+        last_customer_message_at: c.lastCustomerMessageAt
+          ? c.lastCustomerMessageAt.toISOString()
+          : null,
         meta: {
+          assignee: c.agent ? { id: c.agent.id, name: c.agent.name } : null,
+          department: c.department ? { id: c.department.id, name: c.department.name } : null,
           sender: {
             id: c.contact?.id || 'contact_1',
             name: c.contact?.name || 'Cliente WhatsApp',
@@ -136,10 +164,14 @@ router.get('/', async (req: Request, res: Response) => {
       count: conversations.length,
       payload: formattedPayload,
       meta: {
-        mine_count: formattedPayload.filter(c => c.assignee_id).length,
-        unassigned_count: formattedPayload.filter(c => !c.assignee_id).length,
-        all_count: formattedPayload.length,
-        assigned_count: formattedPayload.filter(c => c.assignee_id).length,
+        reception_count: counterRows.filter(c => c.queue === 'RECEPTION').length,
+        departments_count: counterRows.filter(c => c.queue === 'DEPARTMENT').length,
+        active_count: counterRows.filter(c => c.queue === 'CONVERSATION' && c.agentId === user.id).length,
+        closed_count: counterRows.filter(c => c.queue === 'CLOSED').length,
+        mine_count: counterRows.filter(c => c.queue === 'CONVERSATION' && c.agentId === user.id).length,
+        unassigned_count: counterRows.filter(c => c.queue === 'RECEPTION').length,
+        all_count: counterRows.filter(c => c.queue === 'DEPARTMENT').length,
+        assigned_count: counterRows.filter(c => c.queue === 'CONVERSATION' && c.agentId === user.id).length,
       },
       conversations: formattedPayload
     });
@@ -186,6 +218,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       success: true,
       conversation: {
         ...conversation,
+        can_reply: conversation.queue === 'CONVERSATION' && conversation.agentId === user.id,
         messages,
         activityLogs
       }
@@ -472,19 +505,7 @@ router.post('/:id/messages', async (req: Request, res: Response) => {
       });
     }
 
-    // REGRA DE SEGURANÇA 2: Rejeitar se agentId for null (Sem atendente atribuído)
-    if (!conversation.agentId) {
-      const claimed = await prisma.conversation.update({
-        where: { id },
-        data: { agentId: user.id, queue: 'CONVERSATION', status: 'OPEN' },
-        include: { contact: true, channel: true }
-      });
-      conversation.agentId = claimed.agentId;
-      conversation.queue = claimed.queue;
-      conversation.status = claimed.status;
-    }
-
-    // REGRA DE SEGURANÇA 3: Rejeitar se a conversa não estiver na fila CONVERSATION
+    // REGRA DE SEGURANÇA 2: Rejeitar se a conversa não estiver na fila CONVERSATION
     if (conversation.queue !== 'CONVERSATION') {
       return res.status(403).json({
         success: false,
@@ -492,12 +513,24 @@ router.post('/:id/messages', async (req: Request, res: Response) => {
       });
     }
 
-    // REGRA DE SEGURANÇA 4: Apenas o agentId atribuído pode enviar mensagem (SEM bypass silencioso de ADMIN)
+    // REGRA DE SEGURANÇA 3: Apenas o agentId atribuído pode enviar mensagem (SEM bypass silencioso de ADMIN)
     if (conversation.agentId !== user.id) {
       return res.status(403).json({
         success: false,
         message: 'Esta conversa pertence a outro atendente. Faça o takeover/assuma explicitamente antes de enviar.'
       });
+    }
+
+    if (!isPrivate && conversation.channel.type === 'META_CLOUD') {
+      const windowStart = conversation.lastCustomerMessageAt?.getTime() || 0;
+      const windowOpen = Date.now() - windowStart < 24 * 60 * 60 * 1000;
+      if (!windowOpen) {
+        return res.status(403).json({
+          success: false,
+          code: 'META_24H_WINDOW_EXPIRED',
+          message: 'A janela de 24 horas expirou. Envie um template Meta aprovado e aguarde a resposta do cliente.'
+        });
+      }
     }
 
     const message = await prisma.message.create({
@@ -611,7 +644,7 @@ router.post('/:id/close', async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/conversations/:id/reopen
- * Reabrir conversa (Retorna para a fila RECEPTION com auditoria)
+ * Reabrir conversa (Atribui ao usuário que reabriu e retorna para Ativas)
  */
 router.post('/:id/reopen', async (req: Request, res: Response) => {
   try {
@@ -637,10 +670,9 @@ router.post('/:id/reopen', async (req: Request, res: Response) => {
     const reopened = await prisma.conversation.update({
       where: { id: id },
       data: {
-        queue: 'RECEPTION',
-        status: 'UNATTENDED',
-        agentId: null,
-        departmentId: null,
+        queue: 'CONVERSATION',
+        status: 'OPEN',
+        agentId: user.id,
         closedAt: null,
         closureReason: null,
         updatedAt: new Date()
@@ -652,7 +684,7 @@ router.post('/:id/reopen', async (req: Request, res: Response) => {
       data: {
         conversationId: id,
         userName: user.name,
-        action: `🔔 Conversa reaberta e retornou para a Recepção por ${user.name}`
+        action: `🔔 Conversa reaberta e atribuída a ${user.name}`
       }
     });
 
@@ -684,6 +716,13 @@ router.post('/:id/send-template', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Conversa não encontrada.' });
     }
 
+    if (conversation.queue !== 'CONVERSATION' || conversation.agentId !== user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Assuma ou receba a conversa antes de enviar um template Meta.'
+      });
+    }
+
     if (conversation.channel.type !== 'META_CLOUD') {
       return res.status(400).json({ success: false, message: 'Disparo de templates HSM é exclusivo para canais WhatsApp Meta Cloud API.' });
     }
@@ -700,6 +739,10 @@ router.post('/:id/send-template', async (req: Request, res: Response) => {
     }
 
     const paramArray: string[] = Array.isArray(parameters) ? parameters : [];
+
+    if (!templateName || typeof templateName !== 'string') {
+      return res.status(400).json({ success: false, message: 'Template Meta aprovado é obrigatório.' });
+    }
 
     // Disparar template via Meta Cloud API
     await MetaService.sendTemplateMessage(

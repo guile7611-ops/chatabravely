@@ -72,7 +72,7 @@ const store = useStore();
 
 const resolveAttributesModalRef = ref(null);
 
-const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ME);
+const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.RECEPTION);
 const activeStatus = ref(wootConstants.STATUS_TYPE.OPEN);
 const activeSortBy = ref(wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC);
 const showAdvancedFilters = ref(false);
@@ -190,7 +190,7 @@ const assigneeTabItems = computed(() => {
 const showAssigneeInConversationCard = computed(() => {
   return (
     hasAppliedFiltersOrActiveFolders.value ||
-    activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.ALL
+    activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.CLOSED
   );
 });
 
@@ -226,6 +226,14 @@ const activeAssigneeTabCount = computed(() => {
   return item?.count || 0;
 });
 
+const queueForTab = tab =>
+  ({
+    reception: 'RECEPTION',
+    departments: 'DEPARTMENT',
+    active: 'CONVERSATION',
+    closed: 'CLOSED',
+  }[tab] || 'RECEPTION');
+
 const conversationListPagination = computed(() => {
   const conversationsPerPage = 25;
   const hasChatsOnView =
@@ -249,8 +257,11 @@ const conversationListPagination = computed(() => {
 const conversationFilters = computed(() => {
   return {
     inboxId: props.conversationInbox ? props.conversationInbox : undefined,
-    assigneeType: activeAssigneeTab.value,
-    status: activeStatus.value,
+    queue: queueForTab(activeAssigneeTab.value),
+    status:
+      activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.CLOSED
+        ? wootConstants.STATUS_TYPE.RESOLVED
+        : activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
     labels: props.label ? [props.label] : undefined,
@@ -297,15 +308,8 @@ const pageTitle = computed(() => {
 });
 
 function filterByAssigneeTab(conversations) {
-  if (activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.ME) {
-    return conversations.filter(
-      c => c.meta?.assignee?.id === currentUser.value?.id
-    );
-  }
-  if (activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.UNASSIGNED) {
-    return conversations.filter(c => !c.meta?.assignee);
-  }
-  return [...conversations];
+  const queue = queueForTab(activeAssigneeTab.value);
+  return conversations.filter(c => c.queue === queue);
 }
 
 function sortByUnreadStatus(conversations) {
@@ -328,12 +332,10 @@ const conversationList = computed(() => {
       localConversationList = filterByAssigneeTab(
         participatingChatsList.value(filters)
       );
-    } else if (activeAssigneeTab.value === 'me') {
-      localConversationList = [...mineChatsList.value(filters)];
-    } else if (activeAssigneeTab.value === 'unassigned') {
-      localConversationList = [...unAssignedChatsList.value(filters)];
     } else {
-      localConversationList = [...allChatList.value(filters)];
+      localConversationList = [...allChatList.value(filters)].filter(
+        conversation => conversation.queue === queueForTab(activeAssigneeTab.value)
+      );
     }
   } else {
     localConversationList = [...chatLists.value];

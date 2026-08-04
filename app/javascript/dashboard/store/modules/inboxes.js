@@ -38,7 +38,7 @@ export const getters = {
   },
   getWhatsAppTemplates: $state => inboxId => {
     const [inbox] = $state.records.filter(
-      record => record.id === Number(inboxId)
+      record => String(record.id) === String(inboxId)
     );
 
     const {
@@ -55,7 +55,7 @@ export const getters = {
   },
   getFilteredWhatsAppTemplates: $state => inboxId => {
     const [inbox] = $state.records.filter(
-      record => record.id === Number(inboxId)
+      record => String(record.id) === String(inboxId)
     );
 
     const {
@@ -384,9 +384,19 @@ export const actions = {
       throw new Error(error);
     }
   },
-  syncTemplates: async (_, inboxId) => {
+  syncTemplates: async ({ commit, state }, inboxId) => {
     try {
-      await InboxesAPI.syncTemplates(inboxId);
+      const response = await InboxesAPI.getApprovedTemplates(inboxId);
+      const templates = response.data?.templates || [];
+      commit(
+        types.default.SET_INBOXES,
+        state.records.map(record =>
+          String(record.id) === String(inboxId)
+            ? { ...record, message_templates: templates }
+            : record
+        )
+      );
+      return templates;
     } catch (error) {
       throw new Error(error);
     }

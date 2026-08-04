@@ -112,32 +112,7 @@ export class MetaService {
       return response.data?.data || [];
     } catch (error: any) {
       console.error(`❌ [MetaService] Erro ao buscar templates para WABA ${wabaId}:`, error.response?.data || error.message);
-      // Retornar lista de fallback para ambiente de testes/dev caso o WABA ID não esteja configurado
-      return [
-        {
-          id: 'tpl_boas_vindas',
-          name: 'boas_vindas_atendimento',
-          language: 'pt_BR',
-          status: 'APPROVED',
-          category: 'UTILITY',
-          components: [
-            { type: 'HEADER', format: 'TEXT', text: 'Abravely Atendimento' },
-            { type: 'BODY', text: 'Olá {{1}}, bem-vindo ao nosso suporte. Como podemos ajudar você hoje?' },
-            { type: 'FOOTER', text: 'Responda a esta mensagem para iniciar o atendimento.' }
-          ]
-        },
-        {
-          id: 'tpl_lembrete_contato',
-          name: 'lembrete_retorno_suporte',
-          language: 'pt_BR',
-          status: 'APPROVED',
-          category: 'UTILITY',
-          components: [
-            { type: 'BODY', text: 'Olá {{1}}, gostaríamos de confirmar se você ainda precisa de ajuda com o chamado {{2}}.' },
-            { type: 'FOOTER', text: 'Abravely Chat - Equipe de Atendimento' }
-          ]
-        }
-      ];
+      throw new Error(error.response?.data?.error?.message || 'Não foi possível buscar os templates aprovados na Meta.');
     }
   }
 

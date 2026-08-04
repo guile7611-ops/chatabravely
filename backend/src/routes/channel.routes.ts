@@ -169,8 +169,12 @@ router.get('/:id/templates', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Este canal não é do tipo Meta Cloud API.' });
     }
 
-    const wabaId = channel.metaWabaId || 'default_waba';
-    const metaToken = channel.metaToken || '';
+    const wabaId = channel.metaWabaId;
+    const metaToken = channel.metaToken;
+
+    if (!wabaId || !metaToken) {
+      return res.status(400).json({ success: false, message: 'WABA ID e token Meta são obrigatórios para buscar templates.' });
+    }
 
     const templates = await MetaService.fetchTemplates(wabaId, metaToken);
 

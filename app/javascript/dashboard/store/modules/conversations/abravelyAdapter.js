@@ -59,11 +59,13 @@ export function toUIConversation(data = {}) {
     id: data.id,
     account_id: data.accountId || data.account_id || 1,
     inbox_id: data.inboxId || data.inbox_id || null,
+    queue: data.queue || null,
     status: data.status || 'open',
     assignee_id: assignedAgentId,
     team_id: data.departmentId || data.team_id || (team ? team.id : null),
     unread_count: data.unreadCount !== undefined ? data.unreadCount : (data.unread_count || 0),
     last_activity_at: data.lastMessageAt ? new Date(data.lastMessageAt).getTime() / 1000 : (data.last_activity_at || Math.floor(Date.now() / 1000)),
+    last_customer_message_at: data.lastCustomerMessageAt || data.last_customer_message_at || null,
     meta: {
       sender: contact,
       assignee: assignee || (assignedAgentId ? { id: assignedAgentId } : null),

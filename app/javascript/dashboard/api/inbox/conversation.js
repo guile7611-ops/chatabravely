@@ -10,6 +10,7 @@ class ConversationApi extends ApiClient {
 
   get({
     inboxId,
+    queue,
     status,
     assigneeType,
     page,
@@ -22,6 +23,7 @@ class ConversationApi extends ApiClient {
     return axios.get(this.url, {
       params: {
         inbox_id: inboxId,
+        queue,
         team_id: teamId,
         status,
         assignee_type: assigneeType,
@@ -83,6 +85,29 @@ class ConversationApi extends ApiClient {
     return axios.post(`${this.url}/${id}/unread`);
   }
 
+  claim(conversationId) {
+    return axios.post(`${this.url}/${conversationId}/claim`);
+  }
+
+  transfer(conversationId, { departmentId, agentId } = {}) {
+    return axios.post(`${this.url}/${conversationId}/transfer`, {
+      departmentId,
+      agentId,
+    });
+  }
+
+  close(conversationId, reason) {
+    return axios.post(`${this.url}/${conversationId}/close`, { reason });
+  }
+
+  reopen(conversationId) {
+    return axios.post(`${this.url}/${conversationId}/reopen`);
+  }
+
+  sendTemplate(conversationId, payload) {
+    return axios.post(`${this.url}/${conversationId}/send-template`, payload);
+  }
+
   toggleTyping({ conversationId, status, isPrivate }) {
     return axios.post(`${this.url}/${conversationId}/toggle_typing_status`, {
       typing_status: status,
@@ -99,7 +124,9 @@ class ConversationApi extends ApiClient {
   }
 
   meta({ inboxId, status, assigneeType, labels, teamId, conversationType }) {
-    return axios.get(`${this.url}/meta`, {
+    // O backend Abravely expõe os contadores no contrato da listagem;
+    // não existe uma rota legada /meta.
+    return axios.get(this.url, {
       params: {
         inbox_id: inboxId,
         status,
