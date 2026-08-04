@@ -1,22 +1,32 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { shallowMount, flushPromises } from '@vue/test-utils';
 import Index from './Index.vue';
 import * as authAPI from '../../api/auth';
+import * as apiUtils from 'dashboard/store/utils/api';
 import { getAbravelyJwtToken, clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
 
 vi.mock('../../api/auth');
 
-describe('Login Component Index.vue - Dual Authentication Flow', () => {
+describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
   let dispatchMock;
+  let originalWindowLocation;
 
   beforeEach(() => {
     vi.clearAllMocks();
     clearAbravelyJwtToken();
     dispatchMock = vi.fn();
 
+    originalWindowLocation = window.location;
+    delete window.location;
+    window.location = { href: 'http://localhost/app/login' };
+
     window.chatwootConfig = {
       allowedLoginMethods: ['email'],
     };
+  });
+
+  afterEach(() => {
+    window.location = originalWindowLocation;
   });
 
   function getWrapper() {
@@ -42,8 +52,16 @@ describe('Login Component Index.vue - Dual Authentication Flow', () => {
     });
   }
 
-  it('triggers Express loginWithCredentials on Rails login success and stores JWT', async () => {
-    authAPI.login.mockResolvedValue({ success: true });
+  it('calls Rails login with redirect:false and only sets window.location ONCE after Express JWT is stored', async () => {
+    const setAuthCredentialsSpy = vi.spyOn(apiUtils, 'setAuthCredentials');
+
+    authAPI.login.mockResolvedValue({
+      success: true,
+      response: { data: { data: { id: 1 } }, headers: {} },
+      user: { id: 1 },
+      redirectUrl: '/app/accounts/1/dashboard',
+    });
+
     dispatchMock.mockImplementation((action) => {
       if (action === 'loginWithCredentials') {
         window.chatwootConfig.abravelyJwtToken = 'header.payload.signature_real_xyz';
@@ -59,24 +77,40 @@ describe('Login Component Index.vue - Dual Authentication Flow', () => {
     await wrapper.vm.submitLogin();
     await flushPromises();
 
-    expect(authAPI.login).toHaveBeenCalledWith({
-      email: 'agente@abravely.com',
-      password: 'minhasenha123',
-      sso_auth_token: '',
-      ssoAccountId: '',
-      ssoConversationId: '',
-    });
+    // 1. Confirmar que o login Rails foi chamado com redirect: false
+    expect(authAPI.login).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'agente@abravely.com',
+        password: 'minhasenha123',
+      }),
+      { redirect: false }
+    );
 
+    // 2. Confirmar dispatch para obter JWT Express
     expect(dispatchMock).toHaveBeenCalledWith('loginWithCredentials', {
       email: 'agente@abravely.com',
       password: 'minhasenha123',
     });
 
+    // 3. Confirmar persistencia do JWT
     expect(getAbravelyJwtToken()).toBe('header.payload.signature_real_xyz');
+
+    // 4. Confirmar que o redirecionamento via window.location ocorreu apenas ao final
+    expect(setAuthCredentialsSpy).toHaveBeenCalledTimes(1);
+    expect(window.location).toBe('/app/accounts/1/dashboard');
   });
 
-  it('handles Express login failure with explicit error and without inventing tokens', async () => {
-    authAPI.login.mockResolvedValue({ success: true });
+  it('invalidates Rails session and clears JWT when Express login fails, preventing redirect', async () => {
+    const clearCookiesSpy = vi.spyOn(apiUtils, 'clearCookiesOnLogout');
+    const clearLocalStorageSpy = vi.spyOn(apiUtils, 'clearLocalStorageOnLogout');
+
+    authAPI.login.mockResolvedValue({
+      success: true,
+      response: { data: { data: { id: 1 } }, headers: {} },
+      user: { id: 1 },
+      redirectUrl: '/app/accounts/1/dashboard',
+    });
+
     dispatchMock.mockImplementation((action) => {
       if (action === 'loginWithCredentials') {
         return Promise.reject(new Error('Falha ao autenticar no serviço Abravely WebSocket.'));
@@ -91,18 +125,29 @@ describe('Login Component Index.vue - Dual Authentication Flow', () => {
     await wrapper.vm.submitLogin();
     await flushPromises();
 
+    // 1. Confirmar tentativa de obtencao
     expect(dispatchMock).toHaveBeenCalledWith('loginWithCredentials', {
       email: 'agente@abravely.com',
       password: 'senhaerrada',
     });
 
-    expect(wrapper.vm.loginApi.hasErrored).toBe(true);
-    expect(wrapper.vm.loginApi.showLoading).toBe(false);
+    // 2. Confirmar limpeza das sessoes Rails e JWT
+    expect(clearCookiesSpy).toHaveBeenCalled();
+    expect(clearLocalStorageSpy).toHaveBeenCalled();
     expect(getAbravelyJwtToken()).toBeNull();
+
+    // 3. Confirmar que window.location NAO foi alterado para a URL do dashboard
+    expect(wrapper.vm.loginApi.hasErrored).toBe(true);
+    expect(window.location).not.toBe('/app/accounts/1/dashboard');
   });
 
   it('guarantees that password is never persisted in storage or global config', async () => {
-    authAPI.login.mockResolvedValue({ success: true });
+    authAPI.login.mockResolvedValue({
+      success: true,
+      response: { data: { data: { id: 1 } }, headers: {} },
+      user: { id: 1 },
+      redirectUrl: '/app/accounts/1/dashboard',
+    });
     dispatchMock.mockResolvedValue('jwt_token');
 
     const wrapper = getWrapper();

@@ -1,6 +1,12 @@
 <script>
 // utils and composables
 import { login } from '../../api/auth';
+import {
+  setAuthCredentials,
+  clearCookiesOnLogout,
+  clearLocalStorageOnLogout,
+} from 'dashboard/store/utils/api';
+import { clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
 import { mapGetters } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import { required, email } from '@vuelidate/validators';
@@ -164,7 +170,7 @@ export default {
         SessionStorage.set(SESSION_STORAGE_KEYS.IMPERSONATION_USER, true);
       }
     },
-    submitLogin() {
+    async submitLogin() {
       this.loginApi.hasErrored = false;
       this.loginApi.showLoading = true;
 
@@ -178,62 +184,84 @@ export default {
         ssoConversationId: this.ssoConversationId,
       };
 
-      login(credentials)
-        .then(result => {
-          // Check if MFA is required
-          if (result?.mfaRequired) {
-            this.loginApi.showLoading = false;
-            this.mfaRequired = true;
-            this.mfaToken = result.mfaToken;
-            return;
-          }
+      try {
+        // 1. Executar autenticação Rails sem redirecionar (redirect: false)
+        const railsResult = await login(credentials, { redirect: false });
 
-          // Check if sessions limit reached
-          if (result?.sessionsLimitReached) {
-            this.loginApi.showLoading = false;
-            this.sessionsLimitReached = true;
-            this.limitedSessions = result.sessions;
-            AnalyticsHelper.track(SESSION_EVENTS.LIMIT_HIT);
-            return;
-          }
+        // Check if MFA is required
+        if (railsResult?.mfaRequired) {
+          this.loginApi.showLoading = false;
+          this.mfaRequired = true;
+          this.mfaToken = railsResult.mfaToken;
+          return;
+        }
 
-          this.handleImpersonation();
+        // Check if sessions limit reached
+        if (railsResult?.sessionsLimitReached) {
+          this.loginApi.showLoading = false;
+          this.sessionsLimitReached = true;
+          this.limitedSessions = railsResult.sessions;
+          AnalyticsHelper.track(SESSION_EVENTS.LIMIT_HIT);
+          return;
+        }
 
-          return this.$store
-            .dispatch('loginWithCredentials', {
-              email: credentials.email,
-              password: credentials.password,
-            })
-            .then(() => {
-              this.showAlertMessage(this.$t('LOGIN.API.SUCCESS_MESSAGE'));
-            })
-            .catch(expressErr => {
-              this.loginApi.hasErrored = true;
-              this.loginApi.showLoading = false;
-              this.showAlertMessage(
-                expressErr?.message || 'Falha ao autenticar no serviço Abravely WebSocket.'
-              );
-            });
-        })
-        .catch(response => {
-          if (response?.errorCode === USER_NOT_CONFIRMED_ERROR_CODE) {
-            this.loginApi.showLoading = false;
-            this.$router.push({
-              name: 'auth_verify_email',
-              state: { email: credentials.email },
-            });
-            return;
-          }
-
-          // Reset URL Params if the authentication is invalid
-          if (this.email) {
-            window.location = '/app/login';
-          }
+        // 2. Para MFA/SSO/OAuth sem senha em memória, exigir credenciais para a sessão Express
+        if (!credentials.password) {
           this.loginApi.hasErrored = true;
+          this.loginApi.showLoading = false;
+          this.showAlertMessage('Falha ao autenticar: Senha necessária para inicializar sessão Abravely.');
+          return;
+        }
+
+        // 3. Efetuar obtenção atômica do JWT Abravely Express
+        try {
+          await this.$store.dispatch('loginWithCredentials', {
+            email: credentials.email,
+            password: credentials.password,
+          });
+        } catch (expressErr) {
+          // Em caso de falha no Express: invalida a sessão Rails temporária, limpa JWT e NÃO redireciona!
+          clearCookiesOnLogout();
+          clearLocalStorageOnLogout();
+          clearAbravelyJwtToken();
+          this.loginApi.hasErrored = true;
+          this.loginApi.showLoading = false;
           this.showAlertMessage(
-            response?.message || this.$t('LOGIN.API.UNAUTH')
+            expressErr?.message || 'Falha ao autenticar no serviço Abravely WebSocket. O login foi cancelado.'
           );
-        });
+          return;
+        }
+
+        // 4. Sucesso Duplo: Gravar credenciais Rails, executar impersonation e redirecionar UMA ÚNICA VEZ
+        if (railsResult.response) {
+          setAuthCredentials(railsResult.response);
+          clearLocalStorageOnLogout();
+        }
+        this.handleImpersonation();
+        this.showAlertMessage(this.$t('LOGIN.API.SUCCESS_MESSAGE'));
+
+        if (railsResult.redirectUrl) {
+          window.location = railsResult.redirectUrl;
+        }
+      } catch (response) {
+        clearAbravelyJwtToken();
+        if (response?.errorCode === USER_NOT_CONFIRMED_ERROR_CODE) {
+          this.loginApi.showLoading = false;
+          this.$router.push({
+            name: 'auth_verify_email',
+            state: { email: credentials.email },
+          });
+          return;
+        }
+
+        if (this.email) {
+          window.location = '/app/login';
+        }
+        this.loginApi.hasErrored = true;
+        this.showAlertMessage(
+          response?.message || this.$t('LOGIN.API.UNAUTH')
+        );
+      }
     },
     submitFormLogin() {
       if (this.v$.credentials.email.$invalid && !this.email) {

@@ -10,11 +10,10 @@ import {
   getCredentialsFromEmail,
 } from '../helpers/AuthHelper';
 
-export const login = async ({
-  ssoAccountId,
-  ssoConversationId,
-  ...credentials
-}) => {
+export const login = async (
+  { ssoAccountId, ssoConversationId, ...credentials },
+  options = { redirect: true }
+) => {
   try {
     const response = await wootAPI.post('auth/sign_in', credentials);
 
@@ -27,13 +26,24 @@ export const login = async ({
       };
     }
 
-    setAuthCredentials(response);
-    clearLocalStorageOnLogout();
-    window.location = getLoginRedirectURL({
+    const redirectUrl = getLoginRedirectURL({
       ssoAccountId,
       ssoConversationId,
       user: response.data.data,
     });
+
+    if (options && options.redirect === false) {
+      return {
+        success: true,
+        response,
+        user: response.data.data,
+        redirectUrl,
+      };
+    }
+
+    setAuthCredentials(response);
+    clearLocalStorageOnLogout();
+    window.location = redirectUrl;
     return null;
   } catch (error) {
     // Check if it's an MFA required response
