@@ -394,8 +394,8 @@ export default {
             required
             :label="$t('LOGIN.EMAIL.LABEL')"
             :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
-            :has-error="v$.credentials.email.$error"
-            @input="v$.credentials.email.$touch"
+            :has-error="v$?.credentials?.email?.$error"
+            @input="v$?.credentials?.email?.$touch?.()"
           />
           <FormInput
             v-model="credentials.password"
@@ -406,8 +406,8 @@ export default {
             :tabindex="2"
             :label="$t('LOGIN.PASSWORD.LABEL')"
             :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
-            :has-error="v$.credentials.password.$error"
-            @input="v$.credentials.password.$touch"
+            :has-error="v$?.credentials?.password?.$error"
+            @input="v$?.credentials?.password?.$touch?.()"
           >
             <p v-if="!globalConfig?.disableUserProfileUpdate">
               <router-link
