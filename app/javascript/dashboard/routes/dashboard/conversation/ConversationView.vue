@@ -158,7 +158,7 @@ export default {
     fetchConversationIfUnavailable() {
       if (this.conversationId) {
         const selectedConversation = this.chatList.find(
-          c => c.id === Number(this.conversationId)
+          c => String(c.id) === String(this.conversationId)
         );
         if (!selectedConversation) {
           this.$store.dispatch('getConversation', this.conversationId);

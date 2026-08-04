@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import SocketIoConnector from 'dashboard/helper/socketIoConnector';
+import SocketIoConnector, { getAuthToken, getSocketUrl } from 'dashboard/helper/socketIoConnector';
+import { io } from 'socket.io-client';
 
 const eventHandlers = {};
 
 vi.mock('socket.io-client', () => ({
-  io: vi.fn(() => ({
+  io: vi.fn((url, options) => ({
     connected: true,
+    url,
+    options,
     on: vi.fn((event, cb) => {
       eventHandlers[event] = cb;
     }),
@@ -14,6 +17,17 @@ vi.mock('socket.io-client', () => ({
     }),
     disconnect: vi.fn(),
   })),
+}));
+
+vi.mock('js-cookie', () => ({
+  default: {
+    get: vi.fn((key) => {
+      if (key === 'cw_d_session_info') {
+        return JSON.stringify({ token: 'mock-jwt-token-123' });
+      }
+      return null;
+    }),
+  },
 }));
 
 const mockDispatch = vi.fn();
@@ -30,7 +44,7 @@ const mockApp = {
   },
 };
 
-describe('SocketIoConnector Real Integration', () => {
+describe('SocketIoConnector Real Authenticated Integration', () => {
   let connector;
 
   beforeEach(() => {
@@ -41,37 +55,61 @@ describe('SocketIoConnector Real Integration', () => {
     connector.connect();
   });
 
-  it('registers connection and domain event handlers', () => {
-    expect(eventHandlers['connect']).toBeDefined();
-    expect(eventHandlers['disconnect']).toBeDefined();
-    expect(eventHandlers['conversation.created']).toBeDefined();
-    expect(eventHandlers['message.created']).toBeDefined();
-    expect(eventHandlers['conversation.assigned']).toBeDefined();
+  it('extracts JWT token and passes token in handshake auth without query string', () => {
+    const token = getAuthToken();
+    expect(token).toBe('mock-jwt-token-123');
+
+    expect(io).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        auth: {
+          token: 'mock-jwt-token-123',
+        },
+      })
+    );
   });
 
-  it('deduplicates duplicate message.created events', () => {
+  it('resolves socket URL properly without silent fallback', () => {
+    const resolvedUrl = getSocketUrl();
+    expect(resolvedUrl).toBe(window.location.origin);
+  });
+
+  it('handles connect_error by committing SET_CONVERSATIONS_ERROR mutation', () => {
+    eventHandlers['connect_error']({ message: 'Autenticação WebSocket falhou' });
+    expect(mockCommit).toHaveBeenCalledWith(
+      'SET_CONVERSATIONS_ERROR',
+      'Autenticação WebSocket falhou'
+    );
+  });
+
+  it('handles reconnect by resetting SET_CONVERSATIONS_ERROR mutation', () => {
+    eventHandlers['reconnect']();
+    expect(mockCommit).toHaveBeenCalledWith('SET_CONVERSATIONS_ERROR', null);
+  });
+
+  it('deduplicates duplicate canonical and alias events', () => {
     const payload = {
       id: 99,
-      conversationId: 10,
-      content: 'Mensagem unica',
+      conversationId: 'uuid-conversa-123',
+      content: 'Mensagem via socket',
       direction: 'inbound',
       createdAt: '2026-08-04T00:00:00.000Z',
     };
 
-    // First call
+    // First call with canonical event message.created
     eventHandlers['message.created'](payload);
     expect(mockDispatch).toHaveBeenCalledTimes(2); // addMessage + updateConversationLastActivity
 
     mockDispatch.mockClear();
 
-    // Duplicate call with same message id 99
-    eventHandlers['message.created'](payload);
+    // Duplicate call with legacy alias event message:new
+    eventHandlers['message:new'](payload);
     expect(mockDispatch).not.toHaveBeenCalled();
   });
 
   it('handles conversation.assigned by dispatching updateConversation', () => {
     const payload = {
-      id: 10,
+      id: 'uuid-conversa-123',
       assignedAgentId: 5,
       assignee: { id: 5, name: 'Atendente 1' },
     };
@@ -81,7 +119,7 @@ describe('SocketIoConnector Real Integration', () => {
     expect(mockDispatch).toHaveBeenCalledWith(
       'updateConversation',
       expect.objectContaining({
-        id: 10,
+        id: 'uuid-conversa-123',
         assignee_id: 5,
       })
     );
