@@ -140,6 +140,13 @@ export default {
       this.$store.dispatch('setActiveInbox', this.inboxId);
       this.setActiveChat();
     },
+    setActiveChat() {
+      // A route change can happen before its conversation is present in the
+      // list. The existing selector handles both cases: it fetches a missing
+      // conversation or selects the matching one. Keeping that behavior in a
+      // component method also makes the initial mount and list watcher safe.
+      this.fetchConversationIfUnavailable();
+    },
     toggleConversationLayout() {
       const { LAYOUT_TYPES } = wootConstants;
       const {

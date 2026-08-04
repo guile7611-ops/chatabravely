@@ -56,7 +56,9 @@ const isExpanded = computed(() => {
   return expandedItem?.value === props.name;
 });
 
-const isExpandable = computed(() => props.children);
+const isExpandable = computed(
+  () => Array.isArray(props.children) && props.children.length > 0
+);
 const hasChildren = computed(
   () => Array.isArray(props.children) && props.children.length > 0
 );
