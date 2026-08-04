@@ -50,8 +50,4 @@ export const ASSIGNEE_TYPE_TAB_PERMISSIONS = {
       CONVERSATION_PARTICIPATING_PERMISSIONS,
     ],
   },
-  closed: {
-    count: 'closedCount',
-    permissions: [...ROLES, MANAGE_ALL_CONVERSATION_PERMISSIONS],
-  },
 };
