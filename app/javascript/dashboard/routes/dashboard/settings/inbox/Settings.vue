@@ -455,7 +455,6 @@ export default {
       this.$store.dispatch('agents/get');
       this.$store.dispatch('teams/get');
       this.$store.dispatch('labels/get');
-      this.$store.dispatch('portals/index');
     },
     syncInboxData() {
       if (!this.inbox || !this.inbox.id) return;

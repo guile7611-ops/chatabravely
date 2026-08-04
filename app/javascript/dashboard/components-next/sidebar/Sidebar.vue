@@ -216,11 +216,6 @@ const getTeamUnreadCount = useMapGetter(
   'conversationUnreadCounts/getTeamUnreadCount'
 );
 const teams = useMapGetter('teams/getMyTeams', []);
-const contactCustomViews = useMapGetter('customViews/getContactCustomViews', []);
-const conversationCustomViews = useMapGetter(
-  'customViews/getConversationCustomViews',
-  []
-);
 const getSidebarSectionSort = useMapGetter(
   'sidebarSortPreferences/getSectionSort'
 );
@@ -244,8 +239,6 @@ onMounted(() => {
   store.dispatch('notifications/unReadCount');
   store.dispatch('teams/get');
   store.dispatch('attributes/get');
-  store.dispatch('customViews/get', 'conversation');
-  store.dispatch('customViews/get', 'contact');
 });
 
 watch([accountId, hasConversationUnreadCounts], fetchConversationUnreadCounts, {
@@ -281,13 +274,6 @@ const buildSortConfig = section => ({
   activeSort: getSortForSection(section),
   onSortChange: sortBy => updateSortPreference(section, sortBy),
 });
-
-const sortedFolders = computed(() =>
-  sortSidebarItems(conversationCustomViews.value || [], {
-    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.FOLDERS),
-    labelKey: view => view.name,
-  })
-);
 
 const sortedTeams = computed(() =>
   sortSidebarItems(teams.value || [], {
@@ -367,20 +353,6 @@ const menuItems = computed(() => {
           icon: 'i-lucide-user-round-check',
           activeOn: ['conversation_through_participating'],
           to: accountScopedRoute('conversation_participating'),
-        },
-        {
-          name: 'Folders',
-          label: t('SIDEBAR.CUSTOM_VIEWS_FOLDER'),
-          icon: 'i-lucide-folder',
-          activeOn: ['conversations_through_folders'],
-          ...buildSortConfig(SIDEBAR_SORT_SECTIONS.FOLDERS),
-          collapsible: true,
-          showTreeLine: true,
-          children: (sortedFolders.value || []).map(view => ({
-            name: `${view.name}-${view.id}`,
-            label: view.name,
-            to: accountScopedRoute('folder_conversations', { id: view.id }),
-          })),
         },
         {
           name: 'Teams',
@@ -464,26 +436,6 @@ const menuItems = computed(() => {
           activeOn: ['contacts_dashboard_active'],
         },
         {
-          name: 'Segments',
-          icon: 'i-lucide-group',
-          label: t('SIDEBAR.CUSTOM_VIEWS_SEGMENTS'),
-          collapsible: true,
-          showTreeLine: true,
-          children: (contactCustomViews.value || []).map(view => ({
-            name: `${view.name}-${view.id}`,
-            label: view.name,
-            to: accountScopedRoute(
-              'contacts_dashboard_segments_index',
-              { segmentId: view.id },
-              { page: 1 }
-            ),
-            activeOn: [
-              'contacts_dashboard_segments_index',
-              'contacts_edit_segment',
-            ],
-          })),
-        },
-        {
           name: 'Tagged With',
           icon: 'i-lucide-tag',
           label: t('SIDEBAR.TAGGED_WITH'),
@@ -539,23 +491,6 @@ const menuItems = computed(() => {
       ],
     },
 
-    {
-      name: 'Portals',
-      label: t('SIDEBAR.HELP_CENTER.TITLE'),
-      icon: 'i-lucide-library-big',
-      to: accountScopedRoute('portals_index', {
-        navigationPath: 'portals_articles_index',
-      }),
-      activeOn: [
-        'portals_index',
-        'portals_articles_index',
-        'portals_articles_new',
-        'portals_articles_edit',
-        'portals_categories_index',
-        'portals_locales_index',
-        'portals_settings_index',
-      ],
-    },
     {
       name: 'Settings',
       label: t('SIDEBAR.SETTINGS'),

@@ -1,5 +1,5 @@
 <script>
-import { defineAsyncComponent, ref, computed } from 'vue';
+import { ref, computed } from 'vue';
 
 import NextSidebar from 'next/sidebar/Sidebar.vue';
 import WootKeyShortcutModal from 'dashboard/components/widgets/modal/WootKeyShortcutModal.vue';
@@ -11,16 +11,11 @@ import { useWindowSize } from '@vueuse/core';
 
 import wootConstants from 'dashboard/constants/globals';
 
-const CommandBar = defineAsyncComponent(
-  () => import('./commands/commandbar.vue')
-);
-
 import MobileSidebarLauncher from 'dashboard/components-next/sidebar/MobileSidebarLauncher.vue';
 
 export default {
   components: {
     NextSidebar,
-    CommandBar,
     WootKeyShortcutModal,
     AddAccountModal,
     MobileSidebarLauncher,
@@ -113,7 +108,6 @@ export default {
 
     <main class="flex flex-1 h-full w-full min-h-0 px-0 overflow-hidden bg-n-surface-1">
       <router-view />
-      <CommandBar />
       <MobileSidebarLauncher
         :is-mobile-sidebar-open="isMobileSidebarOpen"
         @toggle="toggleMobileSidebar"

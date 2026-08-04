@@ -1,14 +1,12 @@
 <script>
 import { mapGetters } from 'vuex';
 import ConversationHeader from './ConversationHeader.vue';
-import DashboardAppFrame from '../DashboardApp/Frame.vue';
 import EmptyState from './EmptyState/EmptyState.vue';
 import MessagesView from './MessagesView.vue';
 
 export default {
   components: {
     ConversationHeader,
-    DashboardAppFrame,
     EmptyState,
     MessagesView,
   },
@@ -31,28 +29,10 @@ export default {
       default: true,
     },
   },
-  data() {
-    return { activeIndex: 0 };
-  },
   computed: {
     ...mapGetters({
       currentChat: 'getSelectedChat',
-      dashboardApps: 'dashboardApps/getRecords',
     }),
-    dashboardAppTabs() {
-      return [
-        {
-          key: 'messages',
-          index: 0,
-          name: this.$t('CONVERSATION.DASHBOARD_APP_TAB_MESSAGES'),
-        },
-        ...this.dashboardApps.map((dashboardApp, index) => ({
-          key: `dashboard-${dashboardApp.id}`,
-          index: index + 1,
-          name: dashboardApp.title,
-        })),
-      ];
-    },
     showContactPanel() {
       return this.isContactPanelOpen && this.currentChat.id;
     },
@@ -68,12 +48,10 @@ export default {
     },
     'currentChat.id'() {
       this.fetchLabels();
-      this.activeIndex = 0;
     },
   },
   mounted() {
     this.fetchLabels();
-    this.$store.dispatch('dashboardApps/get');
   },
   methods: {
     fetchLabels() {
@@ -81,9 +59,6 @@ export default {
         return;
       }
       this.$store.dispatch('conversationLabels/get', this.currentChat.id);
-    },
-    onDashboardAppTabChange(index) {
-      this.activeIndex = index;
     },
   },
 };
@@ -100,26 +75,8 @@ export default {
       v-if="currentChat.id"
       :chat="currentChat"
       :show-back-button="isOnExpandedLayout && !isInboxView"
-      :class="{
-        'border-b border-b-n-weak !pt-2': !dashboardApps.length,
-      }"
     />
-    <woot-tabs
-      v-if="dashboardApps.length && currentChat.id"
-      :index="activeIndex"
-      class="h-10"
-      @change="onDashboardAppTabChange"
-    >
-      <woot-tabs-item
-        v-for="tab in dashboardAppTabs"
-        :key="tab.key"
-        :index="tab.index"
-        :name="tab.name"
-        :show-badge="false"
-        is-compact
-      />
-    </woot-tabs>
-    <div v-show="!activeIndex" class="flex h-full min-h-0 m-0">
+    <div class="flex h-full min-h-0 m-0">
       <MessagesView
         v-if="currentChat.id"
         :inbox-id="inboxId"
@@ -131,14 +88,5 @@ export default {
       />
       <slot />
     </div>
-    <DashboardAppFrame
-      v-for="(dashboardApp, index) in dashboardApps"
-      v-show="activeIndex - 1 === index"
-      :key="currentChat.id + '-' + dashboardApp.id"
-      :is-visible="activeIndex - 1 === index"
-      :config="dashboardApps[index].content"
-      :position="index"
-      :current-chat="currentChat"
-    />
   </div>
 </template>

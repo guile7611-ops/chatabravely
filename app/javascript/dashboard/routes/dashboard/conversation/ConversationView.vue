@@ -112,7 +112,6 @@ export default {
 
   mounted() {
     this.$store.dispatch('agents/get');
-    this.$store.dispatch('portals/index');
     this.initialize();
     this.$watch('$route.params', (newParams, oldParams) => {
       if (JSON.stringify(newParams) !== JSON.stringify(oldParams)) {
