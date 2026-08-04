@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue';
-import { useStore } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import {
   getVoiceCallProvider,
@@ -12,7 +11,6 @@ import {
 } from 'dashboard/components-next/message/constants';
 import { useWhatsappCallSession } from 'dashboard/composables/useWhatsappCallSession';
 import { useCallsStore } from 'dashboard/stores/calls';
-import { useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useAlert } from 'dashboard/composables';
@@ -30,41 +28,25 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-const store = useStore();
 const callsStore = useCallsStore();
 const whatsappCallSession = useWhatsappCallSession();
-const contactsUiFlags = useMapGetter('contacts/getUIFlags');
 const { isCloudFeatureEnabled } = useAccount();
 
 const voiceCallProvider = computed(() => getVoiceCallProvider(props.inbox));
-const isVoiceCallInbox = computed(
-  () =>
-    voiceCallProvider.value !== null &&
-    isCloudFeatureEnabled(FEATURE_FLAGS.CHANNEL_VOICE)
-);
 const isWhatsappVoiceInbox = computed(
-  () => voiceCallProvider.value === VOICE_CALL_PROVIDERS.WHATSAPP
+  () =>
+    voiceCallProvider.value === VOICE_CALL_PROVIDERS.WHATSAPP &&
+    isCloudFeatureEnabled(FEATURE_FLAGS.CHANNEL_VOICE)
 );
 
 const isCallButtonDisabled = computed(() => {
   if (callsStore.hasActiveCall || callsStore.hasIncomingCall) return true;
-  if (isWhatsappVoiceInbox.value) {
-    return whatsappCallSession.isInitiating.value;
-  }
-  return contactsUiFlags.value?.isInitiatingCall || false;
+  return whatsappCallSession.isInitiating.value;
 });
 
-const isCallButtonLoading = computed(() =>
-  isWhatsappVoiceInbox.value
-    ? whatsappCallSession.isInitiating.value
-    : !!contactsUiFlags.value?.isInitiatingCall
-);
+const isCallButtonLoading = computed(() => whatsappCallSession.isInitiating.value);
 
-const callButtonTooltip = computed(() =>
-  isWhatsappVoiceInbox.value
-    ? t('CONVERSATION.HEADER.WHATSAPP_CALL')
-    : t('CONVERSATION.HEADER.VOICE_CALL')
-);
+const callButtonTooltip = computed(() => t('CONVERSATION.HEADER.WHATSAPP_CALL'));
 
 const startWhatsappCall = async () => {
   if (whatsappCallSession.isInitiating.value) return;
@@ -102,35 +84,12 @@ const startWhatsappCall = async () => {
   }
 };
 
-const startTwilioCall = async () => {
-  if (contactsUiFlags.value?.isInitiatingCall) return;
-  try {
-    const response = await store.dispatch('contacts/initiateCall', {
-      contactId: props.chat?.meta?.sender?.id,
-      inboxId: props.inbox?.id,
-      conversationId: props.chat.id,
-    });
-
-    callsStore.addCall({
-      callSid: response?.call_sid,
-      conversationId: response?.conversation_id ?? props.chat.id,
-      inboxId: props.inbox?.id,
-      callDirection: VOICE_CALL_DIRECTION.OUTBOUND,
-    });
-  } catch (error) {
-    useAlert(error?.message || t('CONVERSATION.HEADER.VOICE_CALL_FAILED'));
-  }
-};
-
-const startCall = () => {
-  if (isWhatsappVoiceInbox.value) return startWhatsappCall();
-  return startTwilioCall();
-};
+const startCall = () => startWhatsappCall();
 </script>
 
 <template>
   <NextButton
-    v-if="isVoiceCallInbox"
+    v-if="isWhatsappVoiceInbox"
     v-tooltip.bottom="callButtonTooltip"
     sm
     ghost

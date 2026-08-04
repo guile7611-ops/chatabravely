@@ -4,7 +4,6 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import ContactSortMenu from './components/ContactSortMenu.vue';
 import ContactMoreActions from './components/ContactMoreActions.vue';
-import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 
 defineProps({
   showSearch: { type: Boolean, default: true },
@@ -113,11 +112,7 @@ const emit = defineEmits([
             />
           </div>
           <div class="w-px h-4 bg-n-strong" />
-          <ComposeConversation>
-            <template #trigger>
-              <Button :label="buttonLabel" size="sm" />
-            </template>
-          </ComposeConversation>
+          <Button :label="buttonLabel" size="sm" @click="emit('add')" />
         </div>
       </div>
     </div>

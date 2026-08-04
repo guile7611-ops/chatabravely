@@ -82,10 +82,17 @@ const defaultState = {
 
 const state = reactive({ ...defaultState });
 
-const validationRules = {
-  firstName: { required },
-  email: { email },
-};
+const validationRules = computed(() =>
+  props.isNewContact
+    ? {
+        name: { required },
+        phoneNumber: { required },
+      }
+    : {
+        firstName: { required },
+        email: { email },
+      }
+);
 
 const v$ = useVuelidate(validationRules, state);
 
@@ -274,6 +281,31 @@ defineExpose({
 
 <template>
   <div class="flex flex-col gap-6">
+    <div v-if="isNewContact" class="flex flex-col gap-4">
+      <Input
+        v-model="state.name"
+        label="Nome"
+        placeholder="Nome do contato"
+        :message-type="v$.name?.$error ? 'error' : 'info'"
+        @input="v$.name.$touch(); emitContactUpdate()"
+        @blur="v$.name.$touch()"
+      />
+      <Input
+        v-model="state.additionalAttributes.companyName"
+        label="Empresa"
+        placeholder="Empresa"
+        @input="emitContactUpdate"
+      />
+      <PhoneNumberInput
+        v-model="state.phoneNumber"
+        label="Número de telefone"
+        placeholder="Número de telefone"
+        :show-border="true"
+        @input="v$.phoneNumber.$touch(); emitContactUpdate()"
+        @blur="v$.phoneNumber.$touch()"
+      />
+    </div>
+    <template v-else>
     <div class="flex flex-col items-start gap-2">
       <span class="py-1 text-sm font-medium text-n-slate-12">
         {{ t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.TITLE') }}
@@ -359,5 +391,6 @@ defineExpose({
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>

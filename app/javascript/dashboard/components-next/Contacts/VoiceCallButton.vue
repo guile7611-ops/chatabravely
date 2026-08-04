@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import {
-  isVoiceCallEnabled,
   getVoiceCallProvider,
   VOICE_CALL_PROVIDERS,
 } from 'dashboard/helper/inbox';
@@ -45,22 +44,18 @@ const dialogRef = ref(null);
 
 const callsStore = useCallsStore();
 const inboxesList = useMapGetter('inboxes/getInboxes');
-const contactsUiFlags = useMapGetter('contacts/getUIFlags');
 
 const voiceInboxes = computed(() =>
-  (inboxesList.value || []).filter(isVoiceCallEnabled)
+  (inboxesList.value || []).filter(
+    inbox => getVoiceCallProvider(inbox) === VOICE_CALL_PROVIDERS.WHATSAPP
+  )
 );
 const hasVoiceInboxes = computed(() => voiceInboxes.value.length > 0);
 
 const shouldRender = computed(() => hasVoiceInboxes.value && !!props.phone);
 
-const isInitiatingCall = computed(() => {
-  return contactsUiFlags.value?.isInitiatingCall || false;
-});
+const isInitiatingCall = computed(() => whatsappCallSession.isInitiating.value);
 
-// Mirror the conversation-header button: block a new call whenever any provider
-// call is already active or ringing, otherwise starting a WhatsApp call here
-// would leave a still-live Twilio (or other) session with no visible control.
 const isCallButtonDisabled = computed(
   () =>
     callsStore.hasActiveCall ||
@@ -147,37 +142,10 @@ const startWhatsappCall = async (inboxId, conversationIdHint) => {
 
 const startCall = async (inboxId, conversationIdHint = null) => {
   if (isCallButtonDisabled.value) return;
-
-  const inbox = (inboxesList.value || []).find(i => i.id === inboxId);
-  if (getVoiceCallProvider(inbox) === VOICE_CALL_PROVIDERS.WHATSAPP) {
-    try {
-      await startWhatsappCall(inboxId, conversationIdHint);
-    } catch (error) {
-      useAlert(error?.message || t('CONTACT_PANEL.CALL_FAILED'));
-    }
-    return;
-  }
-
   try {
-    const response = await store.dispatch('contacts/initiateCall', {
-      contactId: props.contactId,
-      inboxId,
-      conversationId: conversationIdHint,
-    });
-    const { call_sid: callSid, conversation_id: conversationId } = response;
-
-    callsStore.addCall({
-      callSid,
-      conversationId,
-      inboxId,
-      callDirection: VOICE_CALL_DIRECTION.OUTBOUND,
-    });
-
-    useAlert(t('CONTACT_PANEL.CALL_INITIATED'));
-    navigateToConversation(response?.conversation_id);
+    await startWhatsappCall(inboxId, conversationIdHint);
   } catch (error) {
-    const apiError = error?.message;
-    useAlert(apiError || t('CONTACT_PANEL.CALL_FAILED'));
+    useAlert(error?.message || t('CONTACT_PANEL.CALL_FAILED'));
   }
 };
 
@@ -193,7 +161,10 @@ const onClick = async () => {
     const conversationInbox = (inboxesList.value || []).find(
       i => i.id === conversation?.inbox_id
     );
-    if (conversationInbox && isVoiceCallEnabled(conversationInbox)) {
+    if (
+      conversationInbox &&
+      getVoiceCallProvider(conversationInbox) === VOICE_CALL_PROVIDERS.WHATSAPP
+    ) {
       await startCall(conversationInbox.id, props.conversationId);
       return;
     }

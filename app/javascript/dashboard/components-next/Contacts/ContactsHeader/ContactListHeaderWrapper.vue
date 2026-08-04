@@ -281,7 +281,7 @@ defineExpose({
     :is-label-view="isLabelView"
     :is-active-view="isActiveView"
     :has-active-filters="hasAppliedFilters"
-    :button-label="t('CONTACTS_LAYOUT.HEADER.MESSAGE_BUTTON')"
+    button-label="Adicionar contato"
     @search="emit('search', $event)"
     @update:sort="emit('update:sort', $event)"
     @add="openCreateNewContactDialog"

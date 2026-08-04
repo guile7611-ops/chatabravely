@@ -418,47 +418,16 @@ const menuItems = computed(() => {
       name: 'Contacts',
       label: t('SIDEBAR.CONTACTS'),
       icon: 'i-lucide-contact',
-      children: [
-        {
-          name: 'All Contacts',
-          label: t('SIDEBAR.ALL_CONTACTS'),
-          to: accountScopedRoute(
-            'contacts_dashboard_index',
-            {},
-            { page: 1, search: undefined }
-          ),
-          activeOn: ['contacts_dashboard_index', 'contacts_edit'],
-        },
-        {
-          name: 'Active',
-          label: t('SIDEBAR.ACTIVE'),
-          to: accountScopedRoute('contacts_dashboard_active'),
-          activeOn: ['contacts_dashboard_active'],
-        },
-        {
-          name: 'Tagged With',
-          icon: 'i-lucide-tag',
-          label: t('SIDEBAR.TAGGED_WITH'),
-          collapsible: true,
-          showTreeLine: true,
-          children: (labels.value || []).map(label => ({
-            name: `${label.title}-${label.id}`,
-            label: label.title,
-            icon: h('span', {
-              class: `size-[8px] rounded-sm`,
-              style: { backgroundColor: label.color },
-            }),
-            to: accountScopedRoute(
-              'contacts_dashboard_labels_index',
-              { label: label.title },
-              { page: 1, search: undefined }
-            ),
-            activeOn: [
-              'contacts_dashboard_labels_index',
-              'contacts_edit_label',
-            ],
-          })),
-        },
+      to: accountScopedRoute(
+        'contacts_dashboard_index',
+        {},
+        { page: 1, search: undefined }
+      ),
+      activeOn: [
+        'contacts_dashboard_index',
+        'contacts_dashboard_active',
+        'contacts_dashboard_labels_index',
+        'contacts_edit',
       ],
     },
     {
@@ -491,6 +460,23 @@ const menuItems = computed(() => {
       ],
     },
 
+    {
+      name: 'Portals',
+      label: t('SIDEBAR.HELP_CENTER.TITLE'),
+      icon: 'i-lucide-library-big',
+      to: accountScopedRoute('portals_index', {
+        navigationPath: 'portals_articles_index',
+      }),
+      activeOn: [
+        'portals_index',
+        'portals_articles_index',
+        'portals_articles_new',
+        'portals_articles_edit',
+        'portals_categories_index',
+        'portals_locales_index',
+        'portals_settings_index',
+      ],
+    },
     {
       name: 'Settings',
       label: t('SIDEBAR.SETTINGS'),
