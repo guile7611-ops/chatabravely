@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma';
 import { authenticateToken, requireAdmin, generateUserToken } from '../middlewares/auth.middleware';
+import { getMappedRolePayload } from '../utils/roleMapper';
 
 const router = Router();
 
@@ -31,6 +32,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Credenciais inválidas: e-mail ou senha incorretos.' });
     }
 
+    const { role: frontendRole } = getMappedRolePayload(user.role);
     const token = generateUserToken(user);
     return res.json({
       success: true,
@@ -39,7 +41,7 @@ router.post('/login', async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: frontendRole,
         workspaceId: user.workspaceId,
         departmentIds: user.departments.map(d => d.id)
       }
@@ -68,7 +70,7 @@ router.get('/me', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Usuário não encontrado no banco de dados.' });
     }
 
-    const userRole = dbUser.role ? dbUser.role.toLowerCase() : 'agent';
+    const { role: userRole, permissions } = getMappedRolePayload(dbUser.role);
     const workspaceName = dbUser.workspace?.name || 'Workspace';
 
     return res.status(200).json({
@@ -88,7 +90,7 @@ router.get('/me', async (req: Request, res: Response) => {
               status: 'active',
               availability: 'online',
               locale: 'pt_BR',
-              permissions: [userRole]
+              permissions
             }
           ]
         }

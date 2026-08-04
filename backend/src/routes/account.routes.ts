@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateToken } from '../middlewares/auth.middleware';
+import { getMappedRolePayload } from '../utils/roleMapper';
 
 const router = Router({ mergeParams: true });
 
@@ -23,7 +24,7 @@ router.get('/', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Conta ou workspace não localizado.' });
     }
 
-    const userRole = dbUser.role ? dbUser.role.toLowerCase() : 'agent';
+    const { role: userRole } = getMappedRolePayload(dbUser.role);
     const accountIdParam = req.params.accountId;
 
     return res.status(200).json({
