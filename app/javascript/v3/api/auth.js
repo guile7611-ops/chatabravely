@@ -27,21 +27,24 @@ export const login = async (
     }
 
     const { token, user } = response.data || {};
-    if (token) {
-      setAbravelyJwtToken(token);
+    if (!token || !user) {
+      throw new Error('Falha na resposta do login: Token JWT ou dados do usuário não foram retornados.');
     }
 
+    setAbravelyJwtToken(token);
+
+    const userRole = user.role ? user.role.toLowerCase() : 'agent';
     const formattedUser = {
-      id: user?.id || 1,
-      email: user?.email || credentials.email,
-      name: user?.name || 'Agente Abravely',
-      role: user?.role?.toLowerCase() || 'administrator',
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: userRole,
       account_id: 1,
       accounts: [
         {
           id: 1,
-          name: 'Abravely Workspace',
-          role: user?.role?.toLowerCase() || 'administrator',
+          name: user.name,
+          role: userRole,
           status: 'active',
           availability: 'online',
         },

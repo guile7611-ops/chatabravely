@@ -1,16 +1,21 @@
-/* global axios */
-
+import axios from 'axios';
 import Cookies from 'js-cookie';
 import endPoints from './endPoints';
 import {
   clearCookiesOnLogout,
   deleteIndexedDBOnLogout,
 } from '../store/utils/api';
+import { getAbravelyJwtToken } from '../helper/abravelyToken';
 
 export default {
   validityCheck() {
     const urlData = endPoints('validityCheck');
-    return axios.get(urlData.url);
+    const token = getAbravelyJwtToken();
+    const headers = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return axios.get(urlData.url, { headers });
   },
   logout() {
     const urlData = endPoints('logout');

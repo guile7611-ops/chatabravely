@@ -60,7 +60,7 @@ const createWrapper = ({
     getters: {
       getSortedCannedResponses: () => canned,
       getUIFlags: { fetchingList, creatingItem: false, updatingItem: false, deletingItem: false },
-      getError: error,
+      getCannedError: error,
       getCurrentRole: 'administrator',
       getCurrentUserID: 1,
     },

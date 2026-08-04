@@ -52,7 +52,7 @@ const createWrapper = ({
     getters: {
       'labels/getLabels': labels,
       'labels/getUIFlags': { isFetching, isCreating: false, isUpdating: false, isDeleting: false },
-      'labels/getError': error,
+      'labels/getLabelsError': error,
       getCurrentRole: 'administrator',
       getCurrentUserID: 1,
     },

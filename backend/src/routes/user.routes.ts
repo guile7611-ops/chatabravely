@@ -58,58 +58,44 @@ router.use(authenticateToken);
  */
 router.get('/me', async (req: Request, res: Response) => {
   try {
-    const user = req.user!;
+    const userToken = req.user!;
     const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { id: true, name: true, email: true, role: true, workspaceId: true }
+      where: { id: userToken.id },
+      include: { workspace: true }
     });
 
-    const activeUser = dbUser || user;
+    if (!dbUser) {
+      return res.status(404).json({ success: false, message: 'Usuário não encontrado no banco de dados.' });
+    }
+
+    const userRole = dbUser.role ? dbUser.role.toLowerCase() : 'agent';
+    const workspaceName = dbUser.workspace?.name || 'Workspace';
+
     return res.status(200).json({
       payload: {
         data: {
-          id: activeUser.id,
-          name: activeUser.name || 'Agente Abravely',
-          email: activeUser.email,
-          role: activeUser.role?.toLowerCase() || 'administrator',
+          id: dbUser.id,
+          name: dbUser.name,
+          email: dbUser.email,
+          role: userRole,
           account_id: 1,
           ui_settings: { locale: 'pt_BR', theme: 'dark' },
           accounts: [
             {
               id: 1,
-              name: 'Abravely Workspace',
-              role: activeUser.role?.toLowerCase() || 'administrator',
+              name: workspaceName,
+              role: userRole,
               status: 'active',
               availability: 'online',
               locale: 'pt_BR',
-              permissions: ['administrator', 'agent']
+              permissions: [userRole]
             }
           ]
         }
       }
     });
-  } catch (error) {
-    return res.status(200).json({
-      payload: {
-        data: {
-          id: req.user?.id || 1,
-          name: req.user?.name || 'Agente Abravely',
-          email: req.user?.email || 'agente@abravely.com',
-          role: 'administrator',
-          account_id: 1,
-          ui_settings: { locale: 'pt_BR', theme: 'dark' },
-          accounts: [
-            {
-              id: 1,
-              name: 'Abravely Workspace',
-              role: 'administrator',
-              status: 'active',
-              availability: 'online'
-            }
-          ]
-        }
-      }
-    });
+  } catch (error: any) {
+    return res.status(503).json({ success: false, message: 'Serviço de banco de dados indisponível.' });
   }
 });
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import { actions } from '../../auth';
 import types from '../../../mutation-types';
-import { getAbravelyJwtToken, clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
+import { getAbravelyJwtToken, setAbravelyJwtToken, clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
 import * as socketIoConnectorModule from 'dashboard/helper/socketIoConnector';
 
 vi.mock('axios');
@@ -15,6 +15,24 @@ describe('Auth Store & Abravely Express JWT Integration (Strict Security Rules)'
   beforeEach(() => {
     vi.clearAllMocks();
     clearAbravelyJwtToken();
+  });
+
+  it('sends Authorization Bearer header with real Abravely JWT on validityCheck when token exists', async () => {
+    setAbravelyJwtToken(mockJwtToken);
+    axios.get.mockResolvedValue({
+      data: { payload: { data: { id: 'usr-1', email: 'agente@abravely.com', name: 'Agente Real' } } },
+    });
+
+    await actions.validityCheck({ commit });
+
+    expect(axios.get).toHaveBeenCalledWith(
+      '/api/v1/users/me',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: `Bearer ${mockJwtToken}`,
+        }),
+      })
+    );
   });
 
   it('does NOT make any Express login request or send hardcoded passwords during validityCheck', async () => {

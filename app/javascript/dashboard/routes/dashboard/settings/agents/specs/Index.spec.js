@@ -51,7 +51,7 @@ const createWrapper = ({ agents = [], isFetching = false, error = null }) => {
     dispatch: mockDispatch,
     getters: {
       'agents/getAgents': agents,
-      'agents/getError': error,
+      'agents/getAgentsError': error,
       'agents/getUIFlags': { isFetching },
       getCurrentUserID: 1,
       'customRole/getCustomRoles': [],

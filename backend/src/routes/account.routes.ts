@@ -1,26 +1,46 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { authenticateToken } from '../middlewares/auth.middleware';
 
 const router = Router({ mergeParams: true });
+
+// Exigir Autenticação JWT para rotas de conta
+router.use(authenticateToken);
 
 /**
  * GET /api/v1/accounts/:accountId
  * Endpoint de dados da conta / workspace para a barra lateral e layout do frontend
  */
 router.get('/', async (req: Request, res: Response) => {
-  const accountId = req.params.accountId || '1';
-  return res.status(200).json({
-    id: Number(accountId) || 1,
-    name: 'Abravely Workspace',
-    role: 'administrator',
-    locale: 'pt_BR',
-    domain: '',
-    support_email: 'suporte@abravely.com',
-    features: {
-      inbound_emails: true,
-      custom_attributes: true,
+  try {
+    const userToken = req.user!;
+    const dbUser = await prisma.user.findUnique({
+      where: { id: userToken.id },
+      include: { workspace: true }
+    });
+
+    if (!dbUser || !dbUser.workspace) {
+      return res.status(404).json({ success: false, message: 'Conta ou workspace não localizado.' });
     }
-  });
+
+    const userRole = dbUser.role ? dbUser.role.toLowerCase() : 'agent';
+    const accountIdParam = req.params.accountId;
+
+    return res.status(200).json({
+      id: Number(accountIdParam) || 1,
+      name: dbUser.workspace.name,
+      role: userRole,
+      locale: 'pt_BR',
+      domain: '',
+      support_email: dbUser.email,
+      features: {
+        inbound_emails: true,
+        custom_attributes: true,
+      }
+    });
+  } catch (error: any) {
+    return res.status(503).json({ success: false, message: 'Serviço de banco de dados indisponível.' });
+  }
 });
 
 /**

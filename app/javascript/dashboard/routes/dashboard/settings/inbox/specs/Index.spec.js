@@ -50,7 +50,7 @@ const createWrapper = ({ inboxes = [], isFetching = false, error = null }) => {
     dispatch: mockDispatch,
     getters: {
       'inboxes/getInboxes': inboxes,
-      'inboxes/getError': error,
+      'inboxes/getInboxesError': error,
       'inboxes/getUIFlags': { isFetching },
       getCurrentUserID: 1,
       getCurrentRole: 'administrator',

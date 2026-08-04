@@ -68,7 +68,7 @@ const createWrapper = ({
       'agents/getAgents': agents,
       'teamMembers/getTeamMembers': () => teamMembers,
       'teamMembers/getUIFlags': { isFetching, isCreating: false, isUpdating, isDeleting: false },
-      'teamMembers/getError': error,
+      'teamMembers/getTeamMembersError': error,
       'teams/getTeam': () => ({ id: 1, name: 'Support Team' }),
       getCurrentRole: 'administrator',
       getCurrentUserID: 1,

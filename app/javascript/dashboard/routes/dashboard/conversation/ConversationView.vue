@@ -72,7 +72,7 @@ export default {
     ...mapGetters({
       chatList: 'getAllConversations',
       currentChat: 'getSelectedChat',
-      conversationsError: 'getError',
+      conversationsError: 'getConversationsError',
     }),
     showConversationList() {
       return this.isOnExpandedLayout ? !this.conversationId : true;

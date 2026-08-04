@@ -55,7 +55,7 @@ const createWrapper = ({ teams = [], isFetching = false, error = null }) => {
     dispatch: mockDispatch,
     getters: {
       'teams/getTeams': teams,
-      'teams/getError': error,
+      'teams/getTeamsError': error,
       'teams/getUIFlags': { isFetching, isCreating: false, isUpdating: false, isDeleting: false },
       getCurrentRole: 'administrator',
       getCurrentUserID: 1,
