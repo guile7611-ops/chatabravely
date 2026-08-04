@@ -21,12 +21,6 @@ export default {
     ConversationSidebar,
     Button,
   },
-  beforeRouteLeave(to, from, next) {
-    if (this.conversationId) {
-      this.$store.dispatch('clearSelectedState');
-    }
-    next();
-  },
   props: {
     inboxId: {
       type: [String, Number],
@@ -123,6 +117,11 @@ export default {
         this.setActiveChat();
       }
     });
+  },
+  unmounted() {
+    if (this.conversationId) {
+      this.$store.dispatch('clearSelectedState');
+    }
   },
   methods: {
     retryConnection() {

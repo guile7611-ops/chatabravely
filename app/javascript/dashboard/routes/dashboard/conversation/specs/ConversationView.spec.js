@@ -107,16 +107,15 @@ describe('ConversationView', () => {
     );
   });
 
-  it('clears the selected state and completes the route leave guard', () => {
+  it('clears the selected state only after the conversation view unmounts', () => {
     const { wrapper, dispatch } = mountView({
       conversationId: 'conversation-1',
       currentChat: conversation,
     });
-    const next = vi.fn();
 
-    wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm, {}, {}, next);
+    wrapper.unmount();
+    mountedWrapper = null;
 
     expect(dispatch).toHaveBeenCalledWith('clearSelectedState');
-    expect(next).toHaveBeenCalledOnce();
   });
 });
