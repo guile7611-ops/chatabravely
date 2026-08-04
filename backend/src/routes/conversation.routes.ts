@@ -39,6 +39,7 @@ router.get('/', async (req: Request, res: Response) => {
     const user = req.user!;
     const queue = req.query.queue as string;
     const status = req.query.status as string;
+    const assigneeType = req.query.assignee_type as string;
     const departmentId = req.query.departmentId as string;
     const agentId = req.query.agentId as string;
     const search = req.query.search as string;
@@ -50,13 +51,17 @@ router.get('/', async (req: Request, res: Response) => {
     if (queue) {
       whereClause.queue = queue;
     } else if (status) {
-      if (status === 'UNATTENDED') {
+      if (assigneeType === 'unassigned' || status === 'UNATTENDED') {
         whereClause.queue = { in: ['RECEPTION', 'DEPARTMENT'] };
       } else if (status === 'OPEN') {
         whereClause.queue = 'CONVERSATION';
       } else if (status === 'CLOSED') {
         whereClause.queue = 'CLOSED';
       }
+    } else if (assigneeType === 'unassigned') {
+      // A aba Recepção representa conversas sem atendente, que ficam nas filas
+      // RECEPTION/DEPARTMENT no contrato Abravely.
+      whereClause.queue = { in: ['RECEPTION', 'DEPARTMENT'] };
     }
 
     if (departmentId) {
@@ -740,4 +745,3 @@ router.post('/:id/send-template', async (req: Request, res: Response) => {
 });
 
 export default router;
-
