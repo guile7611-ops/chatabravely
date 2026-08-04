@@ -14,6 +14,7 @@ import { isOnOnboardingView } from 'v3/helpers/RouteHelper';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useFontSize } from 'dashboard/composables/useFontSize';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import SocketIoConnector from './helper/socketIoConnector';
 
 export default {
   name: 'App',
@@ -46,6 +47,7 @@ export default {
     return {
       latestChatwootVersion: null,
       reconnectService: null,
+      socketIoConnector: null,
     };
   },
   computed: {
@@ -66,6 +68,7 @@ export default {
       handler() {
         if (this.currentAccountId) {
           this.initializeAccount();
+          this.initializeSocketIo();
         }
       },
     },
@@ -74,7 +77,24 @@ export default {
     this.initializeColorTheme();
     this.setLocale('pt_BR');
   },
+  unmounted() {
+    this.destroySocketIo();
+  },
   methods: {
+    initializeSocketIo() {
+      if (!this.socketIoConnector) {
+        this.socketIoConnector = new SocketIoConnector(this);
+        this.socketIoConnector.connect();
+        window.__abravelySocketConnector = this.socketIoConnector;
+      }
+    },
+    destroySocketIo() {
+      if (this.socketIoConnector) {
+        this.socketIoConnector.disconnect();
+        this.socketIoConnector = null;
+        window.__abravelySocketConnector = null;
+      }
+    },
     initializeColorTheme() {
       setColorTheme(true); // Default to Dark Mode
     },

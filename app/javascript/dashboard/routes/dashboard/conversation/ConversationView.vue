@@ -10,6 +10,7 @@ import CmdBarConversationSnooze from 'dashboard/routes/dashboard/commands/CmdBar
 import { emitter } from 'shared/helpers/mitt';
 import SidepanelSwitch from 'dashboard/components-next/Conversation/SidepanelSwitch.vue';
 import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 
 export default {
   components: {
@@ -18,14 +19,13 @@ export default {
     CmdBarConversationSnooze,
     SidepanelSwitch,
     ConversationSidebar,
+    Button,
   },
   beforeRouteLeave(to, from, next) {
-    // Clear selected state if navigating away from a conversation to a route without a conversationId to prevent stale data issues
-    // and resolves timing issues during navigation with conversation view and other screens
     if (this.conversationId) {
       this.$store.dispatch('clearSelectedState');
     }
-    next(); // Continue with navigation
+    next();
   },
   props: {
     inboxId: {
@@ -72,6 +72,7 @@ export default {
     ...mapGetters({
       chatList: 'getAllConversations',
       currentChat: 'getSelectedChat',
+      conversationsError: 'getError',
     }),
     showConversationList() {
       return this.isOnExpandedLayout ? !this.conversationId : true;
@@ -126,6 +127,12 @@ export default {
   },
 
   methods: {
+    retryConnection() {
+      if (window.__abravelySocketConnector) {
+        window.__abravelySocketConnector.connect();
+      }
+      this.$store.dispatch('fetchAllConversations');
+    },
     onConversationLoad() {
       this.fetchConversationIfUnavailable();
     },
@@ -149,26 +156,15 @@ export default {
       });
     },
     fetchConversationIfUnavailable() {
-      if (!this.conversationId) {
-        return;
-      }
-      const chat = this.findConversation();
-      if (!chat) {
-        this.$store.dispatch('getConversation', this.conversationId);
-      }
-    },
-    findConversation() {
-      const targetId = String(this.conversationId);
-      const chat = this.chatList.find(
-        c => String(c.id) === targetId || c.id === this.conversationId || Number(c.id) === Number(this.conversationId)
-      );
-      return chat;
-    },
-    setActiveChat() {
       if (this.conversationId) {
-        const selectedConversation = this.findConversation();
-        // If conversation doesn't exist or selected conversation is same as the active
-        // conversation, don't set active conversation.
+        const selectedConversation = this.chatList.find(
+          c => c.id === Number(this.conversationId)
+        );
+        if (!selectedConversation) {
+          this.$store.dispatch('getConversation', this.conversationId);
+          return;
+        }
+
         if (
           !selectedConversation ||
           selectedConversation.id === this.currentChat.id
@@ -199,25 +195,40 @@ export default {
 </script>
 
 <template>
-  <section class="flex w-full h-full min-w-0">
-    <ChatList
-      :show-conversation-list="showConversationList"
-      :conversation-inbox="inboxId"
-      :label="label"
-      :team-id="teamId"
-      :conversation-type="conversationType"
-      :folders-id="foldersId"
-      :is-on-expanded-layout="isOnExpandedLayout"
-      @conversation-load="onConversationLoad"
-    />
-    <ConversationBox
-      v-if="showMessageView"
-      :inbox-id="inboxId"
-      :is-on-expanded-layout="isOnExpandedLayout"
+  <section class="flex flex-col w-full h-full min-w-0">
+    <div
+      v-if="conversationsError"
+      class="p-3 bg-n-ruby-2 border-b border-n-ruby-5 text-n-ruby-11 flex items-center justify-between z-10"
     >
-      <SidepanelSwitch v-if="currentChat.id" />
-    </ConversationBox>
-    <ConversationSidebar v-if="shouldShowSidebar" :current-chat="currentChat" />
-    <CmdBarConversationSnooze />
+      <span class="text-sm font-medium">{{ conversationsError }}</span>
+      <Button
+        label="Tentar novamente"
+        size="sm"
+        slate
+        @click="retryConnection"
+      />
+    </div>
+
+    <div class="flex w-full h-full min-w-0 flex-1">
+      <ChatList
+        :show-conversation-list="showConversationList"
+        :conversation-inbox="inboxId"
+        :label="label"
+        :team-id="teamId"
+        :conversation-type="conversationType"
+        :folders-id="foldersId"
+        :is-on-expanded-layout="isOnExpandedLayout"
+        @conversation-load="onConversationLoad"
+      />
+      <ConversationBox
+        v-if="showMessageView"
+        :inbox-id="inboxId"
+        :is-on-expanded-layout="isOnExpandedLayout"
+      >
+        <SidepanelSwitch v-if="currentChat.id" />
+      </ConversationBox>
+      <ConversationSidebar v-if="shouldShowSidebar" :current-chat="currentChat" />
+      <CmdBarConversationSnooze />
+    </div>
   </section>
 </template>

@@ -62,6 +62,15 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 └─────────────────────────────────────────────────────────────┘
 ```
 
+- **Status das Fases**:
+  - **Fase 6A (Integração Real Socket.io & Adaptadores)**: CONCLUÍDA.
+    - Dependência `socket.io-client` instalada e versionada em `pnpm-lock.yaml`.
+    - Cliente real Socket.io implementado em `socketIoConnector.js` com ciclo de vida completo (`connect`, `disconnect`, `connect_error`, `reconnect`, `reconnect_failed`).
+    - Eventos de domínio em tempo real integrados com deduplicação rotativa em memória: `conversation.created`, `conversation.updated`, `message.created`, `conversation.assigned`, `conversation.status_updated`.
+    - Instância singleton gerenciada no ciclo de vida da aplicação Vue em `App.vue` (`initializeSocketIo`/`destroySocketIo`).
+    - Tratamento visual de erros e reconexão ("Tentar novamente") na tela de conversas (`ConversationView.vue`).
+  - **Fase 6 (Validação Completa em Produção)**: PENDENTE até validação E2E final em ambiente de produção com backend Abravely.
+
 ### Detalhes da Fase 6 (Painel Central de Conversas, Recepção e Tempo Real)
 
 - **Fluxo Atual vs. Fluxo-Alvo**:
