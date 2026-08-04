@@ -165,9 +165,7 @@ export default {
     class="flex flex-col w-full h-screen min-h-0 bg-n-background text-white dark"
     :dir="isRTL ? 'rtl' : 'ltr'"
   >
-    <router-view v-slot="{ Component }">
-      <component :is="Component" :key="appRouteViewKey" />
-    </router-view>
+    <router-view :key="appRouteViewKey" />
     <WootSnackbarBox />
   </div>
 </template>
