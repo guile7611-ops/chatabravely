@@ -43,6 +43,7 @@ const mountView = ({
       stubs: {
         ChatList: true,
         ConversationBox: true,
+        ConversationEmptyState: true,
         CmdBarConversationSnooze: true,
         SidepanelSwitch: true,
         ConversationSidebar: true,
@@ -75,6 +76,9 @@ describe('ConversationView', () => {
     expect(wrapper.findComponent({ name: 'ConversationBox' }).exists()).toBe(
       false
     );
+    expect(
+      wrapper.findComponent({ name: 'ConversationEmptyState' }).exists()
+    ).toBe(true);
   });
 
   it('keeps the message panel mounted while a routed conversation loads', () => {

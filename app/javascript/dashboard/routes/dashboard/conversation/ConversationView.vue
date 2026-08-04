@@ -4,6 +4,7 @@ import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAccount } from 'dashboard/composables/useAccount';
 import ChatList from '../../../components/ChatList.vue';
 import ConversationBox from '../../../components/widgets/conversation/ConversationBox.vue';
+import ConversationEmptyState from '../../../components/widgets/conversation/EmptyState/EmptyState.vue';
 import wootConstants from 'dashboard/constants/globals';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import CmdBarConversationSnooze from 'dashboard/routes/dashboard/commands/CmdBarConversationSnooze.vue';
@@ -15,6 +16,7 @@ export default {
   components: {
     ChatList,
     ConversationBox,
+    ConversationEmptyState,
     CmdBarConversationSnooze,
     ConversationSidebar,
     Button,
@@ -227,6 +229,10 @@ export default {
       <ConversationBox
         v-if="showMessageView"
         :inbox-id="inboxId"
+        :is-on-expanded-layout="isOnExpandedLayout"
+      />
+      <ConversationEmptyState
+        v-else
         :is-on-expanded-layout="isOnExpandedLayout"
       />
       <ConversationSidebar v-if="shouldShowSidebar" :current-chat="currentChat" />
