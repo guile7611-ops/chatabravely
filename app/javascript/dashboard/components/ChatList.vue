@@ -613,7 +613,7 @@ function updateAssigneeTab(selectedTab) {
     activeAssigneeTab.value = selectedTab;
     // A conversa aberta pertence à fila anterior. Ao trocar de fila,
     // sempre voltamos para a lista para não exibir um detalhe fora de contexto.
-    if (route.params.id) {
+    if (route.params.conversation_id) {
       store.dispatch('clearSelectedState');
       redirectToConversationList();
     }
@@ -630,7 +630,7 @@ function clearStaleSelectedConversation() {
     conversationsError.value
   )
     return;
-  if (!route.params.id || !selectedChat.value?.id) return;
+  if (!route.params.conversation_id || !selectedChat.value?.id) return;
 
   const expectedQueue = queueForTab(activeAssigneeTab.value);
   const belongsToCurrentQueue =
