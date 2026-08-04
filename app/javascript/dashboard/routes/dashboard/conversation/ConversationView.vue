@@ -21,11 +21,11 @@ export default {
     ConversationSidebar,
     Button,
   },
-  beforeRouteLeave(to, from, next) {
+  beforeRouteLeave() {
     if (this.conversationId) {
       this.$store.dispatch('clearSelectedState');
     }
-    next();
+    return true;
   },
   props: {
     inboxId: {

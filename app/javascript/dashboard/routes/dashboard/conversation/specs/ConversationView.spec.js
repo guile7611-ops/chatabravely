@@ -122,4 +122,16 @@ describe('ConversationView', () => {
       params: { accountId: 1 },
     });
   });
+
+  it('authorizes leaving an open conversation using the Vue Router 4 return contract', () => {
+    const { wrapper, dispatch } = mountView({
+      conversationId: 'conversation-1',
+      currentChat: conversation,
+    });
+
+    const result = wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm);
+
+    expect(dispatch).toHaveBeenCalledWith('clearSelectedState');
+    expect(result).toBe(true);
+  });
 });
