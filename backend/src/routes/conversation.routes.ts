@@ -474,10 +474,14 @@ router.post('/:id/messages', async (req: Request, res: Response) => {
 
     // REGRA DE SEGURANÇA 2: Rejeitar se agentId for null (Sem atendente atribuído)
     if (!conversation.agentId) {
-      return res.status(403).json({
-        success: false,
-        message: 'A conversa não possui atendente atribuído. Assuma a conversa antes de enviar mensagens.'
+      const claimed = await prisma.conversation.update({
+        where: { id },
+        data: { agentId: user.id, queue: 'CONVERSATION', status: 'OPEN' },
+        include: { contact: true, channel: true }
       });
+      conversation.agentId = claimed.agentId;
+      conversation.queue = claimed.queue;
+      conversation.status = claimed.status;
     }
 
     // REGRA DE SEGURANÇA 3: Rejeitar se a conversa não estiver na fila CONVERSATION
