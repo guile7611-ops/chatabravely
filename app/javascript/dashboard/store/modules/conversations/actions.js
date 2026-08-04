@@ -93,6 +93,15 @@ const actions = {
         },
       };
       commit(types.UPDATE_CONVERSATION, normalizedConversation);
+      // UPDATE_CONVERSATION preserva as mensagens já existentes para eventos
+      // incrementais. No carregamento do detalhe, porém, o backend devolve o
+      // histórico completo e ele precisa substituir a prévia de uma mensagem.
+      commit(types.SET_MISSING_MESSAGES, {
+        id: normalizedConversation.id,
+        data: normalizedConversation.messages,
+      });
+      commit(types.SET_CHAT_DATA_FETCHED, normalizedConversation.id);
+      commit(types.SET_ALL_MESSAGES_LOADED, normalizedConversation.id);
       if (normalizedConversation.meta?.sender) {
         commit(
           `contacts/${types.SET_CONTACT_ITEM}`,
