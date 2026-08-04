@@ -57,7 +57,8 @@ useKeyboardEvents(keyboardEvents);
       class="text-sm [&_a]:font-medium"
       :index="index"
       :name="item.name"
-      :show-badge="false"
+      :count="item.count"
+      :show-badge="true"
       is-compact
     />
   </woot-tabs>
