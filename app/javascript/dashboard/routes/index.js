@@ -8,13 +8,11 @@ const routes = [...dashboard.routes];
 
 export const router = createRouter({ history: createWebHistory(), routes });
 
-export const validateAuthenticateRoutePermission = async (to, next) => {
-  // If user is accessing a valid account route, proceed directly
+export const validateAuthenticateRoutePermission = async (to) => {
   if (to.path.includes('/app/accounts/')) {
-    return next();
+    return true;
   }
 
-  // Handle root and login route redirects once to dashboard
   if (
     to.path === '/' ||
     to.path === '/app' ||
@@ -22,17 +20,20 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
     to.path === '/app/login' ||
     to.path === '/login'
   ) {
-    return next('/app/accounts/1/dashboard');
+    return '/app/accounts/1/dashboard';
   }
 
-  // Fallback to allow matching route
-  return next();
+  return true;
 };
 
 export const initalizeRouter = () => {
   const userAuthentication = store.dispatch('setUser');
 
-  router.beforeEach(async (to, _from, next) => {
+  router.onError((error, to) => {
+    console.error(`[Router Error] Falha de navegação para ${to?.path || 'desconhecido'}:`, error);
+  });
+
+  router.beforeEach(async (to) => {
     try {
       AnalyticsHelper.page(to.name || '', {
         path: to.path,
@@ -43,9 +44,10 @@ export const initalizeRouter = () => {
         userAuthentication,
         new Promise(resolve => setTimeout(resolve, 300)),
       ]);
-      await validateAuthenticateRoutePermission(to, next);
+      return await validateAuthenticateRoutePermission(to);
     } catch (e) {
-      validateAuthenticateRoutePermission(to, next);
+      console.warn('[Router Warning] Exceção na guarda de rota:', e);
+      return await validateAuthenticateRoutePermission(to);
     }
   });
 };
