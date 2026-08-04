@@ -3,7 +3,9 @@ import ApiClient from '../ApiClient';
 
 class ConversationApi extends ApiClient {
   constructor() {
-    super('conversations', { accountScoped: true });
+    // O backend Abravely autentica e isola conversas pelo workspace do JWT.
+    // Não usar o prefixo legado /accounts/:accountId, que não existe nessas rotas.
+    super('conversations');
   }
 
   get({
