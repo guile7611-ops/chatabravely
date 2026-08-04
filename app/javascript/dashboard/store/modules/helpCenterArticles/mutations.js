@@ -1,7 +1,5 @@
 import types from '../../mutation-types';
 
-const STORAGE_KEY = 'chatabravely_help_center_articles_v1';
-
 const recalculateMeta = ($state) => {
   const list = ($state.articles.allIds || [])
     .map(id => $state.articles.byId[id])
@@ -24,17 +22,6 @@ const recalculateMeta = ($state) => {
   };
 };
 
-const persistToStorage = ($state) => {
-  try {
-    recalculateMeta($state);
-    if (typeof window === 'undefined' || !window.localStorage) return;
-    const list = ($state.articles.allIds || [])
-      .map(id => $state.articles.byId[id])
-      .filter(a => a && typeof a === 'object' && a.id);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch (e) {}
-};
-
 export const mutations = {
   [types.SET_UI_FLAG](_state, uiFlags) {
     _state.uiFlags = {
@@ -47,7 +34,7 @@ export const mutations = {
     if (!article.id) return;
 
     $state.articles.byId[article.id] = article;
-    persistToStorage($state);
+    recalculateMeta($state);
   },
   [types.CLEAR_ARTICLES]: $state => {
     $state.articles.allIds = [];
@@ -61,11 +48,11 @@ export const mutations = {
     });
 
     $state.articles.byId = allArticles;
-    persistToStorage($state);
+    recalculateMeta($state);
   },
   [types.ADD_MANY_ARTICLES_ID]($state, articleIds) {
     $state.articles.allIds.push(...articleIds);
-    persistToStorage($state);
+    recalculateMeta($state);
   },
 
   [types.SET_ARTICLES_META]: ($state, meta) => {
@@ -77,8 +64,8 @@ export const mutations = {
 
   [types.ADD_ARTICLE_ID]: ($state, articleId) => {
     if ($state.articles.allIds.includes(articleId)) return;
-    $state.articles.allIds.unshift(articleId);
-    persistToStorage($state);
+    $state.articles.allIds.push(articleId);
+    recalculateMeta($state);
   },
   [types.UPDATE_ARTICLE_FLAG]: ($state, { articleId, uiFlags }) => {
     const flags = $state.articles.uiFlags.byId[articleId] || {};
@@ -114,32 +101,30 @@ export const mutations = {
       (a, b) =>
         (byId[a]?.position ?? Infinity) - (byId[b]?.position ?? Infinity)
     );
-    persistToStorage($state);
+    recalculateMeta($state);
   },
   [types.UPDATE_ARTICLE]: ($state, updatedArticle) => {
+    if (!updatedArticle?.id || !$state.articles.byId[updatedArticle.id]) return;
     const articleId = updatedArticle.id;
-    if ($state.articles.byId[articleId]) {
-      const existing = $state.articles.byId[articleId];
+    const existing = $state.articles.byId[articleId];
 
-      $state.articles.byId[articleId] = {
-        ...existing,
-        ...updatedArticle,
-        position: existing.position,
-      };
-    } else {
-      $state.articles.byId[articleId] = updatedArticle;
-    }
-    persistToStorage($state);
+    $state.articles.byId[articleId] = {
+      ...existing,
+      ...updatedArticle,
+      position: existing.position,
+    };
+    recalculateMeta($state);
   },
   [types.REMOVE_ARTICLE]($state, articleId) {
+    if (!articleId || !$state.articles.byId[articleId]) return;
     const { [articleId]: toBeRemoved, ...newById } = $state.articles.byId;
     $state.articles.byId = newById;
-    persistToStorage($state);
+    recalculateMeta($state);
   },
   [types.REMOVE_ARTICLE_ID]($state, articleId) {
     $state.articles.allIds = $state.articles.allIds.filter(
       id => id !== articleId
     );
-    persistToStorage($state);
+    recalculateMeta($state);
   },
 };

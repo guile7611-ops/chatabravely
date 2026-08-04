@@ -13,8 +13,6 @@ const router = useRouter();
 const store = useStore();
 const { t } = useI18n();
 
-const { portalSlug } = route.params;
-
 const selectedAuthorId = ref(null);
 const selectedCategoryId = ref(null);
 
@@ -58,12 +56,10 @@ const createNewArticle = async (payload = {}) => {
 
   isUpdating.value = true;
   try {
-    const { locale, portalSlug: routePortalSlug } = route.params;
-    const targetPortalSlug = routePortalSlug || portalSlug || 'default';
+    const { locale } = route.params;
     const resolvedCategoryId = selectedCategoryId.value || categoryId.value;
 
     const articleId = await store.dispatch('articles/create', {
-      portalSlug: targetPortalSlug,
       content,
       title,
       locale: locale || 'pt_BR',
@@ -79,7 +75,7 @@ const createNewArticle = async (payload = {}) => {
     router.push({
       name: 'portals_articles_index',
       params: {
-        portalSlug: targetPortalSlug,
+        portalSlug: 'main',
         tab: 'all',
         locale: locale || 'pt_BR',
       },
@@ -94,15 +90,14 @@ const createNewArticle = async (payload = {}) => {
 };
 
 const goBackToArticles = () => {
-  const { portalSlug, tab, categorySlug, locale } = route.params;
-  const targetPortalSlug = portalSlug || 'default';
+  const { tab, categorySlug, locale } = route.params;
   const targetLocale = locale || 'pt_BR';
 
   if (isCategoryArticles.value) {
     router.push({
       name: 'portals_categories_articles_index',
       params: {
-        portalSlug: targetPortalSlug,
+        portalSlug: 'main',
         categorySlug: categorySlug || '',
         locale: targetLocale,
       },
@@ -111,7 +106,7 @@ const goBackToArticles = () => {
     router.push({
       name: 'portals_articles_index',
       params: {
-        portalSlug: targetPortalSlug,
+        portalSlug: 'main',
         tab: tab || 'mine',
         categorySlug: categorySlug || '',
         locale: targetLocale,

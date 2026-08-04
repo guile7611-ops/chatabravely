@@ -1,35 +1,26 @@
 /* global axios */
 
-import PortalsAPI from './portals';
+const baseUrl = '/api/v1/help/categories';
 
-class CategoriesAPI extends PortalsAPI {
-  constructor() {
-    super('categories', { accountScoped: true });
+class CategoriesAPI {
+  get() {
+    return axios.get(baseUrl);
   }
 
-  get({ portalSlug, locale }) {
-    return axios.get(`${this.url}/${portalSlug}/categories?locale=${locale}`);
+  create({ categoryObj }) {
+    return axios.post(baseUrl, categoryObj);
   }
 
-  create({ portalSlug, categoryObj }) {
-    return axios.post(`${this.url}/${portalSlug}/categories`, categoryObj);
+  update({ categoryId, categoryObj }) {
+    return axios.patch(`${baseUrl}/${categoryId}`, categoryObj);
   }
 
-  update({ portalSlug, categoryId, categoryObj }) {
-    return axios.patch(
-      `${this.url}/${portalSlug}/categories/${categoryId}`,
-      categoryObj
-    );
+  delete({ categoryId }) {
+    return axios.delete(`${baseUrl}/${categoryId}`);
   }
 
-  delete({ portalSlug, categoryId }) {
-    return axios.delete(`${this.url}/${portalSlug}/categories/${categoryId}`);
-  }
-
-  reorder({ portalSlug, reorderedGroup }) {
-    return axios.post(`${this.url}/${portalSlug}/categories/reorder`, {
-      positions_hash: reorderedGroup,
-    });
+  reorder({ reorderedGroup }) {
+    return axios.post(`${baseUrl}/reorder`, { positions: reorderedGroup });
   }
 }
 

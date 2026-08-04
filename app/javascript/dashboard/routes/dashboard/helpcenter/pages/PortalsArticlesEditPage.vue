@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAlert, useTrack } from 'dashboard/composables';
 import { PORTALS_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
-import { buildPortalArticleURL } from 'dashboard/helper/portalHelper';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 
 import ArticleEditor from 'dashboard/components-next/HelpCenter/Pages/ArticleEditorPage/ArticleEditor.vue';
@@ -14,37 +13,19 @@ const router = useRouter();
 const store = useStore();
 const { t } = useI18n();
 
-const { articleSlug, portalSlug } = route.params;
+const { articleSlug } = route.params;
 
 const articleById = useMapGetter('articles/articleById');
 
 const article = computed(() => articleById.value(articleSlug));
 
-const portalBySlug = useMapGetter('portals/portalBySlug');
-
-const portal = computed(() => portalBySlug.value(portalSlug));
-
 const isUpdating = ref(false);
 const isSaved = ref(false);
-
-const articleLink = computed(() => {
-  const { slug: categorySlug, locale: categoryLocale } = article.value.category;
-  const { slug: articleSlugValue } = article.value;
-  const portalCustomDomain = portal.value?.custom_domain;
-  return buildPortalArticleURL(
-    portalSlug,
-    categorySlug,
-    categoryLocale,
-    articleSlugValue,
-    portalCustomDomain
-  );
-});
 
 const saveArticle = async ({ ...values }) => {
   isUpdating.value = true;
   try {
     await store.dispatch('articles/update', {
-      portalSlug,
       articleId: articleSlug,
       ...values,
     });
@@ -70,15 +51,14 @@ const isCategoryArticles = computed(() => {
 });
 
 const goBackToArticles = () => {
-  const { portalSlug, tab, categorySlug, locale } = route.params;
-  const targetPortalSlug = portalSlug || 'default';
+  const { tab, categorySlug, locale } = route.params;
   const targetLocale = locale || 'pt_BR';
 
   if (isCategoryArticles.value) {
     router.push({
       name: 'portals_categories_articles_index',
       params: {
-        portalSlug: targetPortalSlug,
+        portalSlug: 'main',
         categorySlug: categorySlug || '',
         locale: targetLocale,
       },
@@ -87,7 +67,7 @@ const goBackToArticles = () => {
     router.push({
       name: 'portals_articles_index',
       params: {
-        portalSlug: targetPortalSlug,
+        portalSlug: 'main',
         tab: tab || 'mine',
         categorySlug: categorySlug || '',
         locale: targetLocale,
@@ -99,16 +79,10 @@ const goBackToArticles = () => {
 const fetchArticleDetails = () => {
   store.dispatch('articles/show', {
     id: articleSlug,
-    portalSlug,
   });
 };
 
-const previewArticle = () => {
-  window.open(articleLink.value, '_blank');
-  useTrack(PORTALS_EVENTS.PREVIEW_ARTICLE, {
-    status: article.value?.status,
-  });
-};
+const previewArticle = () => useAlert('A pré-visualização pública será disponibilizada junto do portal público da Central de Ajuda.');
 
 onMounted(fetchArticleDetails);
 </script>

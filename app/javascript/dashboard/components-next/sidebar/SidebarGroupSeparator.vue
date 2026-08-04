@@ -68,9 +68,9 @@ const TREE_ELBOW =
       @click.stop="collapsible ? emit('toggle') : undefined"
     >
       <div class="inline-flex min-w-0 items-center gap-2.5">
-        <Icon v-if="icon" :icon="icon" class="size-5 flex-shrink-0" />
+        <Icon v-if="icon" :icon="icon" class="size-4 flex-shrink-0" />
         <span
-          class="flex-grow truncate text-start text-base font-medium leading-5"
+          class="flex-grow truncate text-start text-sm font-medium leading-5"
         >
           {{ label }}
         </span>

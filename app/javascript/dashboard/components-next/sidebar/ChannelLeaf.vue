@@ -39,13 +39,13 @@ const isConnected = computed(() => {
 
 <template>
   <div class="relative flex items-center justify-center me-1">
-    <ChannelIcon :inbox="inbox" class="size-5 flex-shrink-0" />
+    <ChannelIcon :inbox="inbox" class="size-4 flex-shrink-0" />
     <span
       class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-n-solid-2"
       :class="isConnected ? 'bg-emerald-500' : 'bg-amber-400'"
       :title="isConnected ? 'Conectado' : 'Desconectado / Conexão Mockup'"
     />
   </div>
-  <div class="flex-1 truncate min-w-0 text-base font-medium ms-1">{{ label }}</div>
+  <div class="flex-1 truncate min-w-0 text-sm ms-1">{{ label }}</div>
   <SidebarUnreadBadge :count="badgeCount" />
 </template>

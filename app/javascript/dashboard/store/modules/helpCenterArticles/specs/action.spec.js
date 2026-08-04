@@ -1,341 +1,82 @@
 import axios from 'axios';
-import { uploadExternalImage, uploadFile } from 'dashboard/helper/uploadHelper';
 import * as types from '../../../mutation-types';
 import { actions } from '../actions';
 
-vi.mock('dashboard/helper/uploadHelper');
-
-const articleList = [
-  {
-    id: 1,
-    category_id: 1,
-    title: 'Documents are required to complete KYC',
-  },
-];
-
-const camelCasedArticle = {
-  id: 1,
-  categoryId: 1,
-  title: 'Documents are required to complete KYC',
-};
-
-const commit = vi.fn();
-const dispatch = vi.fn();
 global.axios = axios;
 vi.mock('axios');
 
-describe('#actions', () => {
-  describe('#index', () => {
-    it('sends correct actions if API is success', async () => {
-      axios.get.mockResolvedValue({
-        data: {
-          payload: articleList,
-          meta: {
-            current_page: '1',
-            articles_count: 5,
-          },
-        },
-      });
-      await actions.index(
-        { commit },
-        { pageNumber: 1, portalSlug: 'test', locale: 'en' }
-      );
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_UI_FLAG, { isFetching: true }],
-        [types.default.CLEAR_ARTICLES],
-        [
-          types.default.ADD_MANY_ARTICLES,
-          [
-            {
-              id: 1,
-              categoryId: 1,
-              title: 'Documents are required to complete KYC',
-            },
-          ],
-        ],
-        [
-          types.default.SET_ARTICLES_META,
-          { currentPage: '1', articlesCount: 5 },
-        ],
-        [types.default.ADD_MANY_ARTICLES_ID, [1]],
-        [types.default.SET_UI_FLAG, { isFetching: false }],
-      ]);
+const article = {
+  id: 'article-1',
+  title: 'Como configurar o WhatsApp',
+  content: '<p>Conteúdo</p>',
+  status: 'published',
+};
+
+describe('helpCenterArticles actions', () => {
+  const commit = vi.fn();
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it('loads only articles returned by the Abravely API', async () => {
+    axios.get.mockResolvedValue({
+      data: { articles: [article], meta: { allArticlesCount: 1 } },
     });
-    it('sends correct actions if API is error', async () => {
-      axios.get.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(
-        actions.index(
-          { commit },
-          { pageNumber: 1, portalSlug: 'test', locale: 'en' }
-        )
-      ).rejects.toThrow(Error);
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_UI_FLAG, { isFetching: true }],
-        [types.default.SET_UI_FLAG, { isFetching: false }],
-      ]);
+
+    await expect(actions.index({ commit }, { query: 'WhatsApp' })).resolves.toEqual([
+      article.id,
+    ]);
+
+    expect(axios.get).toHaveBeenCalledWith('/api/v1/help/articles', {
+      params: { search: 'WhatsApp' },
+    });
+    expect(commit).toHaveBeenCalledWith(types.default.ADD_MANY_ARTICLES, [article]);
+    expect(commit).toHaveBeenCalledWith(types.default.ADD_MANY_ARTICLES_ID, [article.id]);
+  });
+
+  it('propagates an API failure instead of inventing local articles', async () => {
+    const error = new Error('API indisponível');
+    axios.get.mockRejectedValue(error);
+
+    await expect(actions.index({ commit })).rejects.toThrow('API indisponível');
+    expect(commit).not.toHaveBeenCalledWith(types.default.ADD_ARTICLE, expect.anything());
+    expect(commit).toHaveBeenLastCalledWith(types.default.SET_UI_FLAG, {
+      isFetching: false,
     });
   });
 
-  describe('#create', () => {
-    it('sends correct actions if API is success', async () => {
-      axios.post.mockResolvedValue({ data: { payload: camelCasedArticle } });
-      await actions.create({ commit, dispatch }, camelCasedArticle);
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_UI_FLAG, { isCreating: true }],
-        [types.default.ADD_ARTICLE, camelCasedArticle],
-        [types.default.ADD_ARTICLE_ID, 1],
-        [types.default.ADD_ARTICLE_FLAG, 1],
-        [types.default.SET_UI_FLAG, { isCreating: false }],
-      ]);
-    });
+  it('creates an article only after the API confirms it', async () => {
+    axios.post.mockResolvedValue({ data: { article } });
 
-    it('sends correct actions if API is error', async () => {
-      axios.post.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(actions.create({ commit }, articleList[0])).rejects.toThrow(
-        Error
-      );
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_UI_FLAG, { isCreating: true }],
-        [types.default.SET_UI_FLAG, { isCreating: false }],
-      ]);
+    await expect(actions.create({ commit }, article)).resolves.toBe(article.id);
+
+    expect(axios.post).toHaveBeenCalledWith('/api/v1/help/articles', article);
+    expect(commit).toHaveBeenCalledWith(types.default.ADD_ARTICLE, article);
+    expect(commit).toHaveBeenCalledWith(types.default.ADD_ARTICLE_ID, article.id);
+  });
+
+  it('keeps the current record when an update request fails', async () => {
+    const error = new Error('Falha ao salvar');
+    axios.patch.mockRejectedValue(error);
+
+    await expect(
+      actions.update({ commit }, { articleId: article.id, title: 'Novo título' })
+    ).rejects.toThrow('Falha ao salvar');
+
+    expect(commit).not.toHaveBeenCalledWith(types.default.UPDATE_ARTICLE, expect.anything());
+    expect(commit).toHaveBeenLastCalledWith(types.default.UPDATE_ARTICLE_FLAG, {
+      articleId: article.id,
+      uiFlags: { isUpdating: false },
     });
   });
 
-  describe('#update', () => {
-    it('sends correct actions if API is success', async () => {
-      axios.patch.mockResolvedValue({ data: { payload: camelCasedArticle } });
-      await actions.update(
-        { commit },
-        {
-          portalSlug: 'room-rental',
-          articleId: 1,
-          title: 'Documents are required to complete KYC',
-        }
-      );
-      expect(commit.mock.calls).toEqual([
-        [
-          types.default.UPDATE_ARTICLE_FLAG,
-          { uiFlags: { isUpdating: true }, articleId: 1 },
-        ],
-        [types.default.UPDATE_ARTICLE, camelCasedArticle],
-        [
-          types.default.UPDATE_ARTICLE_FLAG,
-          { uiFlags: { isUpdating: false }, articleId: 1 },
-        ],
-      ]);
-    });
-    it('sends correct actions if API is error', async () => {
-      axios.patch.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(
-        actions.update(
-          { commit },
-          {
-            portalSlug: 'room-rental',
-            articleId: 1,
-            title: 'Documents are required to complete KYC',
-          }
-        )
-      ).rejects.toThrow(Error);
+  it('removes an article from the store only after a successful delete', async () => {
+    axios.delete.mockResolvedValue({ status: 204 });
 
-      expect(commit.mock.calls).toEqual([
-        [
-          types.default.UPDATE_ARTICLE_FLAG,
-          { uiFlags: { isUpdating: true }, articleId: 1 },
-        ],
-        [
-          types.default.UPDATE_ARTICLE_FLAG,
-          { uiFlags: { isUpdating: false }, articleId: 1 },
-        ],
-      ]);
-    });
-  });
+    await expect(actions.delete({ commit }, { articleId: article.id })).resolves.toBe(
+      article.id
+    );
 
-  describe('#updateArticleMeta', () => {
-    it('sends correct actions if API is success', async () => {
-      axios.get.mockResolvedValue({
-        data: {
-          payload: articleList,
-          meta: {
-            all_articles_count: 56,
-            archived_articles_count: 7,
-            articles_count: 56,
-            current_page: '1', // This is not needed, it cause pagination issues.
-            draft_articles_count: 24,
-            mine_articles_count: 44,
-            published_count: 25,
-          },
-        },
-      });
-      await actions.updateArticleMeta(
-        { commit },
-        { pageNumber: 1, portalSlug: 'test', locale: 'en' }
-      );
-      expect(commit.mock.calls).toEqual([
-        [
-          types.default.SET_ARTICLES_META,
-          {
-            allArticlesCount: 56,
-            archivedArticlesCount: 7,
-            articlesCount: 56,
-            draftArticlesCount: 24,
-            mineArticlesCount: 44,
-            publishedCount: 25,
-          },
-        ],
-      ]);
-    });
-  });
-
-  describe('#delete', () => {
-    it('sends correct actions if API is success', async () => {
-      axios.delete.mockResolvedValue({ data: articleList[0] });
-      await actions.delete(
-        { commit },
-        { portalSlug: 'test', articleId: articleList[0].id }
-      );
-
-      expect(commit.mock.calls).toEqual([
-        [
-          types.default.UPDATE_ARTICLE_FLAG,
-          { uiFlags: { isDeleting: true }, articleId: 1 },
-        ],
-        [types.default.REMOVE_ARTICLE, articleList[0].id],
-        [types.default.REMOVE_ARTICLE_ID, articleList[0].id],
-        [
-          types.default.UPDATE_ARTICLE_FLAG,
-          { uiFlags: { isDeleting: false }, articleId: 1 },
-        ],
-      ]);
-    });
-    it('sends correct actions if API is error', async () => {
-      axios.delete.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(
-        actions.delete(
-          { commit },
-          { portalSlug: 'test', articleId: articleList[0].id }
-        )
-      ).rejects.toThrow(Error);
-      expect(commit.mock.calls).toEqual([
-        [
-          types.default.UPDATE_ARTICLE_FLAG,
-          { uiFlags: { isDeleting: true }, articleId: 1 },
-        ],
-        [
-          types.default.UPDATE_ARTICLE_FLAG,
-          { uiFlags: { isDeleting: false }, articleId: 1 },
-        ],
-      ]);
-    });
-  });
-
-  describe('attachImage', () => {
-    it('should upload the file and return the fileUrl', async () => {
-      const mockFile = new Blob(['test'], { type: 'image/png' });
-      mockFile.name = 'test.png';
-
-      const mockFileUrl = 'https://test.com/test.png';
-      uploadFile.mockResolvedValueOnce({ fileUrl: mockFileUrl });
-
-      const result = await actions.attachImage({}, { file: mockFile });
-
-      expect(uploadFile).toHaveBeenCalledWith(mockFile);
-      expect(result).toBe(mockFileUrl);
-    });
-
-    it('should throw an error if the upload fails', async () => {
-      const mockFile = new Blob(['test'], { type: 'image/png' });
-      mockFile.name = 'test.png';
-
-      const mockError = new Error('Upload failed');
-      uploadFile.mockRejectedValueOnce(mockError);
-
-      await expect(actions.attachImage({}, { file: mockFile })).rejects.toThrow(
-        'Upload failed'
-      );
-    });
-  });
-
-  describe('uploadExternalImage', () => {
-    it('should upload the image from external URL and return the fileUrl', async () => {
-      const mockUrl = 'https://example.com/image.jpg';
-      const mockFileUrl = 'https://uploaded.example.com/image.jpg';
-      uploadExternalImage.mockResolvedValueOnce({ fileUrl: mockFileUrl });
-
-      // When
-      const result = await actions.uploadExternalImage({}, { url: mockUrl });
-
-      // Then
-      expect(uploadExternalImage).toHaveBeenCalledWith(mockUrl);
-      expect(result).toBe(mockFileUrl);
-    });
-
-    it('should throw an error if the upload fails', async () => {
-      const mockUrl = 'https://example.com/image.jpg';
-      const mockError = new Error('Upload failed');
-      uploadExternalImage.mockRejectedValueOnce(mockError);
-
-      await expect(
-        actions.uploadExternalImage({}, { url: mockUrl })
-      ).rejects.toThrow('Upload failed');
-    });
-  });
-
-  describe('#reorder', () => {
-    const state = {
-      articles: {
-        byId: {
-          1: { id: 1, title: 'Article 1', position: 10 },
-          2: { id: 2, title: 'Article 2', position: 20 },
-          3: { id: 3, title: 'Article 3', position: 30 },
-        },
-      },
-    };
-
-    it('commits SET_ARTICLE_POSITIONS and calls API when reorder is successful', async () => {
-      axios.post.mockResolvedValue({ data: {} });
-      const reorderedGroup = { 1: 1, 2: 2, 3: 3 };
-
-      await actions.reorder(
-        { commit, state },
-        {
-          portalSlug: 'test-portal',
-          categorySlug: 'test-category',
-          reorderedGroup,
-        }
-      );
-
-      expect(commit).toHaveBeenCalledWith(
-        types.default.SET_ARTICLE_POSITIONS,
-        reorderedGroup
-      );
-      expect(axios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/portals/test-portal/articles/reorder'),
-        { positions_hash: reorderedGroup, category_slug: 'test-category' }
-      );
-    });
-
-    it('rolls back positions and throws when API call fails', async () => {
-      axios.post.mockRejectedValue({ message: 'Network error' });
-      const reorderedGroup = { 1: 1, 2: 2 };
-
-      await expect(
-        actions.reorder(
-          { commit, state },
-          {
-            portalSlug: 'test-portal',
-            reorderedGroup,
-          }
-        )
-      ).rejects.toEqual({ message: 'Network error' });
-
-      expect(commit).toHaveBeenCalledWith(
-        types.default.SET_ARTICLE_POSITIONS,
-        reorderedGroup
-      );
-      expect(commit).toHaveBeenCalledWith(types.default.SET_ARTICLE_POSITIONS, {
-        1: 10,
-        2: 20,
-      });
-    });
+    expect(axios.delete).toHaveBeenCalledWith('/api/v1/help/articles/article-1');
+    expect(commit).toHaveBeenCalledWith(types.default.REMOVE_ARTICLE, article.id);
   });
 });

@@ -295,6 +295,7 @@ watch(
                 v-bind="child"
                 :active="activeChild?.name === child.name"
                 :hide-tree-line="visibleChildren.length === 1"
+                is-submenu
               />
             </template>
           </template>

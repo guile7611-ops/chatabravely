@@ -14,6 +14,7 @@ const props = defineProps({
   badgeCount: { type: [Number, String], default: 0 },
   hideTreeLine: { type: Boolean, default: false },
   thinTreeLine: { type: Boolean, default: false },
+  isSubmenu: { type: Boolean, default: false },
 });
 
 const { resolvePermissions, resolveFeatureFlag } = useSidebarContext();
@@ -55,10 +56,19 @@ const TREE_CONNECTOR =
         v-bind="{ label, icon, active, badgeCount }"
       />
       <template v-else>
-        <span v-if="icon" class="size-5 grid place-content-center rounded-full">
-          <Icon :icon="icon" class="size-5 inline-block" />
+        <span
+          v-if="icon"
+          class="grid place-content-center rounded-full"
+          :class="isSubmenu ? 'size-4' : 'size-5'"
+        >
+          <Icon :icon="icon" :class="isSubmenu ? 'size-4' : 'size-5'" />
         </span>
-        <div class="flex-1 truncate min-w-0 text-base">{{ label }}</div>
+        <div
+          class="flex-1 truncate min-w-0"
+          :class="isSubmenu ? 'text-sm' : 'text-base'"
+        >
+          {{ label }}
+        </div>
         <SidebarUnreadBadge :count="badgeCount" />
       </template>
     </component>

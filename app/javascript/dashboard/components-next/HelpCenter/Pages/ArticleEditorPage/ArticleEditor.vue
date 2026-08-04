@@ -157,7 +157,6 @@ const handlePublishNewArticle = (status = 'published') => {
           custom-text-area-wrapper-class="border-0 !bg-transparent dark:!bg-transparent !py-0 !px-0"
           placeholder="Assunto / Título do Comunicado..."
           :autofocus="isNewArticle"
-          @blur="handleCreateArticle"
         />
 
         <ArticleEditorControls

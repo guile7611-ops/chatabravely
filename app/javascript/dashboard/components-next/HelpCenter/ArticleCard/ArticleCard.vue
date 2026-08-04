@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import { useToggle } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
-import { dynamicTime } from 'shared/helpers/timeHelper';
 import {
   ARTICLE_MENU_ITEMS,
   ARTICLE_MENU_OPTIONS,
@@ -148,13 +147,20 @@ const authorThumbnailSrc = computed(() => {
 });
 
 const lastUpdatedAt = computed(() => {
-  try {
-    if (!props.updatedAt) return 'Hoje';
-    if (typeof props.updatedAt === 'string') return props.updatedAt;
-    return dynamicTime(props.updatedAt) || 'Hoje';
-  } catch (e) {
-    return 'Hoje';
-  }
+  if (!props.updatedAt) return '';
+
+  const value =
+    typeof props.updatedAt === 'number'
+      ? props.updatedAt * 1000
+      : props.updatedAt;
+  const updatedAt = new Date(value);
+
+  if (Number.isNaN(updatedAt.getTime())) return String(props.updatedAt);
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(updatedAt);
 });
 
 const handleArticleAction = ({ action, value }) => {
@@ -170,7 +176,8 @@ const handleClick = id => {
 <template>
   <CardLayout
     :selectable="selectable"
-    class="relative"
+    class="relative cursor-pointer"
+    @click="handleClick(id)"
     @mouseenter="emit('hover', true)"
     @mouseleave="emit('hover', false)"
   >
@@ -178,13 +185,17 @@ const handleClick = id => {
       v-show="showSelectionControl"
       class="absolute top-7 ltr:left-3 rtl:right-3"
     >
-      <Checkbox :model-value="isSelected" @change="emit('toggleSelect', id)" />
+      <Checkbox
+        :model-value="isSelected"
+        @click.stop
+        @change="emit('toggleSelect', id)"
+      />
     </div>
     <div class="flex justify-between w-full gap-1">
       <div class="flex items-center gap-2 min-w-0">
         <span
           class="text-base cursor-pointer hover:underline underline-offset-2 hover:text-n-blue-11 text-n-slate-12 line-clamp-1"
-          @click="handleClick(id)"
+          @click.stop="handleClick(id)"
         >
           {{ title }}
         </span>
@@ -205,12 +216,13 @@ const handleClick = id => {
             color="slate"
             size="xs"
             class="rounded-md group-hover:bg-n-alpha-2"
-            @click="toggleDropdown()"
+            @click.stop="toggleDropdown()"
           />
           <DropdownMenu
             v-if="showActionsDropdown"
             :menu-items="articleMenuItems"
             class="mt-1 ltr:right-0 rtl:left-0 xl:ltr:left-0 xl:rtl:right-0 top-full"
+            @click.stop
             @action="handleArticleAction($event)"
           />
         </div>

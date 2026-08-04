@@ -164,6 +164,7 @@ watch([hasActiveChild, storageKey], expandSubGroupOnActiveChild, {
             :active="activeChild?.name === child.name"
             :hide-tree-line="hideLeafTreeLine"
             thin-tree-line
+            is-submenu
           />
         </div>
         <div

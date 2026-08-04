@@ -47,6 +47,12 @@ enum MessageSenderType {
   NOTE
 }
 
+enum HelpArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model Workspace {
   id                      String                  @id @default(uuid())
   name                    String
@@ -63,6 +69,7 @@ model Workspace {
   conversations           Conversation[]
   departments             Department[]
   cannedResponses         CannedResponse[]
+  helpCategories          HelpCategory[]
   helpArticles            HelpArticle[]
   labels                  Label[]
   savedExecutiveSummaries SavedExecutiveSummary[]
@@ -93,6 +100,7 @@ model User {
   workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   conversations Conversation[]
   departments   Department[]
+  helpArticles  HelpArticle[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -215,15 +223,39 @@ model CannedResponse {
   @@unique([workspaceId, shortcut])
 }
 
+model HelpCategory {
+  id          String        @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  icon        String?
+  iconColor   String?
+  position    Int           @default(0)
+  workspaceId String
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  articles    HelpArticle[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([workspaceId, slug])
+}
+
 model HelpArticle {
   id          String    @id @default(uuid())
   title       String
   subject     String
   content     String    @db.Text
+  status      HelpArticleStatus @default(PUBLISHED)
+  position    Int       @default(0)
+  attachments Json?
   fileUrl     String?
   fileName    String?
   videoUrl    String?
   views       Int       @default(0)
+  categoryId  String?
+  category    HelpCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  authorId    String?
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())

@@ -4,7 +4,6 @@ import { getPortalRoute } from './helpers/routeHelper';
 import HelpCenterPageRouteView from './pages/HelpCenterPageRouteView.vue';
 
 import PortalsIndex from './pages/PortalsIndexPage.vue';
-import PortalsNew from './pages/PortalsNewPage.vue';
 
 const PortalsArticlesIndexPage = () =>
   import('./pages/PortalsArticlesIndexPage.vue');
@@ -16,11 +15,6 @@ const PortalsArticlesEditPage = () =>
 const PortalsCategoriesIndexPage = () =>
   import('./pages/PortalsCategoriesIndexPage.vue');
 
-const PortalsLocalesIndexPage = () =>
-  import('./pages/PortalsLocalesIndexPage.vue');
-
-const PortalsSettingsIndexPage = () =>
-  import('./pages/PortalsSettingsIndexPage.vue');
 
 const meta = {
   featureFlag: FEATURE_FLAGS.HELP_CENTER,
@@ -77,27 +71,6 @@ const portalRoutes = [
     name: 'portals_categories_articles_edit',
     meta,
     component: PortalsArticlesEditPage,
-  },
-  {
-    path: getPortalRoute(':portalSlug/locales'),
-    name: 'portals_locales_index',
-    meta,
-    component: PortalsLocalesIndexPage,
-  },
-  {
-    path: getPortalRoute(':portalSlug/settings'),
-    name: 'portals_settings_index',
-    meta,
-    component: PortalsSettingsIndexPage,
-  },
-  {
-    path: getPortalRoute('new'),
-    name: 'portals_new',
-    meta: {
-      featureFlag: FEATURE_FLAGS.HELP_CENTER,
-      permissions: ['administrator', 'knowledge_base_manage'],
-    },
-    component: PortalsNew,
   },
   {
     path: getPortalRoute(':navigationPath'),

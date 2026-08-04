@@ -2,7 +2,6 @@
 import { computed, ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useMapGetter, useStore } from 'dashboard/composables/store.js';
-import allLocales from 'shared/constants/locales.js';
 import { getArticleStatus } from 'dashboard/helper/portalHelper.js';
 import ArticlesPage from 'dashboard/components-next/HelpCenter/Pages/ArticlePage/ArticlesPage.vue';
 
@@ -19,9 +18,7 @@ const articlesSortedByPosition = useMapGetter(
 );
 const categories = useMapGetter('categories/allCategories');
 const meta = useMapGetter('articles/getMeta');
-const portalMeta = useMapGetter('portals/getMeta');
 const currentUserId = useMapGetter('getCurrentUserID');
-const getPortalBySlug = useMapGetter('portals/portalBySlug');
 
 const selectedPortalSlug = computed(() => route.params.portalSlug);
 const selectedCategorySlug = computed(() => route.params.categorySlug);
@@ -32,39 +29,7 @@ const author = computed(() =>
 );
 
 const activeLocale = computed(() => route.params.locale);
-const portal = computed(() => {
-  const fetchedPortal = typeof getPortalBySlug.value === 'function'
-    ? getPortalBySlug.value(selectedPortalSlug.value)
-    : null;
-  return fetchedPortal || {
-    name: 'Central de Ajuda',
-    slug: selectedPortalSlug.value || 'main',
-    config: { allowed_locales: [] },
-  };
-});
-
-const allowedLocales = computed(() => {
-  if (!portal.value || !portal.value.config) {
-    return [];
-  }
-  const allAllowedLocales = portal.value.config.allowed_locales || [];
-  if (!Array.isArray(allAllowedLocales)) return [];
-  return allAllowedLocales.map(locale => {
-    return {
-      id: locale?.code,
-      name: allLocales[locale?.code] || locale?.code,
-      code: locale?.code,
-    };
-  });
-});
-
-const defaultPortalLocale = computed(() => {
-  return portal.value?.meta?.default_locale;
-});
-
-const selectedLocaleInPortal = computed(() => {
-  return route.params.locale || defaultPortalLocale.value;
-});
+const allowedLocales = [{ id: 'pt_BR', name: 'Português (Brasil)', code: 'pt_BR' }];
 
 const isCategoryArticles = computed(() => {
   return (
@@ -82,8 +47,6 @@ const articles = computed(() =>
 const fetchArticles = ({ pageNumber: pageNumberParam } = {}) => {
   store.dispatch('articles/index', {
     pageNumber: pageNumberParam || pageNumber.value,
-    portalSlug: selectedPortalSlug.value || 'main',
-    locale: activeLocale.value || 'pt_BR',
     status: status.value,
     authorId: author.value,
     categorySlug: selectedCategorySlug.value,
@@ -104,23 +67,10 @@ const onSearch = query => {
   fetchArticles({ pageNumber: 1 });
 };
 
-const fetchPortalAndItsCategories = async locale => {
-  try {
-    await store.dispatch('portals/index');
-    const selectedPortalParam = {
-      portalSlug: selectedPortalSlug.value || 'main',
-      locale: locale || selectedLocaleInPortal.value || 'pt_BR',
-    };
-    store.dispatch('portals/show', selectedPortalParam);
-    store.dispatch('categories/index', selectedPortalParam);
-    store.dispatch('agents/get');
-  } catch (e) {
-    // Suppress dispatch error in standalone mode
-  }
-};
+const fetchCategories = () => store.dispatch('categories/index');
 
 onMounted(() => {
-  fetchPortalAndItsCategories();
+  fetchCategories();
   fetchArticles();
 });
 
@@ -128,7 +78,7 @@ watch(
   () => route.params,
   () => {
     pageNumber.value = 1;
-    fetchPortalAndItsCategories();
+    fetchCategories();
     fetchArticles();
   },
   { deep: true, immediate: true }
@@ -138,17 +88,15 @@ watch(
 <template>
   <div class="w-full h-full">
     <ArticlesPage
-      v-if="portal"
       :articles="articles"
-      :portal-name="portal.name"
+      portal-name="Central de Ajuda"
       :categories="categories"
       :allowed-locales="allowedLocales"
       :meta="meta"
-      :portal-meta="portalMeta"
       :is-category-articles="isCategoryArticles"
       @page-change="onPageChange"
       @search="onSearch"
-      @fetch-portal="fetchPortalAndItsCategories"
+      @fetch-portal="fetchCategories"
       @refresh-articles="fetchArticles"
     />
   </div>

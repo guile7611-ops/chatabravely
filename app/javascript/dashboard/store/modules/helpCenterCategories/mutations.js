@@ -26,7 +26,7 @@ export const mutations = {
     $state.categories.byId = allCategories;
   },
   [types.ADD_MANY_CATEGORIES_ID]($state, categoryIds) {
-    $state.categories.allIds.push(...categoryIds);
+    $state.categories.allIds = [...new Set(categoryIds)];
   },
 
   [types.SET_CATEGORIES_META]: ($state, data) => {
@@ -35,7 +35,9 @@ export const mutations = {
   },
 
   [types.ADD_CATEGORY_ID]: ($state, categoryId) => {
-    $state.categories.allIds.push(categoryId);
+    if (!$state.categories.allIds.includes(categoryId)) {
+      $state.categories.allIds.push(categoryId);
+    }
   },
   [types.ADD_CATEGORY_FLAG]: ($state, { categoryId, uiFlags }) => {
     const flags = $state.categories.uiFlags.byId[categoryId];
