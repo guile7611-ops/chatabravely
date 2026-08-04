@@ -231,4 +231,11 @@ class SocketIoConnector {
   }
 }
 
+export const disconnectSocketIo = () => {
+  if (typeof window !== 'undefined' && window.__abravelySocketConnector) {
+    window.__abravelySocketConnector.disconnect();
+    window.__abravelySocketConnector = null;
+  }
+};
+
 export default SocketIoConnector;

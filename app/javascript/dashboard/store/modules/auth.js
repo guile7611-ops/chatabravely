@@ -7,6 +7,7 @@ import {
   fetchAndStoreAbravelyJwtToken,
   clearAbravelyJwtToken,
 } from 'dashboard/helper/abravelyToken';
+import { disconnectSocketIo } from 'dashboard/helper/socketIoConnector';
 import SessionStorage from 'shared/helpers/sessionStorage';
 import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
 
@@ -135,21 +136,15 @@ export const actions = {
       const currentUser = response.data.payload.data;
       setUser(currentUser);
       context.commit(types.SET_CURRENT_USER, currentUser);
-      if (currentUser?.email) {
-        await fetchAndStoreAbravelyJwtToken(currentUser.email, 'password123');
-      }
     } catch (error) {
       // Keep mock user in standalone frontend development
     }
   },
 
-  async setUser({ commit, dispatch, state }) {
+  async setUser({ commit, dispatch }) {
     try {
       if (authAPI.hasAuthCookie()) {
         await dispatch('validityCheck');
-      }
-      if (state?.currentUser?.email && !getAbravelyJwtToken()) {
-        await fetchAndStoreAbravelyJwtToken(state.currentUser.email, 'password123');
       }
     } catch (e) {
       // Ignore auth errors in standalone dev mode
@@ -159,6 +154,7 @@ export const actions = {
   },
 
   logout({ commit }) {
+    disconnectSocketIo();
     clearAbravelyJwtToken();
     commit(types.CLEAR_USER);
   },
