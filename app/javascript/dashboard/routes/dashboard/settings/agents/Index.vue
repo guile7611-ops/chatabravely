@@ -148,7 +148,7 @@ const confirmDeletion = () => {
   <SettingsLayout
     :is-loading="uiFlags.isFetching"
     :loading-message="$t('AGENT_MGMT.LOADING')"
-    :no-records-found="!agentList.length"
+    :no-records-found="!uiFlags.isFetching && !agentError && !agentList.length"
     :no-records-message="$t('AGENT_MGMT.LIST.404')"
   >
     <template #header>
@@ -175,8 +175,19 @@ const confirmDeletion = () => {
       </BaseSettingsHeader>
     </template>
     <template #body>
+      <div
+        v-if="!uiFlags.isFetching && agentError"
+        class="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-n-amber-5 bg-n-amber-2 text-n-slate-12 text-center my-4"
+      >
+        <span class="text-base font-semibold text-red-600 mb-1">
+          Erro ao carregar atendentes
+        </span>
+        <span class="text-sm text-n-slate-11">
+          {{ agentError }}
+        </span>
+      </div>
       <span
-        v-if="!filteredAgentList.length && searchQuery"
+        v-else-if="!filteredAgentList.length && searchQuery"
         class="flex-1 flex items-center justify-center py-20 text-center text-body-main !text-base text-n-slate-11"
       >
         {{ $t('AGENT_MGMT.NO_RESULTS') }}

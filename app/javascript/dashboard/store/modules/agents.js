@@ -4,6 +4,7 @@ import AgentAPI from '../../api/agents';
 
 export const state = {
   records: [],
+  error: null,
   uiFlags: {
     isFetching: false,
     isCreating: false,
@@ -15,6 +16,9 @@ export const state = {
 export const getters = {
   getAgents($state) {
     return $state.records;
+  },
+  getError($state) {
+    return $state.error;
   },
   getVerifiedAgents($state) {
     return $state.records.filter(record => record.confirmed);
@@ -42,12 +46,18 @@ export const getters = {
 
 export const actions = {
   get: async ({ commit }) => {
+    commit('SET_AGENT_ERROR', null);
     commit(types.default.SET_AGENT_FETCHING_STATUS, true);
     try {
       const response = await AgentAPI.get();
       commit(types.default.SET_AGENTS, response.data || []);
+      commit('SET_AGENT_ERROR', null);
     } catch (error) {
-      commit(types.default.SET_AGENTS, []);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Não foi possível carregar a lista de atendentes.';
+      commit('SET_AGENT_ERROR', errorMessage);
     } finally {
       commit(types.default.SET_AGENT_FETCHING_STATUS, false);
     }
@@ -97,6 +107,9 @@ export const actions = {
 };
 
 export const mutations = {
+  SET_AGENT_ERROR($state, error) {
+    $state.error = error;
+  },
   [types.default.SET_AGENT_FETCHING_STATUS]($state, status) {
     $state.uiFlags.isFetching = status;
   },
