@@ -13,27 +13,17 @@ import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
 
 const initialState = {
   currentUser: {
-    id: 1,
-    account_id: 1,
+    id: null,
+    account_id: null,
     locale: 'pt_BR',
     ui_settings: {
       locale: 'pt_BR',
       theme: 'dark',
     },
-    accounts: [
-      {
-        id: 1,
-        name: 'Abravely Chat',
-        role: 'administrator',
-        status: 'active',
-        availability: 'online',
-        locale: 'pt_BR',
-        permissions: ['administrator', 'agent'],
-      },
-    ],
-    email: 'guilherme.tenorio@multione.com',
-    name: 'Guilherme Tenorio',
-    role: 'administrator',
+    accounts: [],
+    email: '',
+    name: '',
+    role: '',
   },
   uiFlags: {
     isFetching: false,
@@ -78,7 +68,7 @@ export const getters = {
     if (rootState?.route?.params?.accountId) {
       return Number(rootState.route.params.accountId);
     }
-    return 1;
+    return null;
   },
 
   getCurrentRole($state, $getters) {
@@ -86,7 +76,7 @@ export const getters = {
     const [currentAccount = {}] = accounts.filter(
       account => account.id === $getters.getCurrentAccountId
     );
-    return currentAccount.role || 'administrator';
+    return currentAccount.role || null;
   },
 
   getCurrentCustomRoleId($state, $getters) {
@@ -94,7 +84,7 @@ export const getters = {
     const [currentAccount = {}] = accounts.filter(
       account => account.id === $getters.getCurrentAccountId
     );
-    return currentAccount.custom_role_id;
+    return currentAccount.custom_role_id || null;
   },
 
   getCurrentUser($state) {
@@ -111,7 +101,7 @@ export const getters = {
     const [currentAccount = {}] = accounts.filter(
       account => account.id === $getters.getCurrentAccountId
     );
-    return currentAccount || { id: 1, name: 'Abravely Chat', role: 'administrator' };
+    return currentAccount.id ? currentAccount : null;
   },
 
   getUserAccounts($state) {

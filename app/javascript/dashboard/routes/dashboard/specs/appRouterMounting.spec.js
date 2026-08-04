@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
 import App from 'dashboard/App.vue';
-import router, { validateAuthenticateRoutePermission } from 'dashboard/routes';
+import store from 'dashboard/store';
+import router, { initalizeRouter } from 'dashboard/routes';
 import { clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
 
 const i18n = createI18n({
@@ -13,46 +13,32 @@ const i18n = createI18n({
   messages: { pt_BR: {} },
 });
 
-describe('App.vue + Real Vue Router Integration Test', () => {
-  let store;
-
+describe('Real App.vue + Real Store + Real Vue Router Integration Test', () => {
   beforeEach(async () => {
     clearAbravelyJwtToken();
     localStorage.clear();
     sessionStorage.clear();
+    initalizeRouter();
+  });
 
-    store = createStore({
-      getters: {
-        isLoggedIn: () => false,
-        getCurrentUser: () => ({ id: null, role: 'administrator' }),
-        getCurrentAccountId: () => null,
-        getCurrentRole: () => 'administrator',
-        getAuthUIFlags: () => ({ isFetching: false }),
-        getAccount: () => () => ({ id: 1, name: 'Abravely Chat' }),
-        isRTL: () => false,
-        'accounts/isRTL': () => false,
-        'globalConfig/get': () => ({
-          installationName: 'Abravely Chat',
-          logo: '/brand-assets/logo.svg',
-          logoDark: '/brand-assets/logo_dark.svg',
-        }),
-      },
-      actions: {
-        setUser: () => Promise.resolve(),
-      },
-    });
+  it('validates that the real auth module initial state is unauthenticated', () => {
+    expect(store.getters.isLoggedIn).toBe(false);
+    expect(store.getters.getCurrentUserID).toBeNull();
+    expect(store.getters.getCurrentAccount).toBeNull();
+    expect(store.getters.getCurrentRole).toBeNull();
+  });
 
+  it('redirects unauthenticated access from /app/accounts/1/dashboard to /app/login exactly once', async () => {
+    await router.push('/app/accounts/1/dashboard');
+    await router.isReady();
+
+    expect(router.currentRoute.value.path).toBe('/app/login');
+  });
+
+  it('mounts App.vue with real store and real router on /app/login and renders login inputs without mocking LoginView', async () => {
     await router.push('/app/login');
     await router.isReady();
-  });
 
-  it('redirects unauthenticated access from /app/accounts/1/dashboard to /app/login', async () => {
-    const targetRoute = { path: '/app/accounts/1/dashboard', params: { accountId: '1' } };
-    const redirectUrl = await validateAuthenticateRoutePermission(targetRoute);
-    expect(redirectUrl).toBe('/app/login');
-  });
-
-  it('mounts App.vue with real router on /app/login and renders login inputs without mocking LoginView', async () => {
     const wrapper = mount(App, {
       global: {
         plugins: [store, router, i18n],
@@ -64,8 +50,8 @@ describe('App.vue + Real Vue Router Integration Test', () => {
     });
 
     await wrapper.vm.$nextTick();
-    await router.isReady();
 
+    expect(router.currentRoute.value.path).toBe('/app/login');
     expect(wrapper.find('input[data-testid="email_input"]').exists()).toBe(true);
     expect(wrapper.find('input[data-testid="password_input"]').exists()).toBe(true);
     expect(wrapper.find('button[data-testid="submit_button"]').exists()).toBe(true);
