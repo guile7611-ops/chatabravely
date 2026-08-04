@@ -12,10 +12,14 @@ vi.mock('axios');
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (msg) => msg }),
 }));
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ isOnChatwootCloud: { value: false } }),
+}));
 
 describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
   let dispatchMock;
   let originalWindowLocation;
+  let mockStore;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -29,6 +33,13 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     window.chatwootConfig = {
       allowedLoginMethods: ['email'],
     };
+
+    mockStore = {
+      dispatch: dispatchMock,
+      getters: { 'globalConfig/get': {} },
+      state: {},
+      commit: vi.fn(),
+    };
   });
 
   afterEach(() => {
@@ -39,14 +50,14 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     return shallowMount(Index, {
       ...options,
       global: {
+        provide: {
+          store: mockStore,
+        },
         mocks: {
           $t: (msg) => msg,
           $router: { push: vi.fn(), replace: vi.fn() },
           $route: { query: {} },
-          $store: {
-            dispatch: dispatchMock,
-            getters: { 'globalConfig/get': {} },
-          },
+          $store: mockStore,
         },
         stubs: {
           FormInput: true,
@@ -154,6 +165,9 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     const wrapper = mount(MfaVerification, {
       props: { mfaToken: 'test_mfa_token' },
       global: {
+        provide: {
+          store: mockStore,
+        },
         mocks: {
           $t: (msg) => msg,
         },
@@ -169,7 +183,7 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     wrapper.vm.otpDigits = ['1', '2', '3', '4', '5', '6'];
     await wrapper.vm.handleVerification();
 
-    // Confirmar que MfaVerification emitou 'verified' e NAO fez window.location.href
+    // Confirmar que MfaVerification emitiu 'verified' e NAO fez window.location.href
     expect(wrapper.emitted('verified')).toBeTruthy();
     const emittedResponse = wrapper.emitted('verified')[0][0];
     expect(window.location.href).toBe('http://localhost/app/login');
