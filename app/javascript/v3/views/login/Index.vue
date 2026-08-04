@@ -175,6 +175,7 @@ export default {
       this.loginApi.showLoading = true;
 
       const credentials = {
+        ...this.credentials,
         email: this.email
           ? decodeURIComponent(this.email)
           : this.credentials.email,
@@ -272,7 +273,8 @@ export default {
 
       this.submitLogin();
     },
-    async handleMfaVerified() {
+    async handleMfaVerified(mfaResponse) {
+      const email = this.email ? decodeURIComponent(this.email) : this.credentials.email;
       if (!this.credentials.password) {
         clearBrowserSessionCookies();
         clearLocalStorageOnLogout();
@@ -283,7 +285,7 @@ export default {
       }
       try {
         await this.$store.dispatch('loginWithCredentials', {
-          email: this.email ? decodeURIComponent(this.email) : this.credentials.email,
+          email,
           password: this.credentials.password,
         });
       } catch (expressErr) {
@@ -296,8 +298,16 @@ export default {
         );
         return;
       }
+
+      const railsResponse = mfaResponse?.response || (mfaResponse?.data && mfaResponse?.headers ? mfaResponse : null);
+      if (railsResponse) {
+        setAuthCredentials(railsResponse);
+        clearLocalStorageOnLogout();
+      }
       this.handleImpersonation();
-      window.location = '/app';
+      this.showAlertMessage(this.$t('LOGIN.API.SUCCESS_MESSAGE'));
+
+      window.location = mfaResponse?.data?.redirectUrl || mfaResponse?.redirectUrl || '/app';
     },
     handleMfaCancel() {
       // User cancelled MFA, reset state

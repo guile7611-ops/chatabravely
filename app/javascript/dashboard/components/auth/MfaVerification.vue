@@ -69,25 +69,8 @@ const handleVerification = async () => {
 
     const response = await axios.post('/auth/sign_in', payload);
 
-    // Set auth credentials and redirect
-    if (response.data && response.headers) {
-      // Store auth credentials in cookies
-      const authData = {
-        'access-token': response.headers['access-token'],
-        'token-type': response.headers['token-type'],
-        client: response.headers.client,
-        expiry: response.headers.expiry,
-        uid: response.headers.uid,
-      };
-
-      // Store in cookies for auth
-      document.cookie = `cw_d_session_info=${encodeURIComponent(JSON.stringify(authData))}; path=/; SameSite=Lax`;
-
-      // Redirect to dashboard
-      window.location.href = '/app/';
-    } else {
-      emit('verified', response.data);
-    }
+    // Emitir o evento verified com a resposta do Rails para coordenação atômica no parent (Index.vue)
+    emit('verified', response);
   } catch (error) {
     errorMessage.value =
       parseAPIErrorResponse(error) || t('MFA_VERIFICATION.VERIFICATION_FAILED');

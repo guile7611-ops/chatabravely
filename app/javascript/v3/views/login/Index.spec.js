@@ -1,11 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { shallowMount, flushPromises } from '@vue/test-utils';
+import { shallowMount, mount, flushPromises } from '@vue/test-utils';
 import Index from './Index.vue';
+import MfaVerification from 'dashboard/components/auth/MfaVerification.vue';
 import * as authAPI from '../../api/auth';
 import * as apiUtils from 'dashboard/store/utils/api';
 import { getAbravelyJwtToken, clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
+import axios from 'axios';
 
 vi.mock('../../api/auth');
+vi.mock('axios');
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({ t: (msg) => msg }),
+}));
 
 describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
   let dispatchMock;
@@ -29,8 +35,9 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     window.location = originalWindowLocation;
   });
 
-  function getWrapper() {
+  function getWrapper(options = {}) {
     return shallowMount(Index, {
+      ...options,
       global: {
         mocks: {
           $t: (msg) => msg,
@@ -47,6 +54,7 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
           Spinner: true,
           Icon: true,
           'router-link': true,
+          ...options?.global?.stubs,
         },
       },
     });
@@ -120,7 +128,6 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     await wrapper.vm.submitLogin();
     await flushPromises();
 
-    // Confirmar limpeza dos cookies sem acionar redirecionamento
     expect(clearCookiesSpy).toHaveBeenCalled();
     expect(clearLocalStorageSpy).toHaveBeenCalled();
     expect(getAbravelyJwtToken()).toBeNull();
@@ -130,27 +137,84 @@ describe('Login Component Index.vue - Atomic Dual Authentication Flow', () => {
     expect(window.location.href).toBe('http://localhost/app/login');
   });
 
-  it('executes atomic JWT fetch on handleMfaVerified before redirecting to /app', async () => {
+  it('integration: MfaVerification emits verified without internal redirect and Index coordinates Express JWT before final redirect', async () => {
+    axios.post.mockResolvedValue({
+      data: { redirectUrl: '/app/accounts/1/dashboard' },
+      headers: { 'access-token': 'abc', client: '123', uid: 'u' },
+    });
+
     dispatchMock.mockImplementation((action) => {
       if (action === 'loginWithCredentials') {
-        window.chatwootConfig.abravelyJwtToken = 'mfa_jwt_token_123';
-        return Promise.resolve('mfa_jwt_token_123');
+        window.chatwootConfig.abravelyJwtToken = 'mfa_express_jwt_123';
+        return Promise.resolve('mfa_express_jwt_123');
       }
       return Promise.resolve();
     });
 
-    const wrapper = getWrapper();
-    wrapper.vm.credentials.email = 'agente@abravely.com';
-    wrapper.vm.credentials.password = 'senhaMfa123';
+    const wrapper = mount(MfaVerification, {
+      props: { mfaToken: 'test_mfa_token' },
+      global: {
+        mocks: {
+          $t: (msg) => msg,
+        },
+        stubs: {
+          Icon: true,
+          FormInput: true,
+          NextButton: true,
+          Dialog: true,
+        },
+      },
+    });
 
-    await wrapper.vm.handleMfaVerified();
+    wrapper.vm.otpDigits = ['1', '2', '3', '4', '5', '6'];
+    await wrapper.vm.handleVerification();
+
+    // Confirmar que MfaVerification emitou 'verified' e NAO fez window.location.href
+    expect(wrapper.emitted('verified')).toBeTruthy();
+    const emittedResponse = wrapper.emitted('verified')[0][0];
+    expect(window.location.href).toBe('http://localhost/app/login');
+
+    // Agora simular recebimento pelo Index.vue
+    const indexWrapper = getWrapper();
+    indexWrapper.vm.credentials.email = 'agente@abravely.com';
+    indexWrapper.vm.credentials.password = 'senhaMfa123';
+
+    await indexWrapper.vm.handleMfaVerified(emittedResponse);
     await flushPromises();
 
+    // Confirmar que o Index.vue obteve o JWT Express antes de redirecionar
     expect(dispatchMock).toHaveBeenCalledWith('loginWithCredentials', {
       email: 'agente@abravely.com',
       password: 'senhaMfa123',
     });
-    expect(window.location).toBe('/app');
+    expect(getAbravelyJwtToken()).toBe('mfa_express_jwt_123');
+    expect(window.location).toBe('/app/accounts/1/dashboard');
+  });
+
+  it('passes revocation parameters (revoke_session_id and revoke_all_sessions) to authAPI.login during session retry', async () => {
+    authAPI.login.mockResolvedValue({
+      success: true,
+      response: { data: { data: { id: 1 } }, headers: {} },
+      user: { id: 1 },
+      redirectUrl: '/app/accounts/1/dashboard',
+    });
+    dispatchMock.mockResolvedValue('jwt_token');
+
+    const wrapper = getWrapper();
+    wrapper.vm.credentials.email = 'agente@abravely.com';
+    wrapper.vm.credentials.password = 'minhasenha123';
+
+    await wrapper.vm.handleSessionRevoke('session_abc_123');
+    await flushPromises();
+
+    expect(authAPI.login).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'agente@abravely.com',
+        password: 'minhasenha123',
+        revoke_session_id: 'session_abc_123',
+      }),
+      { redirect: false }
+    );
   });
 
   it('guarantees that password is never persisted in storage or global config', async () => {
