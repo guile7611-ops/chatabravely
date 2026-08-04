@@ -1215,6 +1215,19 @@ export default {
       this.ccEmails = value.ccEmails;
     },
     setCCAndToEmailsFromLastChat() {
+      this.toEmails = '';
+      this.ccEmails = '';
+      this.bccEmails = '';
+
+      // Recipient metadata only exists on e-mail messages. Abravely WhatsApp
+      // messages intentionally do not carry content_attributes.email; passing
+      // them to getRecipients throws during mounted() and interrupts Vue's
+      // component update queue, leaving the previous route view on screen.
+      if (!this.isAnEmailChannel || !this.lastEmail) return;
+
+      const isIncomingEmail = this.lastEmail.message_type === 0;
+      if (isIncomingEmail && !this.lastEmail.content_attributes?.email) return;
+
       const conversationContact = this.currentChat?.meta?.sender?.email || '';
       const { email: inboxEmail, forward_to_email: forwardToEmail } =
         this.inbox;
