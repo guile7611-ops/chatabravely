@@ -44,8 +44,34 @@ const actions = {
   getConversation: async ({ commit }, conversationId) => {
     try {
       const response = await ConversationApi.show(conversationId);
-      commit(types.UPDATE_CONVERSATION, response.data);
-      commit(`contacts/${types.SET_CONTACT_ITEM}`, response.data.meta.sender);
+      const conversation =
+        response?.data?.conversation ||
+        response?.data?.payload ||
+        response?.data;
+      if (!conversation) return;
+
+      const normalizedConversation = {
+        ...conversation,
+        messages: (conversation.messages || []).map(message => ({
+          ...message,
+          conversation_id: message.conversationId || message.conversation_id,
+          message_type:
+            message.message_type ??
+            (message.senderType === 'AGENT' ? 1 : 0),
+          created_at: message.created_at || message.createdAt,
+          content_type: message.content_type || message.contentType,
+        })),
+        meta: conversation.meta || {
+          sender: conversation.contact || null,
+        },
+      };
+      commit(types.UPDATE_CONVERSATION, normalizedConversation);
+      if (normalizedConversation.meta?.sender) {
+        commit(
+          `contacts/${types.SET_CONTACT_ITEM}`,
+          normalizedConversation.meta.sender
+        );
+      }
     } catch (error) {
       // Ignore error
     }
