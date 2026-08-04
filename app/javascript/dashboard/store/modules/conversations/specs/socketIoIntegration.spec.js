@@ -32,7 +32,7 @@ import { generateUserToken, getJwtSecret } from '../../../../../../../backend/sr
 let httpServer;
 let port;
 
-describe('Socket.io Real Backend Code Integration Test (initSocket, jwt.verify & Prisma)', () => {
+describe('Socket.io Real Backend Code Integration Test (initSocket & JWT Verification)', () => {
   beforeAll(async () => {
     clearAbravelyJwtToken();
 

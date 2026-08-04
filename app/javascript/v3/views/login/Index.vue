@@ -198,7 +198,22 @@ export default {
           }
 
           this.handleImpersonation();
-          this.showAlertMessage(this.$t('LOGIN.API.SUCCESS_MESSAGE'));
+
+          return this.$store
+            .dispatch('loginWithCredentials', {
+              email: credentials.email,
+              password: credentials.password,
+            })
+            .then(() => {
+              this.showAlertMessage(this.$t('LOGIN.API.SUCCESS_MESSAGE'));
+            })
+            .catch(expressErr => {
+              this.loginApi.hasErrored = true;
+              this.loginApi.showLoading = false;
+              this.showAlertMessage(
+                expressErr?.message || 'Falha ao autenticar no serviço Abravely WebSocket.'
+              );
+            });
         })
         .catch(response => {
           if (response?.errorCode === USER_NOT_CONFIRMED_ERROR_CODE) {
