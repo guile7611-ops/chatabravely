@@ -42,11 +42,11 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
-│ Fase 2: Gestão de Agentes / Atendentes (settings/agents)    │
+│ Fase 2: Gestão de Agentes / Atendentes (Concluída)          │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
-│ Fase 3: Caixas de Entrada (settings/inboxes)                │
+│ Fase 3: Caixas de Entrada / Canais (Concluída)              │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -61,6 +61,17 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 │ Fase 6: Painel Central de Conversas (dashboard / socket.io) │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### Detalhes da Fase 3 (Caixas de Entrada / Canais)
+- **Regras Removidas**:
+  - Eliminados os registros de inboxes fictícios em memória (`defaultInboxes`).
+  - Eliminada a persistência paralela e fallbacks em `localStorage` (`chatabravely_inboxes_v1`).
+  - Eliminada a exclusão local falsa (`fake delete`) quando a API de exclusão falhava.
+- **Adaptadores Temporários Mantidos**:
+  - Adaptadores de payload e de criação para canais legados (`WebChannel`, `FBChannel`, `TwilioChannel`, `WhatsappChannel`, `channelActions`, `buildInboxData`).
+- **Pendências Futuras (Meta Cloud & Evolution API)**:
+  - **Meta Cloud API**: Integração completa do callback de verificação de Webhook via backend e geração dinâmica de Verify Token.
+  - **Evolution API**: Lifecycle em tempo real via WebSocket de status da instância (polling do QR code e sincronização de desconexão).
 
 ---
 
