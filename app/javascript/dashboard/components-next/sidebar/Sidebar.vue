@@ -404,7 +404,7 @@ const menuItems = computed(() => {
         label: inbox.name,
         badgeCount: safeCall(getInboxUnreadCount, inbox.id, 0),
         icon: h(ChannelIcon, { inbox, class: 'size-5' }),
-        to: accountScopedRoute('inbox_dashboard', { inbox_id: inbox.id }),
+        disabled: true,
         component: leafProps =>
           h(ChannelLeaf, {
             label: leafProps.label,
@@ -518,7 +518,7 @@ const menuItems = computed(() => {
         },
         {
           name: 'Settings Inboxes',
-          label: t('SIDEBAR.INBOXES'),
+          label: t('SIDEBAR.CHANNELS'),
           icon: 'i-lucide-inbox',
           activeOn: [
             'settings_inbox_list',

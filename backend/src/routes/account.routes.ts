@@ -310,21 +310,28 @@ router.get('/custom_filters', (req: Request, res: Response) => {
  */
 router.get('/inboxes', async (req: Request, res: Response) => {
   try {
-    const channels = await prisma.channel.findMany();
+    const user = req.user!;
+    const channels = await prisma.channel.findMany({
+      where: { workspaceId: user.workspaceId },
+      orderBy: { createdAt: 'desc' },
+    });
     const payload = channels.map(c => ({
       id: c.id,
       channel_id: c.id,
       name: c.name,
       channel_type: 'Channel::Whatsapp',
       phone_number: c.metaPhoneNumberId || c.evolutionInstanceName || '',
-      avatar_url: ''
+      avatar_url: '',
+      provider: c.type,
+      medium: c.type === 'META_CLOUD' ? 'meta' : 'evolution',
+      connection_status: c.connectionStatus,
     }));
     return res.status(200).json({ payload });
-  } catch (error) {
-    return res.status(200).json({
-      payload: [
-        { id: 1, channel_id: 1, name: 'WhatsApp Meta Cloud API (Oficial)', channel_type: 'Channel::Whatsapp', phone_number: 'Meta API', avatar_url: '' }
-      ]
+  } catch (error: any) {
+    return res.status(503).json({
+      success: false,
+      message: 'Serviço de canais indisponível.',
+      error: error.message,
     });
   }
 });

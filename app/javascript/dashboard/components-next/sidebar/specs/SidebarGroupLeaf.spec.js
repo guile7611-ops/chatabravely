@@ -73,4 +73,11 @@ describe('SidebarGroupLeaf', () => {
 
     expect(wrapper.find('[data-test-id="custom-leaf-count"]').text()).toBe('4');
   });
+
+  it('renders a disabled leaf as a non-navigable item', () => {
+    const wrapper = mountLeaf({ to: null, disabled: true });
+
+    expect(wrapper.find('a').exists()).toBe(false);
+    expect(wrapper.find('.cursor-default').exists()).toBe(true);
+  });
 });

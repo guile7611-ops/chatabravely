@@ -35,4 +35,39 @@ describe('ChannelLeaf', () => {
       false
     );
   });
+
+  it('shows a green indicator only when the backend reports CONNECTED', () => {
+    const wrapper = mountChannelLeaf({
+      inbox: {
+        reauthorization_required: false,
+        connection_status: 'CONNECTED',
+      },
+    });
+    const indicator = wrapper.find(
+      '[data-test-id="channel-connection-status"]'
+    );
+
+    expect(indicator.attributes('data-status')).toBe('connected');
+    expect(indicator.classes()).toContain('bg-n-teal-9');
+    expect(indicator.attributes('title')).toBe('Conectado');
+  });
+
+  it.each(['DISCONNECTED', 'CONNECTING', undefined])(
+    'shows a yellow indicator when the connection status is %s',
+    connectionStatus => {
+      const wrapper = mountChannelLeaf({
+        inbox: {
+          reauthorization_required: false,
+          connection_status: connectionStatus,
+        },
+      });
+      const indicator = wrapper.find(
+        '[data-test-id="channel-connection-status"]'
+      );
+
+      expect(indicator.attributes('data-status')).toBe('disconnected');
+      expect(indicator.classes()).toContain('bg-n-amber-9');
+      expect(indicator.attributes('title')).toBe('Desconectado');
+    }
+  );
 });

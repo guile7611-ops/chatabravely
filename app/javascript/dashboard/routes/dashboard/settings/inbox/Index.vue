@@ -83,39 +83,64 @@ const openDelete = inbox => {
   showDeletePopup.value = true;
   selectedInbox.value = inbox;
 };
-const getInboxType = inbox => {
+const getInboxProvider = inbox => {
+  const provider = String(
+    inbox.provider || inbox.channel_provider || inbox.medium || ''
+  ).toUpperCase();
+
   if (
+    provider === 'META_CLOUD' ||
+    provider === 'META' ||
     inbox.channel_type === 'Channel::MetaCloud' ||
-    inbox.channel_type === 'Channel::WhatsappMeta' ||
-    inbox.medium === 'meta'
+    inbox.channel_type === 'Channel::WhatsappMeta'
   ) {
-    return 'API Oficial';
+    return 'META_CLOUD';
   }
-  return 'QR Code';
+
+  return 'EVOLUTION';
 };
 
+const isOfficialApi = inbox => getInboxProvider(inbox) === 'META_CLOUD';
+
+const getInboxType = inbox => (isOfficialApi(inbox) ? 'API Oficial' : 'QR Code');
+
+const getConnectionStatus = inbox =>
+  String(
+    inbox.connection_status || inbox.connectionStatus || inbox.status || ''
+  ).toUpperCase();
+
 const getStatusLabel = inbox => {
-  const status = inbox.connection_status || inbox.status || 'CONNECTED';
-  if (status === 'DISCONNECTED') return 'Desconectado';
+  const status = getConnectionStatus(inbox);
   if (status === 'CONNECTING') return 'Conectando';
-  return 'Conectado';
+  return status === 'CONNECTED' ? 'Conectado' : 'Desconectado';
 };
 
 const getStatusClass = inbox => {
-  const status = inbox.connection_status || inbox.status || 'CONNECTED';
-  if (status === 'DISCONNECTED')
-    return 'bg-n-ruby-2 text-n-ruby-11 border border-n-ruby-4';
+  const status = getConnectionStatus(inbox);
   if (status === 'CONNECTING')
     return 'bg-n-amber-2 text-n-amber-11 border border-n-amber-4';
+  if (status !== 'CONNECTED')
+    return 'bg-n-ruby-2 text-n-ruby-11 border border-n-ruby-4';
+  if (isOfficialApi(inbox))
+    return 'bg-n-blue-2 text-n-blue-11 border border-n-blue-4';
   return 'bg-n-teal-2 text-n-teal-11 border border-n-teal-4';
 };
 
 const getStatusDotClass = inbox => {
-  const status = inbox.connection_status || inbox.status || 'CONNECTED';
-  if (status === 'DISCONNECTED') return 'bg-n-ruby-9';
+  const status = getConnectionStatus(inbox);
   if (status === 'CONNECTING') return 'bg-n-amber-9';
+  if (status !== 'CONNECTED') return 'bg-n-ruby-9';
+  if (isOfficialApi(inbox)) return 'bg-n-blue-9';
   return 'bg-n-teal-9';
 };
+
+const getTypeClass = inbox =>
+  isOfficialApi(inbox)
+    ? 'bg-n-blue-2 text-n-blue-11 border-n-blue-4'
+    : 'bg-n-alpha-2 text-n-slate-12 border-n-weak';
+
+const getChannelIconClass = inbox =>
+  isOfficialApi(inbox) ? 'text-n-blue-11' : 'text-n-teal-11';
 </script>
 
 <template>
@@ -171,6 +196,7 @@ const getStatusDotClass = inbox => {
         <div
           v-for="inbox in filteredInboxesList"
           :key="inbox.id"
+          :data-channel-provider="getInboxProvider(inbox)"
           class="bg-n-solid-2 border border-n-weak rounded-2xl p-5 flex flex-col justify-between gap-4 shadow-sm hover:border-n-strong transition-all duration-150"
         >
           <!-- Top Row: Icon/Avatar + Name + Actions -->
@@ -191,7 +217,11 @@ const getStatusDotClass = inbox => {
                 v-else
                 class="size-10 justify-center bg-n-alpha-3 rounded-xl ring ring-n-solid-1 border border-n-strong shadow-sm grid place-items-center flex-shrink-0"
               >
-                <ChannelIcon class="size-6 text-n-teal-11" :inbox="inbox" />
+                <ChannelIcon
+                  class="size-6"
+                  :class="getChannelIconClass(inbox)"
+                  :inbox="inbox"
+                />
               </div>
               <div class="flex flex-col min-w-0">
                 <span
@@ -225,7 +255,9 @@ const getStatusDotClass = inbox => {
           >
             <!-- Type Badge -->
             <span
-              class="px-2.5 py-1 rounded-full font-medium bg-n-alpha-2 text-n-slate-12 border border-n-weak flex items-center gap-1.5"
+              data-test-id="channel-type-badge"
+              class="px-2.5 py-1 rounded-full font-medium border flex items-center gap-1.5"
+              :class="getTypeClass(inbox)"
             >
               <span
                 v-if="getInboxType(inbox) === 'QR Code'"
@@ -237,6 +269,7 @@ const getStatusDotClass = inbox => {
 
             <!-- Status Badge -->
             <span
+              data-test-id="channel-status-badge"
               class="px-2.5 py-1 rounded-full font-medium flex items-center gap-1.5 text-xs"
               :class="getStatusClass(inbox)"
             >

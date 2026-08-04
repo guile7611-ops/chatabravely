@@ -25,15 +25,15 @@ const props = defineProps({
 
 const isConnected = computed(() => {
   if (props.inbox.reauthorization_required) return false;
-  if (
-    props.inbox.page_id === 'mock' ||
-    props.inbox.channel_type === 'Channel::Mock' ||
-    props.inbox.status === 'disconnected' ||
-    (props.inbox.phone_number && String(props.inbox.phone_number).toLowerCase().includes('mock'))
-  ) {
-    return false;
-  }
-  return true;
+
+  const status = String(
+    props.inbox.connection_status ??
+      props.inbox.connectionStatus ??
+      props.inbox.status ??
+      ''
+  ).toUpperCase();
+
+  return status === 'CONNECTED';
 });
 </script>
 
@@ -41,9 +41,11 @@ const isConnected = computed(() => {
   <div class="relative flex items-center justify-center me-1">
     <ChannelIcon :inbox="inbox" class="size-4 flex-shrink-0" />
     <span
-      class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-n-solid-2"
-      :class="isConnected ? 'bg-emerald-500' : 'bg-amber-400'"
-      :title="isConnected ? 'Conectado' : 'Desconectado / Conexão Mockup'"
+      data-test-id="channel-connection-status"
+      :data-status="isConnected ? 'connected' : 'disconnected'"
+      class="absolute z-10 -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-n-solid-2"
+      :class="isConnected ? 'bg-n-teal-9' : 'bg-n-amber-9'"
+      :title="isConnected ? 'Conectado' : 'Desconectado'"
     />
   </div>
   <div class="flex-1 truncate min-w-0 text-sm ms-1">{{ label }}</div>

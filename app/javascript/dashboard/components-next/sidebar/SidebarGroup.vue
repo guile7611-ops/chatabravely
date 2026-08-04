@@ -129,7 +129,7 @@ const visibleChildren = computed(() => {
   return props.children.filter(child => {
     if (child.children) return hasAccessibleSubChildren(child);
 
-    return child.to && isAllowed(child.to);
+    return child.disabled || (child.to && isAllowed(child.to));
   });
 });
 

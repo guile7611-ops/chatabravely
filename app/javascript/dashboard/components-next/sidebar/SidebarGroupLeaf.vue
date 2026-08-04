@@ -7,7 +7,7 @@ import SidebarUnreadBadge from './SidebarUnreadBadge.vue';
 
 const props = defineProps({
   label: { type: String, required: true },
-  to: { type: [String, Object], required: true },
+  to: { type: [String, Object], default: null },
   icon: { type: [String, Object], default: null },
   active: { type: Boolean, default: false },
   component: { type: Function, default: null },
@@ -15,6 +15,7 @@ const props = defineProps({
   hideTreeLine: { type: Boolean, default: false },
   thinTreeLine: { type: Boolean, default: false },
   isSubmenu: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false },
 });
 
 const { resolvePermissions, resolveFeatureFlag } = useSidebarContext();
@@ -42,12 +43,15 @@ const TREE_CONNECTOR =
     }"
   >
     <component
-      :is="to ? 'router-link' : 'div'"
+      :is="to && !disabled ? 'router-link' : 'div'"
       :to="to"
       :title="label"
-      class="flex h-9 items-center gap-2.5 px-2 py-1 rounded-lg ltr:hover:bg-gradient-to-r rtl:hover:bg-gradient-to-l from-transparent via-n-slate-3/70 to-n-slate-3/70 group min-w-0"
+      class="flex h-9 items-center gap-2.5 px-2 py-1 rounded-lg group min-w-0"
       :class="{
         'text-n-slate-12 bg-n-alpha-2 active font-medium': active,
+        'cursor-default': disabled,
+        'ltr:hover:bg-gradient-to-r rtl:hover:bg-gradient-to-l from-transparent via-n-slate-3/70 to-n-slate-3/70':
+          !disabled,
       }"
     >
       <component

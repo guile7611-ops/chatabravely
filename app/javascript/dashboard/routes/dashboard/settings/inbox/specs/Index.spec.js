@@ -118,4 +118,45 @@ describe('inbox/Index.vue', () => {
     await retryBtn.trigger('click');
     expect(mockDispatch).toHaveBeenCalledWith('inboxes/get');
   });
+
+  it('renders the official Meta API channel in blue', () => {
+    const wrapper = createWrapper({
+      inboxes: [
+        {
+          id: 'meta-1',
+          name: 'WhatsApp Oficial',
+          provider: 'META_CLOUD',
+          connection_status: 'CONNECTED',
+          channel_type: 'Channel::Whatsapp',
+        },
+      ],
+    });
+    const card = wrapper.find('[data-channel-provider="META_CLOUD"]');
+    const typeBadge = card.find('[data-test-id="channel-type-badge"]');
+    const statusBadge = card.find('[data-test-id="channel-status-badge"]');
+
+    expect(typeBadge.text()).toContain('API Oficial');
+    expect(typeBadge.classes()).toContain('bg-n-blue-2');
+    expect(statusBadge.classes()).toContain('text-n-blue-11');
+  });
+
+  it('keeps Evolution QR Code channels teal', () => {
+    const wrapper = createWrapper({
+      inboxes: [
+        {
+          id: 'evolution-1',
+          name: 'WhatsApp Vendas',
+          provider: 'EVOLUTION',
+          connection_status: 'CONNECTED',
+          channel_type: 'Channel::Whatsapp',
+        },
+      ],
+    });
+    const card = wrapper.find('[data-channel-provider="EVOLUTION"]');
+    const typeBadge = card.find('[data-test-id="channel-type-badge"]');
+    const statusBadge = card.find('[data-test-id="channel-status-badge"]');
+
+    expect(typeBadge.text()).toContain('QR Code');
+    expect(statusBadge.classes()).toContain('text-n-teal-11');
+  });
 });

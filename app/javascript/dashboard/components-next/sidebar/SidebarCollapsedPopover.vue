@@ -72,7 +72,7 @@ const accessibleChildren = computed(() => {
     if (child.children) {
       return child.children.some(subChild => isAllowed(subChild.to));
     }
-    return child.to && isAllowed(child.to);
+    return child.disabled || (child.to && isAllowed(child.to));
   });
 });
 
@@ -205,23 +205,36 @@ onMounted(async () => {
             </li>
             <!-- Direct child item -->
             <li v-else class="py-0.5">
-              <button
+              <component
+                :is="child.disabled ? 'div' : 'button'"
                 class="flex items-center gap-2 px-2 py-1.5 w-full rounded-lg text-sm text-left rtl:text-right transition-colors duration-150 ease-out"
                 :class="{
                   'text-n-slate-12 bg-n-alpha-2': isActive(child),
                   'text-n-slate-11 hover:bg-n-alpha-2': !isActive(child),
+                  'cursor-default': child.disabled,
                 }"
-                @click="navigateAndClose(child.to)"
+                @click="!child.disabled && navigateAndClose(child.to)"
               >
                 <component
-                  :is="renderIcon(child.icon).component"
-                  v-if="child.icon"
-                  v-bind="renderIcon(child.icon).props"
-                  class="size-4 flex-shrink-0"
+                  :is="child.component"
+                  v-if="child.component"
+                  v-bind="{
+                    label: child.label,
+                    active: isActive(child),
+                    badgeCount: child.badgeCount,
+                  }"
                 />
-                <span class="flex-1 truncate">{{ child.label }}</span>
-                <SidebarUnreadBadge :count="child.badgeCount" />
-              </button>
+                <template v-else>
+                  <component
+                    :is="renderIcon(child.icon).component"
+                    v-if="child.icon"
+                    v-bind="renderIcon(child.icon).props"
+                    class="size-4 flex-shrink-0"
+                  />
+                  <span class="flex-1 truncate">{{ child.label }}</span>
+                  <SidebarUnreadBadge :count="child.badgeCount" />
+                </template>
+              </component>
             </li>
           </template>
         </ul>
