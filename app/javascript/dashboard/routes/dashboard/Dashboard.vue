@@ -107,7 +107,9 @@ export default {
     />
 
     <main class="flex flex-1 h-full w-full min-h-0 px-0 overflow-hidden bg-n-surface-1">
-      <router-view />
+      <router-view v-slot="{ Component, route }">
+        <component :is="Component" :key="route.name || route.path" />
+      </router-view>
       <MobileSidebarLauncher
         :is-mobile-sidebar-open="isMobileSidebarOpen"
         @toggle="toggleMobileSidebar"
