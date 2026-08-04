@@ -53,7 +53,25 @@ export const buildConversationList = (
   filterType
 ) => {
   const payloadData = responseData?.payload || responseData?.conversations || [];
-  const conversationList = Array.isArray(payloadData) ? payloadData : [];
+  const conversationList = (Array.isArray(payloadData) ? payloadData : []).map(
+    conversation => {
+      const queue = conversation.queue || null;
+      const status =
+        queue === 'CLOSED' || conversation.status === 'CLOSED'
+          ? 'resolved'
+          : queue === 'CONVERSATION' || conversation.status === 'OPEN'
+            ? 'open'
+            : 'pending';
+      return {
+        ...conversation,
+        queue,
+        status,
+        can_reply:
+          conversation.can_reply ??
+          (queue === 'CONVERSATION' && Boolean(conversation.assignee_id)),
+      };
+    }
+  );
   const metaData = responseData?.meta || {
     all_count: conversationList.length,
     unassigned_count: conversationList.filter(c => !c.assignee_id).length,

@@ -32,7 +32,6 @@ import {
 
 // constants
 import { BUS_EVENTS } from 'shared/constants/busEvents';
-import { REPLY_POLICY } from 'shared/constants/links';
 import wootConstants from 'dashboard/constants/globals';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
@@ -172,8 +171,11 @@ export default {
     },
 
     replyWindowBannerMessage() {
+      if (['RECEPTION', 'DEPARTMENT'].includes(this.currentChat?.queue)) {
+        return 'Esta conversa está em uma fila. Assuma ou transfira para um atendente antes de responder.';
+      }
       if (this.isAWhatsAppChannel) {
-        return this.$t('CONVERSATION.TWILIO_WHATSAPP_CAN_REPLY');
+        return 'A janela de 24 horas está fechada. Envie um template Meta aprovado para iniciar uma nova conversa.';
       }
       if (this.isAPIInbox) {
         const { additional_attributes: additionalAttributes = {} } = this.inbox;
@@ -194,34 +196,10 @@ export default {
       return this.$t('CONVERSATION.CANNOT_REPLY');
     },
     replyWindowLink() {
-      if (this.isAFacebookInbox || this.isAnInstagramChannel) {
-        return REPLY_POLICY.FACEBOOK;
-      }
-      if (this.isAWhatsAppCloudChannel) {
-        return REPLY_POLICY.WHATSAPP_CLOUD;
-      }
-      if (this.isATiktokChannel) {
-        return REPLY_POLICY.TIKTOK;
-      }
-      if (!this.isAPIInbox) {
-        return REPLY_POLICY.TWILIO_WHATSAPP;
-      }
+      // Não exibimos links de políticas legadas (principalmente Twilio).
       return '';
     },
     replyWindowLinkText() {
-      if (
-        this.isAWhatsAppChannel ||
-        this.isAFacebookInbox ||
-        this.isAnInstagramChannel
-      ) {
-        return this.$t('CONVERSATION.24_HOURS_WINDOW');
-      }
-      if (this.isATiktokChannel) {
-        return this.$t('CONVERSATION.48_HOURS_WINDOW');
-      }
-      if (!this.isAPIInbox) {
-        return this.$t('CONVERSATION.TWILIO_WHATSAPP_24_HOURS_WINDOW');
-      }
       return '';
     },
     unreadMessageCount() {
