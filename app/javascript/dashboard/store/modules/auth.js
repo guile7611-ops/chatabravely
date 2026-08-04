@@ -2,6 +2,7 @@ import types from '../mutation-types';
 import authAPI from '../../api/auth';
 
 import { setUser, clearCookiesOnLogout } from '../utils/api';
+import { clearAbravelyJwtToken } from 'dashboard/helper/abravelyToken';
 import SessionStorage from 'shared/helpers/sessionStorage';
 import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
 
@@ -138,6 +139,7 @@ export const actions = {
     }
   },
   logout({ commit }) {
+    clearAbravelyJwtToken();
     commit(types.CLEAR_USER);
   },
 

@@ -1,3 +1,5 @@
+/* global axios */
+
 /**
  * Gerenciador da Fonte Única do JWT Abravely Chat no Frontend
  * Armazena e recupera exclusivamente o Token JWT emitido pelo backend Abravely Express.
@@ -9,12 +11,10 @@ export const ABRAVELY_JWT_TOKEN_KEY = 'abravely_jwt_token';
 export const getAbravelyJwtToken = () => {
   if (typeof window === 'undefined') return null;
 
-  // 1. Tentar recuperar da variavel global de configuracao
   if (window.chatwootConfig?.abravelyJwtToken) {
     return window.chatwootConfig.abravelyJwtToken;
   }
 
-  // 2. Tentar recuperar de localStorage
   try {
     const token = localStorage.getItem(ABRAVELY_JWT_TOKEN_KEY);
     if (token && typeof token === 'string' && token.split('.').length === 3) {
@@ -24,7 +24,6 @@ export const getAbravelyJwtToken = () => {
     // Ignorar erro de acesso a localStorage
   }
 
-  // 3. Tentar recuperar de sessionStorage
   try {
     const token = sessionStorage.getItem(ABRAVELY_JWT_TOKEN_KEY);
     if (token && typeof token === 'string' && token.split('.').length === 3) {
@@ -48,6 +47,8 @@ export const setAbravelyJwtToken = (token) => {
     sessionStorage.setItem(ABRAVELY_JWT_TOKEN_KEY, token);
     if (window.chatwootConfig) {
       window.chatwootConfig.abravelyJwtToken = token;
+    } else if (typeof window !== 'undefined') {
+      window.chatwootConfig = { abravelyJwtToken: token };
     }
     return true;
   } catch (e) {
@@ -65,4 +66,23 @@ export const clearAbravelyJwtToken = () => {
   } catch (e) {
     // Ignorar erro
   }
+};
+
+/**
+ * Realiza autenticação real no backend Express Abravely (/api/v1/users/login)
+ * e armazena o JWT oficial retornado.
+ */
+export const fetchAndStoreAbravelyJwtToken = async (email, password) => {
+  if (!email || !password) return null;
+
+  try {
+    const response = await axios.post('/api/v1/users/login', { email, password });
+    if (response?.data?.token) {
+      setAbravelyJwtToken(response.data.token);
+      return response.data.token;
+    }
+  } catch (error) {
+    console.warn('[Abravely JWT Login] Falha ao obter token JWT:', error?.message);
+  }
+  return null;
 };
