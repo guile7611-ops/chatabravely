@@ -1,6 +1,14 @@
 import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi } from 'vitest';
+import { createI18n } from 'vue-i18n';
 import Index from '../Index.vue';
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'pt_BR',
+  missing: (_locale, key) => key,
+  messages: { pt_BR: {} },
+});
 
 // Mock components used in Index.vue
 vi.mock('../SettingsLayout.vue', () => ({
@@ -39,22 +47,41 @@ vi.mock('next/avatar/Avatar.vue', () => ({
 const mockDispatch = vi.fn();
 
 const createWrapper = ({ agents = [], isFetching = false, error = null }) => {
+  const mockStore = {
+    dispatch: mockDispatch,
+    getters: {
+      'agents/getAgents': agents,
+      'agents/getError': error,
+      'agents/getUIFlags': { isFetching },
+      getCurrentUserID: 1,
+      'customRole/getCustomRoles': [],
+      'globalConfig/isACustomBrandedInstance': false,
+      'globalConfig/isOnChatwootCloud': false,
+      'accounts/isFeatureEnabledonAccount': () => true,
+    },
+  };
+
   return mount(Index, {
     global: {
+      plugins: [i18n],
+      config: {
+        globalProperties: {
+          $store: mockStore,
+        },
+      },
+      directives: {
+        tooltip: () => {},
+      },
+      stubs: {
+        AddAgent: true,
+        EditAgent: true,
+        WootModal: true,
+        WootDeleteModal: true,
+        WootLoadingState: true,
+      },
       mocks: {
         $t: key => key,
-      },
-      provide: {
-        store: {
-          dispatch: mockDispatch,
-          getters: {
-            'agents/getAgents': agents,
-            'agents/getError': error,
-            'agents/getUIFlags': { isFetching },
-            getCurrentUserID: 1,
-            'customRole/getCustomRoles': [],
-          },
-        },
+        $store: mockStore,
       },
     },
   });

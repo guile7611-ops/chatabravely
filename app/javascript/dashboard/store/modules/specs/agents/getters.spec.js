@@ -32,6 +32,8 @@ describe('#getters', () => {
         confirmed: false,
       },
     ]);
+  });
+
   it('getError', () => {
     const state = {
       error: 'Mensagem de erro de teste',

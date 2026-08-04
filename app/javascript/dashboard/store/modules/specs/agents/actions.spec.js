@@ -9,6 +9,11 @@ global.axios = axios;
 vi.mock('axios');
 
 describe('#actions', () => {
+  beforeEach(() => {
+    commit.mockClear();
+    dispatch.mockClear();
+  });
+
   describe('#get', () => {
     it('sends correct actions if API is success with list', async () => {
       axios.get.mockResolvedValue({ data: agentList });
