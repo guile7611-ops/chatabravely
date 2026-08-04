@@ -18,7 +18,7 @@ export class WebhookService {
         const status = state === 'open' ? 'CONNECTED' : 'DISCONNECTED';
         
         await prisma.channel.updateMany({
-          where: { evolutionInstanceName: instanceName },
+          where: { evolutionInstanceName: instanceName, active: true },
           data: { connectionStatus: status }
         });
         
@@ -67,7 +67,7 @@ export class WebhookService {
 
         // 1. Buscar o Canal associado
         const channel = await prisma.channel.findFirst({
-          where: { evolutionInstanceName: instanceName }
+          where: { evolutionInstanceName: instanceName, active: true }
         });
 
         if (!channel) {
@@ -237,6 +237,14 @@ export class WebhookService {
               ]
             }
           });
+
+          if (channel && !channel.active) {
+            return {
+              success: true,
+              ignored: true,
+              reason: 'channel_inactive',
+            };
+          }
 
           if (!channel) {
             let workspace = await prisma.workspace.findFirst();

@@ -42,6 +42,13 @@ describe('#InboxesAPI', () => {
       expect(axiosMock.delete).toHaveBeenCalledWith('/api/v1/inboxes/2/avatar');
     });
 
+    it('#delete removes the Abravely channel using its UUID', () => {
+      inboxesAPI.delete('channel-meta-1');
+      expect(axiosMock.delete).toHaveBeenCalledWith(
+        '/api/v1/channels/channel-meta-1'
+      );
+    });
+
     it('#syncTemplates', () => {
       inboxesAPI.syncTemplates(2);
       expect(axiosMock.post).toHaveBeenCalledWith(

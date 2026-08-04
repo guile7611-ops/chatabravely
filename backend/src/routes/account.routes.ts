@@ -312,7 +312,7 @@ router.get('/inboxes', async (req: Request, res: Response) => {
   try {
     const user = req.user!;
     const channels = await prisma.channel.findMany({
-      where: { workspaceId: user.workspaceId },
+      where: { workspaceId: user.workspaceId, active: true },
       orderBy: { createdAt: 'desc' },
     });
     const payload = channels.map(c => ({

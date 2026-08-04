@@ -65,9 +65,14 @@ const deleteInbox = async ({ id }) => {
   try {
     await store.dispatch('inboxes/delete', id);
     useAlert(t('INBOX_MGMT.DELETE.API.SUCCESS_MESSAGE'));
+    return true;
   } catch (error) {
-    const errorMsg = getters['inboxes/getError'].value || error.message;
+    const errorMsg =
+      getters['inboxes/getInboxesError']?.value ||
+      error.response?.data?.message ||
+      error.message;
     useAlert(errorMsg);
+    return false;
   }
 };
 const closeDelete = () => {
@@ -75,9 +80,9 @@ const closeDelete = () => {
   selectedInbox.value = {};
 };
 
-const confirmDeletion = () => {
-  deleteInbox(selectedInbox.value);
-  closeDelete();
+const confirmDeletion = async () => {
+  const wasDeleted = await deleteInbox(selectedInbox.value);
+  if (wasDeleted) closeDelete();
 };
 const openDelete = inbox => {
   showDeletePopup.value = true;

@@ -46,19 +46,15 @@ describe('CloudWhatsapp.vue', () => {
     const wrapper = createWrapper();
     wrapper.setData({
       inboxName: 'Meta Cloud Official',
-      phoneNumber: '+5511999999999',
       apiKey: 'key123',
       phoneNumberId: 'phoneid123',
-      businessAccountId: 'waba123',
     });
 
     await wrapper.vm.createChannel();
 
     expect(mockDispatch).toHaveBeenCalledWith('inboxes/createMetaChannel', {
       name: 'Meta Cloud Official',
-      phone_number: '+5511999999999',
       metaPhoneNumberId: 'phoneid123',
-      metaWabaId: 'waba123',
       metaToken: 'key123',
     });
     expect(mockAlert).toHaveBeenCalledWith('Conexão oficial Meta Cloud API criada com sucesso!');
@@ -72,10 +68,8 @@ describe('CloudWhatsapp.vue', () => {
     const wrapper = createWrapper();
     wrapper.setData({
       inboxName: 'Meta Cloud Fail',
-      phoneNumber: '+5511999999999',
       apiKey: 'key123',
       phoneNumberId: 'phoneid123',
-      businessAccountId: 'waba123',
     });
 
     await wrapper.vm.createChannel();

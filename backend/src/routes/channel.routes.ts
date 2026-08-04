@@ -17,7 +17,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const user = req.user!;
     const channels = await prisma.channel.findMany({
-      where: { workspaceId: user.workspaceId },
+      where: { workspaceId: user.workspaceId, active: true },
       orderBy: { createdAt: 'desc' }
     });
     return res.json({ success: true, channels });
@@ -69,6 +69,8 @@ router.post('/evolution/qr', async (req: Request, res: Response) => {
       channel = await prisma.channel.update({
         where: { id: channel.id },
         data: {
+          active: true,
+          deletedAt: null,
           connectionStatus: 'CONNECTING',
           qrCodeBase64: qrCodeBase64,
           updatedAt: new Date()
@@ -148,7 +150,7 @@ router.get('/:id/templates', async (req: Request, res: Response) => {
     const user = req.user!;
 
     const channel = await prisma.channel.findFirst({
-      where: { id: id, workspaceId: user.workspaceId }
+      where: { id: id, workspaceId: user.workspaceId, active: true }
     });
 
     if (!channel) {
@@ -183,14 +185,43 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const user = req.user!;
 
     const targetChannel = await prisma.channel.findFirst({
-      where: { id: id, workspaceId: user.workspaceId }
+      where: { id: id, workspaceId: user.workspaceId, active: true }
     });
 
     if (!targetChannel) {
       return res.status(404).json({ success: false, message: 'Canal não encontrado no workspace.' });
     }
 
-    await prisma.channel.delete({ where: { id: id } });
+    await prisma.channel.update({
+      where: { id },
+      data: {
+        active: false,
+        deletedAt: new Date(),
+        connectionStatus: 'DISCONNECTED',
+        metaToken: null,
+        evolutionApiKey: null,
+        qrCodeBase64: null,
+      },
+    });
+
+    // A remoção local não pode depender da disponibilidade da Evolution API.
+    // Depois de persistir o canal como inativo, tentamos encerrar a instância
+    // externa sem reverter a exclusão caso esse serviço esteja indisponível.
+    if (
+      targetChannel.type === 'EVOLUTION' &&
+      targetChannel.evolutionInstanceName
+    ) {
+      try {
+        await EvolutionService.logoutInstance(
+          targetChannel.evolutionInstanceName
+        );
+      } catch (logoutError: any) {
+        console.warn(
+          `[ChannelRoutes] Canal ${id} removido localmente, mas a instância Evolution não respondeu: ${logoutError.message}`
+        );
+      }
+    }
+
     console.log(`🗑️ [ChannelRoutes] Canal de conexão removido: ${id}`);
     return res.json({ success: true, message: 'Conexão excluída com sucesso' });
   } catch (error: any) {

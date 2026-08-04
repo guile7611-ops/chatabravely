@@ -49,7 +49,7 @@ const copyText = (text, type) => {
     </div>
 
     <!-- Caixa de Configuração do Webhook Oficial Meta (ngrok) -->
-    <div class="p-6 rounded-2xl border border-n-brand/30 bg-n-brand/5 text-n-slate-12 space-y-4 shadow-sm">
+    <div class="hidden">
       <div class="flex items-center gap-2 font-bold text-n-brand text-lg">
         <span class="i-lucide-webhook size-5 flex-shrink-0" />
         <span>Configuração do Webhook Oficial Meta (ngrok)</span>

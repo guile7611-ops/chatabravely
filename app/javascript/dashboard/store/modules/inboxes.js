@@ -204,7 +204,9 @@ export const actions = {
     commit('SET_INBOX_ERROR', null);
     commit(types.default.SET_INBOXES_UI_FLAG, { isFetching: true });
     try {
-      const response = await InboxesAPI.get(true);
+      // Os canais Abravely são sempre carregados da API real. O cache legado
+      // do Chatwoot pode manter uma conexão já excluída e restaurá-la no F5.
+      const response = await InboxesAPI.get();
       const payload = response.data?.payload || response.data || [];
       commit(types.default.SET_INBOXES, Array.isArray(payload) ? payload : []);
       commit('SET_INBOX_ERROR', null);

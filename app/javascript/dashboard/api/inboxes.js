@@ -11,6 +11,12 @@ class Inboxes extends CacheEnabledApiClient {
     return 'inbox';
   }
 
+  // Channels are managed by the Abravely backend outside the legacy
+  // account-scoped Chatwoot inbox contract.
+  delete(inboxId) {
+    return axios.delete(`/api/v1/channels/${inboxId}`);
+  }
+
   getCampaigns(inboxId) {
     return axios.get(`${this.url}/${inboxId}/campaigns`);
   }

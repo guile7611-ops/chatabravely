@@ -27,6 +27,7 @@ describe('inboxes/actions', () => {
       const inboxList = [{ id: 1, name: 'Inbox 1', channel_type: 'Channel::Whatsapp' }];
       InboxesAPI.get.mockResolvedValue({ data: { payload: inboxList } });
       await actions.get({ commit });
+      expect(InboxesAPI.get).toHaveBeenCalledWith();
       expect(commit.mock.calls).toEqual([
         ['SET_INBOX_ERROR', null],
         [types.default.SET_INBOXES_UI_FLAG, { isFetching: true }],
