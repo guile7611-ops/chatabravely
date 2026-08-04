@@ -44,6 +44,223 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+const CONTACTS_PAGE_SIZE = 15;
+
+const serializeContact = (contact: any) => ({
+  id: contact.id,
+  name: contact.name,
+  email: contact.email || null,
+  phone_number: contact.phone || '',
+  thumbnail: contact.avatarUrl || '',
+  avatar_url: contact.avatarUrl || '',
+  additional_attributes: {
+    company_name: contact.company || '',
+    description: contact.biography || '',
+    location: contact.location || '',
+  },
+  custom_attributes: {},
+  contact_inboxes: [],
+  created_at: Math.floor(new Date(contact.createdAt).getTime() / 1000),
+  updated_at: Math.floor(new Date(contact.updatedAt).getTime() / 1000),
+});
+
+const contactDataFromRequest = (body: any) => {
+  const additionalAttributes = body?.additional_attributes || {};
+  const data: Record<string, string | null> = {};
+
+  if (body?.name !== undefined) data.name = String(body.name).trim();
+  if (body?.phone_number !== undefined) {
+    data.phone = String(body.phone_number).trim() || null;
+  }
+  if (body?.email !== undefined) {
+    data.email = String(body.email).trim() || null;
+  }
+  if (body?.avatar_url !== undefined) {
+    data.avatarUrl = String(body.avatar_url).trim() || null;
+  }
+  if (additionalAttributes.company_name !== undefined) {
+    data.company = String(additionalAttributes.company_name).trim() || null;
+  }
+  if (additionalAttributes.description !== undefined) {
+    data.biography = String(additionalAttributes.description).trim() || null;
+  }
+  if (additionalAttributes.location !== undefined) {
+    data.location = String(additionalAttributes.location).trim() || null;
+  }
+
+  return data;
+};
+
+const listContacts = async (req: Request, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const query = String(req.query.q || '').trim();
+    const rawSort = String(req.query.sort || 'name');
+    const descending = rawSort.startsWith('-');
+    const sort = descending ? rawSort.slice(1) : rawSort;
+    const sortFields: Record<string, string> = {
+      name: 'name',
+      email: 'email',
+      phone_number: 'phone',
+      company_name: 'company',
+      created_at: 'createdAt',
+      last_activity_at: 'updatedAt',
+    };
+    const orderBy: any = {
+      [sortFields[sort] || 'name']: descending ? 'desc' : 'asc',
+    };
+    const where: any = {
+      workspaceId: req.user!.workspaceId,
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { phone: { contains: query } },
+              { email: { contains: query, mode: 'insensitive' } },
+              { company: { contains: query, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [contacts, count] = await prisma.$transaction([
+      prisma.contact.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * CONTACTS_PAGE_SIZE,
+        take: CONTACTS_PAGE_SIZE,
+      }),
+      prisma.contact.count({ where }),
+    ]);
+
+    return res.status(200).json({
+      payload: contacts.map(serializeContact),
+      meta: {
+        count,
+        current_page: page,
+        has_more: page * CONTACTS_PAGE_SIZE < count,
+      },
+    });
+  } catch (error: any) {
+    return res.status(503).json({
+      success: false,
+      message: 'Serviço de contatos indisponível.',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Contact endpoints used by the dashboard. Contacts are always scoped to the
+ * authenticated user's workspace, including reads by id.
+ */
+router.get('/contacts', listContacts);
+router.get('/contacts/search', listContacts);
+router.get('/contacts/active', listContacts);
+
+router.post('/contacts', async (req: Request, res: Response) => {
+  try {
+    const data = contactDataFromRequest(req.body);
+    if (!data.name || !data.phone) {
+      return res.status(422).json({
+        message: 'Nome e número de telefone são obrigatórios.',
+        attributes: [
+          !data.name ? 'name' : null,
+          !data.phone ? 'phone_number' : null,
+        ].filter(Boolean),
+      });
+    }
+
+    const contact = await prisma.contact.create({
+      data: {
+        ...data,
+        name: data.name,
+        workspaceId: req.user!.workspaceId,
+      } as any,
+    });
+
+    return res
+      .status(201)
+      .json({ payload: { contact: serializeContact(contact) } });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(422).json({
+        message: 'Já existe um contato com este número de telefone.',
+        attributes: ['phone_number'],
+      });
+    }
+    return res.status(503).json({
+      success: false,
+      message: 'Não foi possível criar o contato.',
+    });
+  }
+});
+
+router.get('/contacts/:contactId', async (req: Request, res: Response) => {
+  try {
+    const contact = await prisma.contact.findFirst({
+      where: { id: req.params.contactId, workspaceId: req.user!.workspaceId },
+    });
+    if (!contact) {
+      return res.status(404).json({ message: 'Contato não localizado.' });
+    }
+    return res.status(200).json({ payload: serializeContact(contact) });
+  } catch (error: any) {
+    return res.status(503).json({
+      success: false,
+      message: 'Serviço de contatos indisponível.',
+    });
+  }
+});
+
+router.patch('/contacts/:contactId', async (req: Request, res: Response) => {
+  try {
+    const existingContact = await prisma.contact.findFirst({
+      where: { id: req.params.contactId, workspaceId: req.user!.workspaceId },
+      select: { id: true },
+    });
+    if (!existingContact) {
+      return res.status(404).json({ message: 'Contato não localizado.' });
+    }
+    const contact = await prisma.contact.update({
+      where: { id: existingContact.id },
+      data: contactDataFromRequest(req.body),
+    });
+    return res.status(200).json({ payload: serializeContact(contact) });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(422).json({
+        message: 'Já existe um contato com este número de telefone.',
+        attributes: ['phone_number'],
+      });
+    }
+    return res.status(503).json({
+      success: false,
+      message: 'Não foi possível atualizar o contato.',
+    });
+  }
+});
+
+router.delete('/contacts/:contactId', async (req: Request, res: Response) => {
+  try {
+    const contact = await prisma.contact.findFirst({
+      where: { id: req.params.contactId, workspaceId: req.user!.workspaceId },
+      select: { id: true },
+    });
+    if (!contact) {
+      return res.status(404).json({ message: 'Contato não localizado.' });
+    }
+    await prisma.contact.delete({ where: { id: contact.id } });
+    return res.status(200).json({ success: true });
+  } catch (error: any) {
+    return res.status(409).json({
+      success: false,
+      message:
+        'O contato não pode ser excluído enquanto possuir conversas vinculadas.',
+    });
+  }
+});
+
 /**
  * GET /api/v1/accounts/:accountId/conversations
  * Endpoint de conversas compatível com o Chatwoot v4 Dashboard
