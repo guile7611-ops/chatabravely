@@ -5,6 +5,7 @@ import { mutations } from './mutations';
 const state = {
   meta: {},
   records: {},
+  error: null,
   uiFlags: {
     isFetching: false,
     isCreating: false,

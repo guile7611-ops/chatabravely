@@ -5,9 +5,14 @@ import {
   SET_TEAM_ITEM,
   EDIT_TEAM,
   DELETE_TEAM,
+  SET_TEAM_ERROR,
 } from './types';
 
 export const mutations = {
+  [SET_TEAM_ERROR]($state, error) {
+    $state.error = error;
+  },
+
   [SET_TEAM_UI_FLAG]($state, data) {
     $state.uiFlags = {
       ...$state.uiFlags,
@@ -21,16 +26,19 @@ export const mutations = {
 
   [SET_TEAMS]: ($state, data) => {
     const updatedRecords = { ...$state.records };
-    data.forEach(team => {
-      updatedRecords[team.id] = {
-        ...(updatedRecords[team.id] || {}),
-        ...team,
-      };
-    });
+    if (Array.isArray(data)) {
+      data.forEach(team => {
+        updatedRecords[team.id] = {
+          ...(updatedRecords[team.id] || {}),
+          ...team,
+        };
+      });
+    }
     $state.records = updatedRecords;
   },
 
   [SET_TEAM_ITEM]: ($state, data) => {
+    if (!data || !data.id) return;
     $state.records = {
       ...$state.records,
       [data.id]: {
@@ -41,6 +49,7 @@ export const mutations = {
   },
 
   [EDIT_TEAM]: ($state, data) => {
+    if (!data || !data.id) return;
     $state.records = {
       ...$state.records,
       [data.id]: data,

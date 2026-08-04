@@ -50,7 +50,7 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
-│ Fase 4: Times e Departamentos (settings/teams)              │
+│ Fase 4: Times e Departamentos (settings/teams) (Concluída)  │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -72,6 +72,15 @@ A substituição ocorrerá em fases isoladas (módulo por módulo):
 - **Pendências Futuras (Meta Cloud & Evolution API)**:
   - **Meta Cloud API**: Integração completa do callback de verificação de Webhook via backend e geração dinâmica de Verify Token.
   - **Evolution API**: Lifecycle em tempo real via WebSocket de status da instância (polling do QR code e sincronização de desconexão).
+
+### Detalhes da Fase 4 (Times e Departamentos)
+- **Regras Removidas & Refatorações**:
+  - Removido o comportamento de limpeza imediata da lista (`CLEAR_TEAMS`) antes da resposta de erro da API. A lista anterior é totalmente preservada em falhas de atualização/busca.
+  - Adicionado tratamento de erro real com `error: null` no estado do módulo `teams` e suporte ao getter `getError`.
+  - Conectado aviso visual de erro com botão "Tentar novamente" (*retry*) em `settings/teams/Index.vue`, desabilitado durante o estado de carregamento (`isFetching`).
+  - Garantido que a mensagem de lista vazia só seja apresentada após resposta de sucesso com lista vazia.
+- **Autoridade Única do Backend**:
+  - O frontend atua estritamente como consumidor dos departamentos e membros cadastrados. Nenhuma decisão de roteamento ou atribuição de conversas por departamento é calculada no cliente.
 
 ---
 

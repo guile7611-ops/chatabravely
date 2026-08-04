@@ -22,14 +22,18 @@ const loading = ref({});
 const searchQuery = ref('');
 
 const teamsList = useMapGetter('teams/getTeams');
+const teamError = computed(() => getters['teams/getError'].value);
+const uiFlags = computed(() => getters['teams/getUIFlags'].value);
+
+const fetchTeams = () => {
+  store.dispatch('teams/get');
+};
 
 const filteredTeamsList = computed(() => {
   const query = searchQuery.value.trim();
   if (!query) return teamsList.value;
   return picoSearch(teamsList.value, query, ['name', 'description']);
 });
-
-const uiFlags = computed(() => getters['teams/getUIFlags'].value);
 
 const deleteTeam = async ({ id }) => {
   try {
@@ -84,7 +88,7 @@ const confirmPlaceHolderText = computed(() =>
   <SettingsLayout
     :is-loading="uiFlags.isFetching"
     :loading-message="$t('TEAMS_SETTINGS.LOADING')"
-    :no-records-found="!teamsList.length"
+    :no-records-found="!teamsList.length && !teamError && !uiFlags.isFetching"
     :no-records-message="$t('TEAMS_SETTINGS.LIST.404')"
   >
     <template #header>
@@ -109,14 +113,31 @@ const confirmPlaceHolderText = computed(() =>
       </BaseSettingsHeader>
     </template>
     <template #body>
+      <div
+        v-if="teamError"
+        class="mb-4 p-4 rounded-xl bg-n-ruby-2 border border-n-ruby-5 text-n-ruby-11 flex items-center justify-between gap-4"
+      >
+        <span class="text-body-main">{{ teamError }}</span>
+        <Button
+          :label="$t('TEAMS_SETTINGS.RETRY') || 'Tentar novamente'"
+          size="sm"
+          variant="secondary"
+          :disabled="uiFlags.isFetching"
+          @click="fetchTeams"
+        />
+      </div>
+
       <span
-        v-if="!filteredTeamsList.length && searchQuery"
+        v-if="!filteredTeamsList.length && searchQuery && !teamError"
         class="flex-1 flex items-center justify-center py-20 text-center text-body-main !text-base text-n-slate-11"
       >
         {{ $t('TEAMS_SETTINGS.NO_RESULTS') }}
       </span>
 
-      <div v-else class="divide-y divide-n-weak border-t border-n-weak">
+      <div
+        v-else-if="filteredTeamsList.length"
+        class="divide-y divide-n-weak border-t border-n-weak"
+      >
         <div
           v-for="team in filteredTeamsList"
           :key="team.id"

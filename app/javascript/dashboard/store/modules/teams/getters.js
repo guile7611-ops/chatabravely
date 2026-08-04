@@ -1,4 +1,7 @@
 export const getters = {
+  getError($state) {
+    return $state.error;
+  },
   getTeams($state) {
     return Object.values($state.records).sort((a, b) => a.id - b.id);
   },

@@ -2,6 +2,13 @@ import { getters } from '../../teams/getters';
 import teamsList from './fixtures';
 
 describe('#getters', () => {
+  it('getError', () => {
+    const state = {
+      error: 'Erro de conexao',
+    };
+    expect(getters.getError(state)).toEqual('Erro de conexao');
+  });
+
   it('getTeams', () => {
     const state = {
       records: teamsList,

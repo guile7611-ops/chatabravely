@@ -4,11 +4,21 @@ import {
   SET_TEAM_ITEM,
   EDIT_TEAM,
   DELETE_TEAM,
+  SET_TEAM_ERROR,
 } from '../../teams/types';
 import { mutations } from '../../teams/mutations';
 import teams from './fixtures';
+
 describe('#mutations', () => {
-  describe('#SET_teams', () => {
+  describe('#SET_TEAM_ERROR', () => {
+    it('sets the team error state', () => {
+      const state = { error: null };
+      mutations[SET_TEAM_ERROR](state, 'Falha ao buscar times');
+      expect(state.error).toEqual('Falha ao buscar times');
+    });
+  });
+
+  describe('#SET_TEAMS', () => {
     it('set teams records', () => {
       const state = { records: {} };
       mutations[SET_TEAMS](state, [teams[1]]);
@@ -17,7 +27,7 @@ describe('#mutations', () => {
     });
   });
 
-  describe('#ADD_TEAM', () => {
+  describe('#SET_TEAM_ITEM', () => {
     it('push newly created teams to the store', () => {
       const state = { records: {} };
       mutations[SET_TEAM_ITEM](state, teams[1]);
@@ -27,7 +37,7 @@ describe('#mutations', () => {
 
   describe('#EDIT_TEAM', () => {
     it('update teams record', () => {
-      const state = { records: [teams[1]] };
+      const state = { records: { 1: teams[1] } };
       mutations[EDIT_TEAM](state, {
         id: 1,
         name: 'customer-support',

@@ -7,6 +7,7 @@ import {
   SET_TEAM_ITEM,
   EDIT_TEAM,
   DELETE_TEAM,
+  SET_TEAM_ERROR,
 } from '../../teams/types';
 import teamsList from './fixtures';
 
@@ -15,34 +16,49 @@ global.axios = axios;
 vi.mock('axios');
 
 describe('#actions', () => {
+  beforeEach(() => {
+    commit.mockClear();
+  });
+
   describe('#get', () => {
     it('sends correct actions if API is success', async () => {
-      const mockedGet = vi.fn(url => {
-        if (url === '/api/v1/teams') {
-          return Promise.resolve({ data: teamsList[1] });
-        }
-        if (url === '/api/v1/accounts//cache_keys') {
-          return Promise.resolve({ data: { cache_keys: { teams: 0 } } });
-        }
-        // Return default value or throw an error for unexpected requests
-        return Promise.reject(new Error('Unexpected request: ' + url));
-      });
-
-      axios.get = mockedGet;
+      axios.get.mockResolvedValue({ data: [teamsList[1]] });
 
       await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isFetching: true }],
         [CLEAR_TEAMS],
-        [SET_TEAMS, teamsList[1]],
+        [SET_TEAMS, [teamsList[1]]],
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isFetching: false }],
       ]);
     });
-    it('sends correct actions if API is error', async () => {
-      axios.get.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(actions.get({ commit })).rejects.toThrow(Error);
+
+    it('handles empty list success', async () => {
+      axios.get.mockResolvedValue({ data: [] });
+
+      await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isFetching: true }],
+        [CLEAR_TEAMS],
+        [SET_TEAMS, []],
+        [SET_TEAM_ERROR, null],
+        [SET_TEAM_UI_FLAG, { isFetching: false }],
+      ]);
+    });
+
+    it('sends correct actions if API is error and preserves state', async () => {
+      axios.get.mockRejectedValue({
+        response: { data: { message: 'Erro ao carregar departamentos' } },
+      });
+
+      await actions.get({ commit });
+      expect(commit.mock.calls).toEqual([
+        [SET_TEAM_ERROR, null],
+        [SET_TEAM_UI_FLAG, { isFetching: true }],
+        [SET_TEAM_ERROR, 'Erro ao carregar departamentos'],
         [SET_TEAM_UI_FLAG, { isFetching: false }],
       ]);
     });
@@ -54,17 +70,24 @@ describe('#actions', () => {
       await actions.create({ commit }, teamsList[1]);
 
       expect(commit.mock.calls).toEqual([
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isCreating: true }],
         [SET_TEAM_ITEM, teamsList[1]],
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isCreating: false }],
       ]);
     });
+
     it('sends correct actions if API is error', async () => {
-      axios.post.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(actions.create({ commit })).rejects.toThrow(Error);
+      axios.post.mockRejectedValue({
+        response: { data: { message: 'Erro ao criar' } },
+      });
+      await expect(actions.create({ commit })).rejects.toThrow();
 
       expect(commit.mock.calls).toEqual([
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isCreating: true }],
+        [SET_TEAM_ERROR, 'Erro ao criar'],
         [SET_TEAM_UI_FLAG, { isCreating: false }],
       ]);
     });
@@ -76,18 +99,21 @@ describe('#actions', () => {
       await actions.update({ commit }, teamsList[1]);
 
       expect(commit.mock.calls).toEqual([
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isUpdating: true }],
         [EDIT_TEAM, teamsList[1]],
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isUpdating: false }],
       ]);
     });
+
     it('sends correct actions if API is error', async () => {
       axios.patch.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(actions.update({ commit }, teamsList[1])).rejects.toThrow(
-        Error
-      );
+      await expect(actions.update({ commit }, teamsList[1])).rejects.toThrow();
       expect(commit.mock.calls).toEqual([
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isUpdating: true }],
+        [SET_TEAM_ERROR, 'Incorrect header'],
         [SET_TEAM_UI_FLAG, { isUpdating: false }],
       ]);
     });
@@ -98,16 +124,21 @@ describe('#actions', () => {
       axios.delete.mockResolvedValue();
       await actions.delete({ commit }, 1);
       expect(commit.mock.calls).toEqual([
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isDeleting: true }],
         [DELETE_TEAM, 1],
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isDeleting: false }],
       ]);
     });
+
     it('sends correct actions if API is error', async () => {
       axios.delete.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(actions.delete({ commit }, 1)).rejects.toThrow(Error);
+      await expect(actions.delete({ commit }, 1)).rejects.toThrow();
       expect(commit.mock.calls).toEqual([
+        [SET_TEAM_ERROR, null],
         [SET_TEAM_UI_FLAG, { isDeleting: true }],
+        [SET_TEAM_ERROR, 'Incorrect header'],
         [SET_TEAM_UI_FLAG, { isDeleting: false }],
       ]);
     });
