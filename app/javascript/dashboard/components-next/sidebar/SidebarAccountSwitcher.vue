@@ -35,9 +35,9 @@ const showAccountSwitcher = computed(
 );
 
 const sortedCurrentUserAccounts = computed(() => {
-  return [...(currentUser.value?.accounts || [])].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
+  return (currentUser.value?.accounts || [])
+    .filter(account => account?.id && account?.name)
+    .sort((a, b) => a.name.localeCompare(b.name));
 });
 
 const onChangeAccount = newId => {
@@ -123,7 +123,7 @@ const emitNewAccount = () => {
               >
                 {{
                   account.custom_role_id
-                    ? account.custom_role.name
+                    ? account.custom_role?.name || account.role
                     : account.role
                 }}
               </span>
