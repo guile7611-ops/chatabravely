@@ -75,10 +75,11 @@ export const initalizeRouter = () => {
         name: to.name,
       });
 
-      await Promise.race([
-        userAuthentication,
-        new Promise(resolve => setTimeout(resolve, 300)),
-      ]);
+      // Do not render an authenticated route with the empty initial auth state.
+      // The dashboard is a fresh application after the login redirect, so it
+      // must finish restoring the user from the Abravely JWT before children
+      // such as the sidebar and ConversationView are mounted.
+      await userAuthentication;
       return await validateAuthenticateRoutePermission(to);
     } catch (e) {
       console.warn('[Router Warning] Exceção na guarda de rota:', e);
