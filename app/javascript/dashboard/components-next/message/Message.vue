@@ -234,11 +234,18 @@ const isBotOrAgentMessage = computed(() => {
  * @returns {import('vue').ComputedRef<'left'|'right'|'center'>} The computed orientation
  */
 const orientation = computed(() => {
-  if (isBotOrAgentMessage.value) {
+  if (props.messageType === MESSAGE_TYPES.ACTIVITY) return ORIENTATION.CENTER;
+  // A direção da mensagem é a fonte canônica para o alinhamento. IDs de
+  // remetentes Abravely são UUIDs e mensagens de webhook/IA podem não trazer
+  // um sender completo; usá-lo para orientar a bolha colocava tudo à direita.
+  if (props.messageType === MESSAGE_TYPES.INCOMING) return ORIENTATION.LEFT;
+  if (
+    [MESSAGE_TYPES.OUTGOING, MESSAGE_TYPES.TEMPLATE].includes(props.messageType)
+  ) {
     return ORIENTATION.RIGHT;
   }
 
-  if (props.messageType === MESSAGE_TYPES.ACTIVITY) return ORIENTATION.CENTER;
+  if (isBotOrAgentMessage.value) return ORIENTATION.RIGHT;
 
   return ORIENTATION.LEFT;
 });
