@@ -15,6 +15,7 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import { useFontSize } from 'dashboard/composables/useFontSize';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import SocketIoConnector from './helper/socketIoConnector';
+import { getAbravelyJwtToken } from './helper/abravelyToken';
 
 export default {
   name: 'App',
@@ -60,17 +61,29 @@ export default {
     hideOnOnboardingView() {
       return !isOnOnboardingView(this.$route);
     },
+    isAccountRoute() {
+      const path = this.$route?.path || '';
+      return path.startsWith('/app/accounts/') && Boolean(this.currentAccountId);
+    },
   },
 
   watch: {
     currentAccountId: {
       immediate: true,
       handler() {
-        if (this.currentAccountId) {
+        if (this.isAccountRoute && getAbravelyJwtToken()) {
           this.initializeAccount();
           this.initializeSocketIo();
         }
       },
+    },
+    $route(to) {
+      if (to?.path?.startsWith('/app/accounts/') && this.currentAccountId && getAbravelyJwtToken()) {
+        this.initializeAccount();
+        this.initializeSocketIo();
+      } else if (!to?.path?.startsWith('/app/accounts/')) {
+        this.destroySocketIo();
+      }
     },
   },
   mounted() {

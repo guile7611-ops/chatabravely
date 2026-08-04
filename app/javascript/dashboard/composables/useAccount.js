@@ -16,16 +16,21 @@ export function useAccount() {
   );
 
   const accountId = computed(() => {
-    return Number(route?.params?.accountId) || 1;
+    const rawAccountId = route?.params?.accountId;
+    if (rawAccountId && !Number.isNaN(Number(rawAccountId))) {
+      return Number(rawAccountId);
+    }
+    return null;
   });
   
   const currentAccount = computed(() => {
+    if (!accountId.value) return null;
     const account = getAccountFn.value ? getAccountFn.value(accountId.value) : null;
-    return account || { id: 1, name: 'Abravely Chat', role: 'administrator', status: 'active' };
+    return account || { id: accountId.value, name: 'Abravely Chat', role: 'administrator', status: 'active' };
   });
 
   const accountScopedUrl = url => {
-    return `/app/accounts/${accountId.value}/${url}`;
+    return accountId.value ? `/app/accounts/${accountId.value}/${url}` : `/app/${url}`;
   };
 
   const isCloudFeatureEnabled = feature => {

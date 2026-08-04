@@ -27,9 +27,6 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
   if (targetPath.includes('/app/accounts/') || to?.params?.accountId) {
     if (!hasToken) {
       if (typeof next === 'function') {
-        if (typeof window !== 'undefined' && window.location && typeof window.location.assign === 'function') {
-          window.location.assign('/app/login');
-        }
         return next('/app/login');
       }
       return '/app/login';
