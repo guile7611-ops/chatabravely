@@ -23,6 +23,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  metaTemplatesError: {
+    type: String,
+    default: '',
+  },
   isSubmitting: {
     type: Boolean,
     default: false,
@@ -200,7 +204,8 @@ const submitTemplate = () => {
             <option v-for="template in approvedTemplates" :key="template.id || template.name" :value="template.name">{{ template.name }}</option>
           </select>
           <textarea v-if="templateParameterCount" v-model="templateParameters" class="min-h-16 rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12" :placeholder="`Informe ${templateParameterCount} parâmetro(s), um por linha`" />
-          <p v-if="!approvedTemplates.length" class="text-xs">Nenhum template aprovado foi encontrado neste canal.</p>
+          <p v-if="metaTemplatesError" class="text-xs text-n-ruby-11">{{ metaTemplatesError }}</p>
+          <p v-else-if="!approvedTemplates.length" class="text-xs">Nenhum template aprovado foi encontrado neste canal.</p>
           <button class="w-fit rounded-lg bg-n-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-50" :disabled="!selectedTemplate || isSubmitting || templateParameters.split('\n').filter(value => value.trim()).length !== templateParameterCount" type="button" @click="submitTemplate">Enviar template</button>
         </div>
       </div>

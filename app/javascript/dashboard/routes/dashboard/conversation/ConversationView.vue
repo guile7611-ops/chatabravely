@@ -57,6 +57,7 @@ export default {
       showSearchModal: false,
       isConversationActionRunning: false,
       metaTemplates: [],
+      metaTemplatesError: '',
     };
   },
   computed: {
@@ -209,19 +210,19 @@ export default {
         this.currentChat?.inbox_id;
       if (channelType !== 'META_CLOUD' || !channelId) {
         this.metaTemplates = [];
+        this.metaTemplatesError = '';
         return;
       }
 
       try {
+        this.metaTemplatesError = '';
         const response = await InboxesAPI.getApprovedTemplates(channelId);
         this.metaTemplates = response.data?.templates || [];
       } catch (error) {
         this.metaTemplates = [];
-        this.$store.commit(
-          'SET_CONVERSATIONS_ERROR',
+        this.metaTemplatesError =
           error?.response?.data?.message ||
-            'Não foi possível carregar os templates Meta aprovados.'
-        );
+          'Não foi possível carregar os templates Meta aprovados.';
       }
     },
     async runConversationAction(action, payload) {
@@ -319,6 +320,7 @@ export default {
         :attendants="attendants"
         :departments="departments"
         :meta-templates="metaTemplates"
+        :meta-templates-error="metaTemplatesError"
         :is-submitting="isConversationActionRunning"
         @claim="claimConversation"
         @transfer="transferConversation"

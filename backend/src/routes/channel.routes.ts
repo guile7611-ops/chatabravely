@@ -139,6 +139,7 @@ router.post('/meta/save', requireAdmin, async (req: Request, res: Response) => {
 
     const fetchedDisplayPhone: string | undefined =
       details.display_phone_number;
+    const resolvedWabaId = metaWabaId || MetaService.getWabaId(details);
 
     const channelName = name || (fetchedDisplayPhone ? `WhatsApp ${fetchedDisplayPhone}` : 'WhatsApp Meta Cloud API');
 
@@ -149,7 +150,7 @@ router.post('/meta/save', requireAdmin, async (req: Request, res: Response) => {
         connectionStatus: 'CONNECTED',
         metaPhoneNumberId: metaPhoneNumberId,
         metaToken: metaToken,
-        metaWabaId: metaWabaId || null,
+        metaWabaId: resolvedWabaId,
         workspaceId: targetWorkspaceId
       }
     });
@@ -187,8 +188,22 @@ router.get('/:id/templates', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Este canal não é do tipo Meta Cloud API.' });
     }
 
-    const wabaId = channel.metaWabaId;
+    let wabaId = channel.metaWabaId;
     const metaToken = channel.metaToken;
+
+    if (!wabaId && metaToken && channel.metaPhoneNumberId) {
+      const details = await MetaService.getPhoneNumberDetails(
+        channel.metaPhoneNumberId,
+        metaToken
+      );
+      wabaId = MetaService.getWabaId(details);
+      if (wabaId) {
+        await prisma.channel.update({
+          where: { id: channel.id },
+          data: { metaWabaId: wabaId },
+        });
+      }
+    }
 
     if (!wabaId || !metaToken) {
       return res.status(400).json({ success: false, message: 'WABA ID e token Meta são obrigatórios para buscar templates.' });

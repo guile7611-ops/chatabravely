@@ -8,6 +8,9 @@ export class MetaService {
     try {
       const url = `https://graph.facebook.com/v19.0/${metaPhoneNumberId}`;
       const response = await axios.get(url, {
+        params: {
+          fields: 'id,display_phone_number,verified_name,whatsapp_business_account',
+        },
         headers: {
           'Authorization': `Bearer ${metaAccessToken}`
         }
@@ -17,6 +20,10 @@ export class MetaService {
       console.warn(`⚠️ [MetaService] Não foi possível consultar detalhes do número ${metaPhoneNumberId}:`, error.response?.data || error.message);
       return null;
     }
+  }
+
+  static getWabaId(phoneNumberDetails: any): string | null {
+    return phoneNumberDetails?.whatsapp_business_account?.id || null;
   }
 
   /**
