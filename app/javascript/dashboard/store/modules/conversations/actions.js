@@ -34,6 +34,8 @@ let failedFilterCount = 0;
 let lastFailedFilterHash = '';
 let lastFailedFilterTime = 0;
 
+const QUEUE_CACHE_TTL_MS = 15 * 1000;
+
 // actions
 const actions = {
   getConversation: async ({ commit }, conversationId) => {
@@ -113,6 +115,13 @@ const actions = {
     const params = state.conversationFilters;
     const paramsHash = JSON.stringify(params || {});
     const now = Date.now();
+    const queueCacheKey = params.queue || params.assigneeType || 'all';
+    const queueCacheTimestamp = state.queueCacheTimestamps?.[queueCacheKey];
+
+    if (queueCacheTimestamp && now - queueCacheTimestamp < QUEUE_CACHE_TTL_MS) {
+      commit(types.CLEAR_LIST_LOADING_STATUS);
+      return;
+    }
 
     // Circuit breaker: Se falhou 500 no mesmo parametro ha menos de 5s ou 3x seguidas, estanca a chamada
     if (
@@ -149,6 +158,7 @@ const actions = {
         data,
         params.queue || params.assigneeType || 'reception'
       );
+      commit(types.SET_QUEUE_CACHE_TIMESTAMP, queueCacheKey);
       commit(types.SET_CONVERSATIONS_ERROR, null);
     } catch (error) {
       failedFetchCount += 1;

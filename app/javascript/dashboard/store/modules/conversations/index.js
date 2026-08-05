@@ -13,6 +13,7 @@ const state = {
   error: null,
   attachments: {},
   listLoadingStatus: false,
+  queueCacheTimestamps: {},
   chatStatusFilter: wootConstants.STATUS_TYPE.OPEN,
   chatSortFilter: wootConstants.SORT_BY_TYPE.LATEST,
   currentInbox: null,
@@ -66,6 +67,7 @@ export const mutations = {
   [types.EMPTY_ALL_CONVERSATION](_state) {
     _state.allConversations = [];
     _state.selectedChatId = null;
+    _state.queueCacheTimestamps = {};
   },
   [types.SET_ALL_MESSAGES_LOADED](_state, conversationId) {
     const chat = getConversationById(_state)(conversationId);
@@ -280,6 +282,13 @@ export const mutations = {
 
   [types.CLEAR_LIST_LOADING_STATUS](_state) {
     _state.listLoadingStatus = false;
+  },
+
+  [types.SET_QUEUE_CACHE_TIMESTAMP](_state, queue) {
+    _state.queueCacheTimestamps = {
+      ..._state.queueCacheTimestamps,
+      [queue]: Date.now(),
+    };
   },
 
   [types.UPDATE_MESSAGE_UNREAD_COUNT](
