@@ -290,16 +290,28 @@ router.post('/:id/claim', async (req: Request, res: Response) => {
       }
     });
 
+    const event = await prisma.conversationEvent.create({
+      data: {
+        type: 'CLAIMED', conversationId: id, workspaceId: user.workspaceId,
+        actorId: user.id, actorName: user.name,
+        fromQueue: conversation.queue, toQueue: 'CONVERSATION',
+        fromAgentId: conversation.agentId, toAgentId: user.id,
+        fromDepartmentId: conversation.departmentId, toDepartmentId: conversation.departmentId,
+      },
+    });
+
     emitToWorkspace(user.workspaceId, 'conversation:claimed', {
       conversationId: id,
       conversation: updated,
-      log
+      log,
+      event
     });
 
     emitToWorkspace(user.workspaceId, 'conversation:updated', {
       conversationId: id,
       conversation: updated,
-      log
+      log,
+      event
     });
 
     return res.json({ success: true, conversation: updated, log });
@@ -409,16 +421,28 @@ router.post('/:id/transfer', async (req: Request, res: Response) => {
       }
     });
 
+    const event = await prisma.conversationEvent.create({
+      data: {
+        type: 'TRANSFERRED', conversationId: id, workspaceId: user.workspaceId,
+        actorId: user.id, actorName: user.name,
+        fromQueue: conversation.queue, toQueue: targetQueue,
+        fromAgentId: conversation.agentId, toAgentId: targetAgentId,
+        fromDepartmentId: conversation.departmentId, toDepartmentId: targetDeptId,
+      },
+    });
+
     emitToWorkspace(user.workspaceId, 'conversation:transferred', {
       conversationId: id,
       conversation: updated,
-      log
+      log,
+      event
     });
 
     emitToWorkspace(user.workspaceId, 'conversation:updated', {
       conversationId: id,
       conversation: updated,
-      log
+      log,
+      event
     });
 
     return res.json({ success: true, conversation: updated, log });
