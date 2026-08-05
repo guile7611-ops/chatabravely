@@ -128,7 +128,12 @@ const actions = {
     }
 
     try {
-      const response = await ConversationApi.get(params);
+      // A lista principal usa o contrato nativo Abravely. A rota
+      // `/accounts/:accountId/conversations` existe somente para compatibilidade
+      // temporária com telas herdadas e não interpreta a fila solicitada.
+      // Consultar a API própria evita recarregar a mesma lista ao alternar
+      // entre Recepção, Departamentos e Ativas.
+      const response = await axios.get('/api/v1/conversations', { params });
       // O backend Abravely retorna a lista em `payload`; preservamos o
       // envelope porque buildConversationList também usa `meta` para os
       // contadores das abas.
