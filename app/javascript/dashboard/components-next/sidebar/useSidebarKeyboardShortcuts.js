@@ -11,7 +11,12 @@ export function useSidebarKeyboardShortcuts(toggleShortcutModalFn) {
 
   const navigateToRoute = routeName => {
     if (!isCurrentRouteSameAsNavigation(routeName)) {
-      router.push({ name: routeName });
+      router.push({
+        name: routeName,
+        params: route.params.accountId
+          ? { accountId: route.params.accountId }
+          : undefined,
+      });
     }
   };
   const keyboardEvents = {
@@ -25,7 +30,7 @@ export function useSidebarKeyboardShortcuts(toggleShortcutModalFn) {
       action: () => navigateToRoute('home'),
     },
     'Alt+KeyV': {
-      action: () => navigateToRoute('contacts_dashboard'),
+      action: () => navigateToRoute('contacts_dashboard_index'),
     },
     'Alt+KeyR': {
       action: () => navigateToRoute('account_overview_reports'),
