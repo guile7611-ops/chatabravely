@@ -43,4 +43,23 @@ describe('dashboard route resolution', () => {
     const result = resolvedLeaf(path);
     expect(result.leaf?.meta?.featureFlag).toBeUndefined();
   });
+
+  it.each([
+    'home',
+    'contacts_dashboard_index',
+    'account_overview_reports',
+    'agent_list',
+    'settings_teams_list',
+    'settings_inbox_list',
+    'labels_list',
+    'canned_list',
+  ])('resolves every native navigation target by name: %s', routeName => {
+    const result = router.resolve({
+      name: routeName,
+      params: { accountId: '1' },
+    });
+
+    expect(result.name).toBe(routeName);
+    expect(result.matched.at(-1)?.components?.default).toBeTruthy();
+  });
 });
