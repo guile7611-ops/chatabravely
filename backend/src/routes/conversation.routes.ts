@@ -562,6 +562,55 @@ router.post('/:id/messages', async (req: Request, res: Response) => {
       }
     }
 
+    // Public messages must be accepted by the external channel before being
+    // written to the local transcript. This prevents false "sent" messages.
+    if (!isPrivate) {
+      if (!conversation.contact.phone) {
+        return res.status(422).json({
+          success: false,
+          code: 'CONTACT_PHONE_MISSING',
+          message: 'O contato não possui um número de telefone para receber a mensagem.',
+        });
+      }
+
+      const channel = conversation.channel;
+      try {
+        if (channel.type === 'EVOLUTION' && channel.evolutionInstanceName) {
+          await EvolutionService.sendTextMessage(
+            channel.evolutionInstanceName,
+            conversation.contact.phone,
+            content
+          );
+        } else if (
+          channel.type === 'META_CLOUD' &&
+          channel.metaPhoneNumberId &&
+          channel.metaToken
+        ) {
+          await MetaService.sendTextMessage(
+            channel.metaPhoneNumberId,
+            channel.metaToken,
+            conversation.contact.phone,
+            content
+          );
+        } else {
+          return res.status(422).json({
+            success: false,
+            code: 'CHANNEL_NOT_READY',
+            message: 'O canal desta conversa não está configurado para enviar mensagens.',
+          });
+        }
+      } catch (dispatchError: any) {
+        console.error(
+          `Falha ao enviar mensagem pelo canal ${channel.id}: ${dispatchError.message}`
+        );
+        return res.status(502).json({
+          success: false,
+          code: 'CHANNEL_DELIVERY_FAILED',
+          message: 'A mensagem não foi entregue ao canal. Tente novamente.',
+        });
+      }
+    }
+
     const message = await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -574,7 +623,7 @@ router.post('/:id/messages', async (req: Request, res: Response) => {
       }
     });
 
-    if (!isPrivate && conversation.contact.phone) {
+    /* Legacy best-effort delivery removed: it would duplicate the external send.
       const channel = conversation.channel;
       try {
         if (channel.type === 'EVOLUTION' && channel.evolutionInstanceName) {
@@ -595,6 +644,7 @@ router.post('/:id/messages', async (req: Request, res: Response) => {
         console.warn(`⚠️ [ConversationRoute] Aviso: Mensagem salva mas falhou disparo externo: ${dispatchError.message}`);
       }
     }
+    */
 
     await prisma.conversation.update({
       where: { id: id },

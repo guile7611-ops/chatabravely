@@ -19,6 +19,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  metaTemplates: {
+    type: Array,
+    default: () => [],
+  },
   isSubmitting: {
     type: Boolean,
     default: false,
@@ -39,6 +43,8 @@ const messageText = ref('');
 const isPrivate = ref(false);
 const transferTarget = ref('');
 const showTransfer = ref(false);
+const selectedTemplateName = ref('');
+const templateParameters = ref('');
 
 const contact = computed(() => props.conversation.contact || props.conversation.meta?.sender || {});
 const messages = computed(() => props.conversation.messages || []);
@@ -55,6 +61,27 @@ const isMetaWindowClosed = computed(
   () => channelType.value === 'META_CLOUD' && !metaWindow.value?.isOpen
 );
 const panelStyle = computed(() => ({ backgroundImage: `url(${chatWallpaper})` }));
+const approvedTemplates = computed(() =>
+  props.metaTemplates.filter(
+    template => String(template.status || '').toLowerCase() === 'approved'
+  )
+);
+const selectedTemplate = computed(() =>
+  approvedTemplates.value.find(
+    template => template.name === selectedTemplateName.value
+  )
+);
+const templateParameterCount = computed(() => {
+  const body = selectedTemplate.value?.components?.find(
+    component => component.type === 'BODY'
+  )?.text;
+  return Math.max(
+    0,
+    ...Array.from(String(body || '').matchAll(/\{\{(\d+)\}\}/g)).map(
+      match => Number(match[1])
+    )
+  );
+});
 
 const isOutgoing = message => {
   if (message.senderType) return message.senderType === 'AGENT';
@@ -90,6 +117,26 @@ const submitTransfer = () => {
   emit('transfer', kind === 'attendant' ? { agentId: id } : { departmentId: id });
   transferTarget.value = '';
   showTransfer.value = false;
+};
+
+const submitTemplate = () => {
+  if (!selectedTemplate.value || !canReply.value) return;
+  const parameters = templateParameters.value
+    .split('\n')
+    .map(value => value.trim())
+    .filter(Boolean);
+  if (parameters.length !== templateParameterCount.value) return;
+
+  emit('send-template', {
+    templateName: selectedTemplate.value.name,
+    languageCode:
+      selectedTemplate.value.language ||
+      selectedTemplate.value.language_code ||
+      'pt_BR',
+    parameters,
+  });
+  selectedTemplateName.value = '';
+  templateParameters.value = '';
 };
 </script>
 
@@ -145,8 +192,17 @@ const submitTransfer = () => {
     </div>
 
     <footer class="border-t border-n-weak bg-n-surface-1 p-3">
-      <div v-if="isMetaWindowClosed" class="mb-2 rounded-md bg-n-amber-2 px-3 py-2 text-sm text-n-amber-11">
-        Janela de 24 horas expirada. Envie um template Meta aprovado e aguarde a resposta do contato.
+      <div v-if="isMetaWindowClosed" class="mb-2 rounded-md bg-n-amber-2 p-3 text-sm text-n-amber-11">
+        <p>Janela de 24 horas expirada. Envie um template Meta aprovado e aguarde a resposta do contato.</p>
+        <div v-if="canReply" class="mt-3 grid gap-2">
+          <select v-model="selectedTemplateName" class="rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12">
+            <option value="">Selecione um template aprovado</option>
+            <option v-for="template in approvedTemplates" :key="template.id || template.name" :value="template.name">{{ template.name }}</option>
+          </select>
+          <textarea v-if="templateParameterCount" v-model="templateParameters" class="min-h-16 rounded-md border border-n-weak bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12" :placeholder="`Informe ${templateParameterCount} parâmetro(s), um por linha`" />
+          <p v-if="!approvedTemplates.length" class="text-xs">Nenhum template aprovado foi encontrado neste canal.</p>
+          <button class="w-fit rounded-lg bg-n-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-50" :disabled="!selectedTemplate || isSubmitting || templateParameters.split('\n').filter(value => value.trim()).length !== templateParameterCount" type="button" @click="submitTemplate">Enviar template</button>
+        </div>
       </div>
       <div v-else-if="!canReply" class="mb-2 text-sm text-n-slate-10">Você não pode responder esta conversa.</div>
       <div v-else class="flex gap-2">

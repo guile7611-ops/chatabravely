@@ -11,6 +11,7 @@ import CmdBarConversationSnooze from 'dashboard/routes/dashboard/commands/CmdBar
 import { emitter } from 'shared/helpers/mitt';
 import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import InboxesAPI from 'dashboard/api/inboxes';
 
 export default {
   components: {
@@ -61,6 +62,7 @@ export default {
     return {
       showSearchModal: false,
       isConversationActionRunning: false,
+      metaTemplates: [],
     };
   },
   computed: {
@@ -166,6 +168,7 @@ export default {
     async fetchConversationIfUnavailable() {
       if (this.conversationId) {
         if (String(this.currentChat?.id) === String(this.conversationId)) {
+          await this.fetchMetaTemplates();
           return;
         }
         const selectedConversation = this.chatList.find(
@@ -181,6 +184,7 @@ export default {
               data: loadedConversation,
               after: this.$route.query.messageId,
             });
+            await this.fetchMetaTemplates();
           }
           return;
         }
@@ -199,6 +203,7 @@ export default {
           })
           .then(() => {
             emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE, { messageId });
+            this.fetchMetaTemplates();
           });
       } else if (this.currentChat?.id) {
         this.$store.dispatch('clearSelectedState');
@@ -213,6 +218,31 @@ export default {
     async refreshCurrentConversation() {
       await this.$store.dispatch('getConversation', this.conversationId);
       await this.$store.dispatch('fetchAllConversations');
+      await this.fetchMetaTemplates();
+    },
+    async fetchMetaTemplates() {
+      const channelType =
+        this.currentChat?.channel?.type || this.currentChat?.meta?.channel;
+      const channelId =
+        this.currentChat?.channelId ||
+        this.currentChat?.channel_id ||
+        this.currentChat?.inbox_id;
+      if (channelType !== 'META_CLOUD' || !channelId) {
+        this.metaTemplates = [];
+        return;
+      }
+
+      try {
+        const response = await InboxesAPI.getApprovedTemplates(channelId);
+        this.metaTemplates = response.data?.templates || [];
+      } catch (error) {
+        this.metaTemplates = [];
+        this.$store.commit(
+          'SET_CONVERSATIONS_ERROR',
+          error?.response?.data?.message ||
+            'Não foi possível carregar os templates Meta aprovados.'
+        );
+      }
     },
     async runConversationAction(action, payload) {
       if (!this.conversationId || this.isConversationActionRunning) return;
@@ -254,6 +284,12 @@ export default {
       return this.runConversationAction('sendMessage', {
         conversationId: this.conversationId,
         ...message,
+      });
+    },
+    sendNativeTemplate(template) {
+      return this.runConversationAction('sendTemplate', {
+        conversationId: this.conversationId,
+        ...template,
       });
     },
     async selectNativeConversation(conversation) {
@@ -304,12 +340,14 @@ export default {
         :current-user-id="currentUserId"
         :attendants="attendants"
         :departments="departments"
+        :meta-templates="metaTemplates"
         :is-submitting="isConversationActionRunning"
         @claim="claimConversation"
         @transfer="transferConversation"
         @close="closeConversation"
         @reopen="reopenConversation"
         @send-message="sendNativeMessage"
+        @send-template="sendNativeTemplate"
       />
       <ConversationEmptyState
         v-else
