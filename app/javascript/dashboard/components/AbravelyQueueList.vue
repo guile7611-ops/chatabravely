@@ -1,6 +1,4 @@
 <script>
-import { mapGetters } from 'vuex';
-
 const QUEUES = [
   { key: 'RECEPTION', label: 'Recepção', counter: 'reception_count' },
   { key: 'DEPARTMENT', label: 'Departamentos', counter: 'departments_count' },
@@ -18,13 +16,12 @@ export default {
     return { activeQueue: 'RECEPTION', search: '' };
   },
   computed: {
-    ...mapGetters({
-      getQueue: 'abravelyConversationPanel/getQueue',
-      getQueueMeta: 'abravelyConversationPanel/getQueueMeta',
-      isLoading: 'abravelyConversationPanel/getIsLoadingQueue',
-    }),
     queueMeta() {
-      return this.getQueueMeta(this.activeQueue);
+      const getQueueMeta =
+        this.$store.getters['abravelyConversationPanel/getQueueMeta'];
+      return typeof getQueueMeta === 'function'
+        ? getQueueMeta(this.activeQueue)
+        : {};
     },
     queueItems() {
       return QUEUES.map(item => ({
@@ -33,7 +30,13 @@ export default {
       }));
     },
     conversations() {
-      return this.getQueue(this.activeQueue);
+      const getQueue = this.$store.getters['abravelyConversationPanel/getQueue'];
+      return typeof getQueue === 'function' ? getQueue(this.activeQueue) : [];
+    },
+    isLoading() {
+      return Boolean(
+        this.$store.getters['abravelyConversationPanel/getIsLoadingQueue']
+      );
     },
     visibleConversations() {
       const term = this.search.trim().toLocaleLowerCase('pt-BR');
