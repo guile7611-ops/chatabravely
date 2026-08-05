@@ -119,7 +119,7 @@ export class WebhookService {
             }
           });
 
-          emitToWorkspace(channel.workspaceId, 'conversation:created', {
+          emitToWorkspace(channel.workspaceId, 'conversation.created', {
             conversationId: conversation.id,
             conversation: conversation
           });
@@ -173,12 +173,12 @@ export class WebhookService {
         });
 
         // 5. Emitir eventos WebSocket padronizados (NUNCA usar conversation:update)
-        emitToWorkspace(channel.workspaceId, 'message:new', {
+        emitToWorkspace(channel.workspaceId, 'message.created', {
           message: newMessage,
           conversationId: conversation.id
         });
 
-        emitToWorkspace(channel.workspaceId, 'conversation:updated', {
+        emitToWorkspace(channel.workspaceId, 'conversation.updated', {
           conversationId: conversation.id,
           conversation: conversation
         });
@@ -408,17 +408,6 @@ export class WebhookService {
         }
 
         emitToWorkspace(channel.workspaceId, 'message.created', formattedMsg);
-
-        // Eventos legados
-        emitToWorkspace(channel.workspaceId, 'message:new', {
-          message: newMessage,
-          conversationId: conversation.id
-        });
-
-        emitToWorkspace(channel.workspaceId, 'conversation:updated', {
-          conversationId: conversation.id,
-          conversation: conversation
-        });
 
         console.log(`📥 [WebhookService] Mensagem Meta processada com sucesso ID ${newMessage.id}`);
         return { success: true, messageId: newMessage.id };

@@ -115,9 +115,9 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
       createdAt: '2026-08-04T00:00:00.000Z',
     };
 
-    // First call with canonical event message.created
+    // Canonical event updates only the native Abravely state.
     eventHandlers['message.created'](payload);
-    expect(mockDispatch).toHaveBeenCalledTimes(3); // legacy message state + native queue preview + last activity
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
     expect(mockDispatch).toHaveBeenCalledWith(
       'abravelyConversationPanel/applyRealtimeMessage',
       expect.objectContaining({ id: 99, content: 'Mensagem via socket' })
@@ -125,12 +125,11 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
 
     mockDispatch.mockClear();
 
-    // Duplicate call with legacy alias event message:new
-    eventHandlers['message:new'](payload);
+    eventHandlers['message.created'](payload);
     expect(mockDispatch).not.toHaveBeenCalled();
   });
 
-  it('handles conversation.assigned by dispatching updateConversation', () => {
+  it('handles conversation.assigned through the native conversation state only', () => {
     setAbravelyJwtToken(validJwt);
     connector.connect();
 
@@ -143,15 +142,8 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
     eventHandlers['conversation.assigned'](payload);
 
     expect(mockDispatch).toHaveBeenCalledWith(
-      'updateConversation',
-      expect.objectContaining({
-        id: 'uuid-conversa-123',
-        assignee_id: 5,
-      })
-    );
-    expect(mockDispatch).toHaveBeenCalledWith(
       'abravelyConversationPanel/applyRealtimeConversation',
-      expect.objectContaining({ id: 'uuid-conversa-123', assignee_id: 5 })
+      expect.objectContaining({ id: 'uuid-conversa-123', assignedAgentId: 5 })
     );
   });
 

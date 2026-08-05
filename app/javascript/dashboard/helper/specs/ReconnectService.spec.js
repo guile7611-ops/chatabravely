@@ -48,6 +48,14 @@ describe('ReconnectService', () => {
   let reconnectService;
 
   beforeEach(() => {
+    isAConversationRoute.mockReset();
+    isAInboxViewRoute.mockReset();
+    isNotificationRoute.mockReset();
+    storeMock.dispatch.mockReset().mockResolvedValue();
+    routerMock.currentRoute.value = {
+      name: '',
+      params: { conversation_id: null },
+    };
     window.addEventListener = vi.fn();
     window.removeEventListener = vi.fn();
     Object.defineProperty(window, 'location', {
@@ -291,6 +299,7 @@ describe('ReconnectService', () => {
     });
 
     it('should fetch notifications if current route is an inbox view route', async () => {
+      isAConversationRoute.mockReturnValue(false);
       isAInboxViewRoute.mockReturnValue(true);
       const spy = vi.spyOn(reconnectService, 'fetchNotificationsOnReconnect');
       await reconnectService.handleRouteSpecificFetch();
@@ -298,10 +307,31 @@ describe('ReconnectService', () => {
     });
 
     it('should fetch notifications if current route is a notification route', async () => {
+      isAConversationRoute.mockReturnValue(false);
+      isAInboxViewRoute.mockReturnValue(false);
       isNotificationRoute.mockReturnValue(true);
       const spy = vi.spyOn(reconnectService, 'fetchNotificationsOnReconnect');
       await reconnectService.handleRouteSpecificFetch();
       expect(spy).toHaveBeenCalled();
+    });
+  });
+
+  describe('refreshNativeConversationPanel', () => {
+    it('refreshes the native queue and active conversation on a native route', async () => {
+      routerMock.currentRoute.value = {
+        name: 'inbox_conversation',
+        params: { conversation_id: 'conversation-1' },
+      };
+
+      await reconnectService.handleRouteSpecificFetch();
+
+      expect(storeMock.dispatch).toHaveBeenCalledWith(
+        'abravelyConversationPanel/refreshActiveQueue'
+      );
+      expect(storeMock.dispatch).toHaveBeenCalledWith(
+        'abravelyConversationPanel/openConversation',
+        'conversation-1'
+      );
     });
   });
 
@@ -336,6 +366,7 @@ describe('ReconnectService', () => {
 
   describe('onReconnect', () => {
     it('should handle route-specific fetch, revalidate caches, and emit WEBSOCKET_RECONNECT_COMPLETED event', async () => {
+      reconnectService.disconnectTime = new Date();
       reconnectService.handleRouteSpecificFetch = vi.fn();
       reconnectService.revalidateCaches = vi.fn();
       await reconnectService.onReconnect();

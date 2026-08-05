@@ -231,12 +231,12 @@ export class AiService {
         include: { contact: true, channel: true, department: true, agent: true }
       });
 
-      emitToWorkspace(conversation.workspaceId, 'message:new', {
+      emitToWorkspace(conversation.workspaceId, 'message.created', {
         message: aiMessage,
         conversationId: conversation.id
       });
 
-      emitToWorkspace(conversation.workspaceId, 'conversation:updated', {
+      emitToWorkspace(conversation.workspaceId, 'conversation.updated', {
         conversationId: conversation.id,
         conversation: updatedConv,
         log

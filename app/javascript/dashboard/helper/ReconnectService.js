@@ -94,6 +94,19 @@ class ReconnectService {
     }
   };
 
+  refreshNativeConversationPanel = async () => {
+    const { conversation_id: conversationId } =
+      this.router.currentRoute.value.params;
+
+    await this.store.dispatch('abravelyConversationPanel/refreshActiveQueue');
+    if (conversationId) {
+      await this.store.dispatch(
+        'abravelyConversationPanel/openConversation',
+        conversationId
+      );
+    }
+  };
+
   fetchNotificationsOnReconnect = async filter => {
     await this.store.dispatch('notifications/index', { ...filter, page: 1 });
   };
@@ -111,7 +124,9 @@ class ReconnectService {
 
   handleRouteSpecificFetch = async () => {
     const currentRoute = this.router.currentRoute.value.name;
-    if (isAConversationRoute(currentRoute, true)) {
+    if (['home', 'inbox_conversation'].includes(currentRoute)) {
+      await this.refreshNativeConversationPanel();
+    } else if (isAConversationRoute(currentRoute, true)) {
       await this.fetchConversationsOnReconnect();
       await this.fetchConversationMessagesOnReconnect();
     } else if (isAInboxViewRoute(currentRoute, true)) {

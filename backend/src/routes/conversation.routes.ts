@@ -307,14 +307,14 @@ router.post('/:id/claim', async (req: Request, res: Response) => {
       },
     });
 
-    emitToWorkspace(user.workspaceId, 'conversation:claimed', {
+    emitToWorkspace(user.workspaceId, 'conversation.claimed', {
       conversationId: id,
       conversation: updated,
       log,
       event
     });
 
-    emitToWorkspace(user.workspaceId, 'conversation:updated', {
+    emitToWorkspace(user.workspaceId, 'conversation.updated', {
       conversationId: id,
       conversation: updated,
       log,
@@ -438,14 +438,14 @@ router.post('/:id/transfer', async (req: Request, res: Response) => {
       },
     });
 
-    emitToWorkspace(user.workspaceId, 'conversation:transferred', {
+    emitToWorkspace(user.workspaceId, 'conversation.transferred', {
       conversationId: id,
       conversation: updated,
       log,
       event
     });
 
-    emitToWorkspace(user.workspaceId, 'conversation:updated', {
+    emitToWorkspace(user.workspaceId, 'conversation.updated', {
       conversationId: id,
       conversation: updated,
       log,
@@ -499,8 +499,8 @@ router.post('/:id/takeover', async (req: Request, res: Response) => {
       }
     });
 
-    emitToWorkspace(user.workspaceId, 'conversation:claimed', { conversationId: id, conversation: updated, log });
-    emitToWorkspace(user.workspaceId, 'conversation:updated', { conversationId: id, conversation: updated, log });
+    emitToWorkspace(user.workspaceId, 'conversation.claimed', { conversationId: id, conversation: updated, log });
+    emitToWorkspace(user.workspaceId, 'conversation.updated', { conversationId: id, conversation: updated, log });
 
     return res.json({ success: true, conversation: updated, log });
   } catch (error: any) {
@@ -651,7 +651,7 @@ router.post('/:id/messages', async (req: Request, res: Response) => {
       data: { updatedAt: new Date() }
     });
 
-    emitToWorkspace(user.workspaceId, 'message:new', {
+    emitToWorkspace(user.workspaceId, 'message.created', {
       message: message,
       conversationId: conversation.id
     });
@@ -762,7 +762,7 @@ router.post('/:id/close', async (req: Request, res: Response) => {
       },
     });
 
-    emitToWorkspace(user.workspaceId, 'conversation:updated', {
+    emitToWorkspace(user.workspaceId, 'conversation.updated', {
       conversationId: id,
       conversation: closed,
       log
@@ -843,7 +843,7 @@ router.post('/:id/reopen', async (req: Request, res: Response) => {
       },
     });
 
-    emitToWorkspace(user.workspaceId, 'conversation:updated', {
+    emitToWorkspace(user.workspaceId, 'conversation.updated', {
       conversationId: id,
       conversation: reopened,
       log
@@ -952,7 +952,7 @@ router.post('/:id/send-template', async (req: Request, res: Response) => {
       data: { updatedAt: new Date() }
     });
 
-    emitToWorkspace(user.workspaceId, 'message:new', {
+    emitToWorkspace(user.workspaceId, 'message.created', {
       conversationId: id,
       message
     });

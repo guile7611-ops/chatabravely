@@ -353,7 +353,7 @@ router.post('/:id/conversations', async (req: Request, res: Response) => {
       },
       include: { messages: true },
     });
-    emitToWorkspace(req.user!.workspaceId, 'conversation:created', conversation);
+    emitToWorkspace(req.user!.workspaceId, 'conversation.created', conversation);
     return res.status(201).json({
       ...conversation,
       account_id: accountId,

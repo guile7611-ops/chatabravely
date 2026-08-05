@@ -2,7 +2,10 @@ import { io } from 'socket.io-client';
 import { getAbravelyJwtToken } from './abravelyToken';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
-import { toUIConversation, toUIMessage } from 'dashboard/store/modules/conversations/abravelyAdapter';
+import {
+  normalizeRealtimeConversation,
+  normalizeRealtimeMessage,
+} from './abravelyConversationAdapter';
 
 const DEDUPLICATION_LIMIT = 200;
 
@@ -37,24 +40,14 @@ class SocketIoConnector {
 
     this.domainEvents = [
       'conversation.created',
-      'conversation:created',
       'conversation.updated',
-      'conversation:updated',
       'message.created',
-      'message:created',
-      'message:new',
       'conversation.assigned',
-      'conversation:assigned',
       'conversation.status_updated',
-      'conversation:status_updated',
       'conversation.transferred',
-      'conversation:transferred',
       'conversation.claimed',
-      'conversation:claimed',
       'conversation.closed',
-      'conversation:closed',
       'conversation.reopened',
-      'conversation:reopened',
     ];
   }
 
@@ -145,29 +138,19 @@ class SocketIoConnector {
     const handleConversationQueueChanged = (payload) => this.onConversationQueueChanged(payload);
 
     this.socket.on('conversation.created', handleConversationCreated);
-    this.socket.on('conversation:created', handleConversationCreated);
 
     this.socket.on('conversation.updated', handleConversationUpdated);
-    this.socket.on('conversation:updated', handleConversationUpdated);
 
     this.socket.on('message.created', handleMessageCreated);
-    this.socket.on('message:created', handleMessageCreated);
-    this.socket.on('message:new', handleMessageCreated);
 
     this.socket.on('conversation.assigned', handleConversationAssigned);
-    this.socket.on('conversation:assigned', handleConversationAssigned);
 
     this.socket.on('conversation.status_updated', handleConversationStatusUpdated);
-    this.socket.on('conversation:status_updated', handleConversationStatusUpdated);
 
     this.socket.on('conversation.transferred', handleConversationQueueChanged);
-    this.socket.on('conversation:transferred', handleConversationQueueChanged);
     this.socket.on('conversation.claimed', handleConversationQueueChanged);
-    this.socket.on('conversation:claimed', handleConversationQueueChanged);
     this.socket.on('conversation.closed', handleConversationQueueChanged);
-    this.socket.on('conversation:closed', handleConversationQueueChanged);
     this.socket.on('conversation.reopened', handleConversationQueueChanged);
-    this.socket.on('conversation:reopened', handleConversationQueueChanged);
   }
 
   disconnect() {
@@ -216,76 +199,56 @@ class SocketIoConnector {
   }
 
   onConversationCreated(payload) {
-    const conversation = payload?.conversation || payload;
+    const conversation = normalizeRealtimeConversation(payload);
     if (this.isDuplicateConversationEvent(conversation?.id, 'created')) return;
-    const uiConversation = toUIConversation(conversation);
-    this.app?.$store?.dispatch('addConversation', uiConversation);
     this.app?.$store?.dispatch(
       'abravelyConversationPanel/applyRealtimeConversation',
-      uiConversation
+      conversation
     );
   }
 
   onConversationUpdated(payload) {
-    const conversation = payload?.conversation || payload;
+    const conversation = normalizeRealtimeConversation(payload);
     if (this.isDuplicateConversationEvent(conversation?.id, 'updated')) return;
-    const uiConversation = toUIConversation(conversation);
-    this.app?.$store?.dispatch('updateConversation', uiConversation);
     this.app?.$store?.dispatch(
       'abravelyConversationPanel/applyRealtimeConversation',
-      uiConversation
+      conversation
     );
   }
 
   onMessageCreated(payload) {
-    if (this.isDuplicateMessage(payload?.id)) return;
-    const uiMessage = toUIMessage(payload);
-    const conversationId = uiMessage.conversation_id;
-    const lastActivityAt = uiMessage.created_at;
-
-    this.app?.$store?.dispatch('addMessage', uiMessage);
+    const message = normalizeRealtimeMessage(payload);
+    if (this.isDuplicateMessage(message.id)) return;
     this.app?.$store?.dispatch(
       'abravelyConversationPanel/applyRealtimeMessage',
-      uiMessage
+      message
     );
-    if (conversationId && lastActivityAt) {
-      this.app?.$store?.dispatch('updateConversationLastActivity', {
-        conversationId,
-        lastActivityAt,
-      });
-    }
   }
 
   onConversationAssigned(payload) {
-    const conversation = payload?.conversation || payload;
+    const conversation = normalizeRealtimeConversation(payload);
     if (this.isDuplicateConversationEvent(conversation?.id, 'assigned')) return;
-    const uiConversation = toUIConversation(conversation);
-    this.app?.$store?.dispatch('updateConversation', uiConversation);
     this.app?.$store?.dispatch(
       'abravelyConversationPanel/applyRealtimeConversation',
-      uiConversation
+      conversation
     );
   }
 
   onConversationStatusUpdated(payload) {
-    const conversation = payload?.conversation || payload;
+    const conversation = normalizeRealtimeConversation(payload);
     if (this.isDuplicateConversationEvent(conversation?.id, 'status_updated')) return;
-    const uiConversation = toUIConversation(conversation);
-    this.app?.$store?.dispatch('updateConversation', uiConversation);
     this.app?.$store?.dispatch(
       'abravelyConversationPanel/applyRealtimeConversation',
-      uiConversation
+      conversation
     );
   }
 
   onConversationQueueChanged(payload) {
-    const conversation = payload?.conversation || payload;
+    const conversation = normalizeRealtimeConversation(payload);
     if (this.isDuplicateConversationEvent(conversation?.id, 'queue_changed')) return;
-    const uiConversation = toUIConversation(conversation);
-    this.app?.$store?.dispatch('updateConversation', uiConversation);
     this.app?.$store?.dispatch(
       'abravelyConversationPanel/applyRealtimeConversation',
-      uiConversation
+      conversation
     );
   }
 }
