@@ -1,10 +1,22 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useStoreGetters } from 'dashboard/composables/store';
+import { useAccount } from 'dashboard/composables/useAccount';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
 const getters = useStoreGetters();
 const currentUser = computed(() => getters.getCurrentUser.value || {});
+const { accountId } = useAccount();
+
+const channelRoute = channel => ({
+  name: 'settings_inboxes_page_channel',
+  params: { accountId: accountId.value, sub_page: channel },
+});
+
+const receptionRoute = computed(() => ({
+  name: 'home',
+  params: { accountId: accountId.value },
+}));
 
 const copiedWebhook = ref(false);
 const copiedToken = ref(false);
@@ -76,7 +88,7 @@ const copyText = (text, type) => {
             <NextButton
               type="button"
               color="blue"
-              size="medium"
+              size="md"
               class="flex-shrink-0 font-medium"
               @click="copyText(webhookUrl, 'webhook')"
             >
@@ -100,7 +112,7 @@ const copyText = (text, type) => {
             <NextButton
               type="button"
               color="blue"
-              size="medium"
+              size="md"
               class="flex-shrink-0 font-medium"
               @click="copyText(verifyToken, 'token')"
             >
@@ -114,7 +126,7 @@ const copyText = (text, type) => {
     <!-- Cards de Ações Rápidas -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <router-link
-        :to="{ name: 'settings_inboxes_new_cloud_whatsapp' }"
+        :to="channelRoute('whatsapp_official')"
         class="p-5 rounded-xl border border-n-weak/40 bg-n-solid-2 hover:border-n-brand transition-all flex flex-col justify-between space-y-3 group"
       >
         <div class="space-y-2">
@@ -134,7 +146,7 @@ const copyText = (text, type) => {
       </router-link>
 
       <router-link
-        :to="{ name: 'settings_inbox_new' }"
+        :to="channelRoute('whatsapp_qrcode')"
         class="p-5 rounded-xl border border-n-weak/40 bg-n-solid-2 hover:border-n-brand transition-all flex flex-col justify-between space-y-3 group"
       >
         <div class="space-y-2">
@@ -154,7 +166,7 @@ const copyText = (text, type) => {
       </router-link>
 
       <router-link
-        :to="{ name: 'conversation_unattended' }"
+        :to="receptionRoute"
         class="p-5 rounded-xl border border-n-weak/40 bg-n-solid-2 hover:border-n-brand transition-all flex flex-col justify-between space-y-3 group"
       >
         <div class="space-y-2">
