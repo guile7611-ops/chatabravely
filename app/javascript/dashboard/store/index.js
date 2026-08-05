@@ -1,6 +1,7 @@
 import { createStore } from 'vuex';
 
 import accounts from './modules/accounts';
+import abravelyConversationPanel from './modules/abravelyConversationPanel';
 import agents from './modules/agents';
 import articles from './modules/helpCenterArticles';
 import attributes from './modules/attributes';
@@ -45,6 +46,7 @@ const plugins = [];
 export default createStore({
   modules: {
     accounts,
+    abravelyConversationPanel,
     agents,
     articles,
     attributes,
