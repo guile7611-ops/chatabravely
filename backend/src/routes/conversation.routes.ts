@@ -6,6 +6,12 @@ import { emitToWorkspace } from '../socket/socket';
 import { authenticateToken } from '../middlewares/auth.middleware';
 
 const router = Router();
+const META_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+const getMetaWindow = (lastCustomerMessageAt: Date | null) => {
+  const expiresAt = lastCustomerMessageAt ? new Date(lastCustomerMessageAt.getTime() + META_WINDOW_MS) : null;
+  return { isOpen: Boolean(expiresAt && expiresAt.getTime() > Date.now()), expiresAt: expiresAt?.toISOString() || null };
+};
 
 // Aplicar autenticação JWT em todas as rotas de conversas
 router.use(authenticateToken);
@@ -219,6 +225,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       conversation: {
         ...conversation,
         can_reply: conversation.queue === 'CONVERSATION' && conversation.agentId === user.id,
+        meta_window: conversation.channel.type === 'META_CLOUD' ? getMetaWindow(conversation.lastCustomerMessageAt) : null,
         messages,
         activityLogs
       }
@@ -546,9 +553,7 @@ router.post('/:id/messages', async (req: Request, res: Response) => {
     }
 
     if (!isPrivate && conversation.channel.type === 'META_CLOUD') {
-      const windowStart = conversation.lastCustomerMessageAt?.getTime() || 0;
-      const windowOpen = Date.now() - windowStart < 24 * 60 * 60 * 1000;
-      if (!windowOpen) {
+      if (!getMetaWindow(conversation.lastCustomerMessageAt).isOpen) {
         return res.status(403).json({
           success: false,
           code: 'META_24H_WINDOW_EXPIRED',
@@ -827,7 +832,7 @@ router.post('/:id/send-template', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Disparo de templates HSM é exclusivo para canais WhatsApp Meta Cloud API.' });
     }
 
-    const { metaPhoneNumberId, metaToken } = conversation.channel;
+    const { metaPhoneNumberId, metaToken, metaWabaId } = conversation.channel;
 
     if (!metaPhoneNumberId || !metaToken) {
       return res.status(400).json({ success: false, message: 'Credenciais da Meta Cloud API não estão configuradas neste canal.' });
@@ -844,18 +849,36 @@ router.post('/:id/send-template', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Template Meta aprovado é obrigatório.' });
     }
 
+    if (!metaWabaId) {
+      return res.status(400).json({ success: false, message: 'WABA ID nao configurado neste canal Meta.' });
+    }
+
+    const approvedTemplates: Array<{ name: string; language?: string; components?: Array<{ type?: string; text?: string }> }> = await MetaService.fetchTemplates(metaWabaId, metaToken);
+    const approvedTemplate = approvedTemplates.find((template) => template.name === templateName);
+    if (!approvedTemplate) {
+      return res.status(400).json({ success: false, message: 'O template selecionado nao esta aprovado para este canal Meta.' });
+    }
+    const bodyComponent = approvedTemplate.components?.find((component: any) => component.type === 'BODY');
+    const templateBody = bodyComponent?.text || `[Template Meta: ${approvedTemplate.name}]`;
+    const expectedParameters = (Array.from(templateBody.matchAll(/\{\{(\d+)\}\}/g)) as RegExpMatchArray[])
+      .map(match => Number(match[1]))
+      .reduce((largest, index) => Math.max(largest, index), 0);
+    if (paramArray.length !== expectedParameters) {
+      return res.status(400).json({ success: false, message: `Este template exige ${expectedParameters} parametro(s); foram informados ${paramArray.length}.` });
+    }
+
     // Disparar template via Meta Cloud API
     await MetaService.sendTemplateMessage(
       metaPhoneNumberId,
       metaToken,
       recipientPhone,
-      templateName,
-      languageCode || 'pt_BR',
+      approvedTemplate.name,
+      approvedTemplate.language || languageCode || 'pt_BR',
       paramArray
     );
 
     // Formatar texto exibido no chat
-    let bodyContent = templateText || `[Template Meta: ${templateName}]`;
+    let bodyContent = templateBody;
     if (paramArray.length > 0) {
       paramArray.forEach((val, idx) => {
         bodyContent = bodyContent.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), val);
