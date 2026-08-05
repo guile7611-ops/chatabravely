@@ -12,7 +12,6 @@ import {
   useStoreGetters,
   useStore,
 } from 'dashboard/composables/store';
-import ChannelName from './components/ChannelName.vue';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 

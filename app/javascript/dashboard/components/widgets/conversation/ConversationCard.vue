@@ -9,7 +9,6 @@ import CardLabels from './conversationCardComponents/CardLabels.vue';
 import CardPriorityIcon from 'dashboard/components-next/Conversation/ConversationCard/CardPriorityIcon.vue';
 import UnreadBadge from 'dashboard/components-next/Conversation/ConversationCard/UnreadBadge.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
-import VoiceCallStatus from './VoiceCallStatus.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 
 const props = defineProps({
@@ -37,17 +36,6 @@ const hovered = ref(false);
 const unreadCount = computed(() => props.chat.unread_count);
 const hasUnread = computed(() => unreadCount.value > 0);
 const lastMessageInChat = computed(() => getLastMessage(props.chat));
-
-const voiceCallData = computed(() => {
-  const last = lastMessageInChat.value;
-  if (last?.content_type !== 'voice_call' || !last.call) {
-    return { status: null, direction: null };
-  }
-  return {
-    status: last.call.status,
-    direction: last.call.direction === 'outgoing' ? 'outbound' : 'inbound',
-  };
-});
 
 const showMetaSection = computed(() => {
   return (
@@ -174,15 +162,8 @@ watch(
       >
         {{ currentContact.name }}
       </h4>
-      <VoiceCallStatus
-        v-if="voiceCallData.status"
-        key="voice-status-row"
-        :status="voiceCallData.status"
-        :direction="voiceCallData.direction"
-        :message-preview-class="messagePreviewClass"
-      />
       <MessagePreview
-        v-else-if="lastMessageInChat"
+        v-if="lastMessageInChat"
         key="message-preview"
         :message="lastMessageInChat"
         class="my-0 mx-2 leading-6 h-6 flex-1 min-w-0 text-sm"

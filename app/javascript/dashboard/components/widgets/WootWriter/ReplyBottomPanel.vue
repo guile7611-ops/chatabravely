@@ -7,14 +7,13 @@ import * as ActiveStorage from 'activestorage';
 import inboxMixin from 'shared/mixins/inboxMixin';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { getAllowedFileTypesByChannel } from '@chatwoot/utils';
-import VideoCallButton from '../VideoCallButton.vue';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import { mapGetters } from 'vuex';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
 export default {
   name: 'ReplyBottomPanel',
-  components: { NextButton, FileUpload, VideoCallButton },
+  components: { NextButton, FileUpload },
   mixins: [inboxMixin],
   props: {
     isNote: {
@@ -366,14 +365,6 @@ export default {
         faded
         sm
         @click="$emit('selectContentTemplate')"
-      />
-      <VideoCallButton
-        v-if="
-          (isAWebWidgetInbox || isAPIInbox) &&
-          !isOnPrivateNote &&
-          !isEditorDisabled
-        "
-        :conversation-id="conversationId"
       />
       <transition name="modal-fade">
         <div
