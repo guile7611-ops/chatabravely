@@ -610,12 +610,8 @@ function updateAssigneeTab(selectedTab) {
     resetBulkActions();
     emitter.emit('clearSearchInput');
     activeAssigneeTab.value = selectedTab;
-    // A conversa aberta pertence à fila anterior. Ao trocar de fila,
-    // sempre voltamos para a lista para não exibir um detalhe fora de contexto.
-    if (route.params.conversation_id) {
-      store.dispatch('clearSelectedState');
-      redirectToConversationList();
-    }
+    // A troca de fila filtra somente a lista. A conversa selecionada continua
+    // aberta até que o usuário escolha outra conversa ou a feche.
     if (!currentPage.value) {
       fetchConversations();
     }
