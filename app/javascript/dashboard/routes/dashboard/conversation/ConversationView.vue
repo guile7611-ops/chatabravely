@@ -3,7 +3,7 @@ import { mapGetters } from 'vuex';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAccount } from 'dashboard/composables/useAccount';
 import ChatList from '../../../components/ChatList.vue';
-import ConversationBox from '../../../components/widgets/conversation/ConversationBox.vue';
+import AbravelyConversationPanel from '../../../components/AbravelyConversationPanel.vue';
 import ConversationEmptyState from '../../../components/widgets/conversation/EmptyState/EmptyState.vue';
 import wootConstants from 'dashboard/constants/globals';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
@@ -15,7 +15,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 export default {
   components: {
     ChatList,
-    ConversationBox,
+    AbravelyConversationPanel,
     ConversationEmptyState,
     CmdBarConversationSnooze,
     ConversationSidebar,
@@ -60,6 +60,7 @@ export default {
   data() {
     return {
       showSearchModal: false,
+      isConversationActionRunning: false,
     };
   },
   computed: {
@@ -67,6 +68,9 @@ export default {
       chatList: 'getAllConversations',
       currentChat: 'getSelectedChat',
       conversationsError: 'getConversationsError',
+      currentUserId: 'getCurrentUserID',
+      attendants: 'agents/getAgents',
+      departments: 'teams/getTeams',
     }),
     showConversationList() {
       return this.isOnExpandedLayout ? !this.conversationId : true;
@@ -194,6 +198,52 @@ export default {
     closeSearch() {
       this.showSearchModal = false;
     },
+    async refreshCurrentConversation() {
+      await this.$store.dispatch('getConversation', this.conversationId);
+      await this.$store.dispatch('fetchAllConversations');
+    },
+    async runConversationAction(action, payload) {
+      if (!this.conversationId || this.isConversationActionRunning) return;
+
+      this.isConversationActionRunning = true;
+      try {
+        await this.$store.dispatch(`abravelyConversationPanel/${action}`, payload);
+        await this.refreshCurrentConversation();
+      } catch (error) {
+        this.$store.commit(
+          'SET_CONVERSATIONS_ERROR',
+          error?.response?.data?.message ||
+            error?.message ||
+            'Não foi possível concluir a ação na conversa.'
+        );
+      } finally {
+        this.isConversationActionRunning = false;
+      }
+    },
+    claimConversation() {
+      return this.runConversationAction('claim', this.conversationId);
+    },
+    transferConversation(destination) {
+      return this.runConversationAction('transfer', {
+        conversationId: this.conversationId,
+        ...destination,
+      });
+    },
+    closeConversation() {
+      return this.runConversationAction('close', {
+        conversationId: this.conversationId,
+        reason: 'Resolvido pelo atendente',
+      });
+    },
+    reopenConversation() {
+      return this.runConversationAction('reopen', this.conversationId);
+    },
+    sendNativeMessage(message) {
+      return this.runConversationAction('sendMessage', {
+        conversationId: this.conversationId,
+        ...message,
+      });
+    },
   },
 };
 </script>
@@ -224,10 +274,18 @@ export default {
         :is-on-expanded-layout="isOnExpandedLayout"
         @conversation-load="onConversationLoad"
       />
-      <ConversationBox
+      <AbravelyConversationPanel
         v-if="showMessageView"
-        :inbox-id="inboxId"
-        :is-on-expanded-layout="isOnExpandedLayout"
+        :conversation="currentChat"
+        :current-user-id="currentUserId"
+        :attendants="attendants"
+        :departments="departments"
+        :is-submitting="isConversationActionRunning"
+        @claim="claimConversation"
+        @transfer="transferConversation"
+        @close="closeConversation"
+        @reopen="reopenConversation"
+        @send-message="sendNativeMessage"
       />
       <ConversationEmptyState
         v-else

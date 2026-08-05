@@ -38,6 +38,9 @@ const mountView = ({
       getAllConversations: chatList,
       getSelectedChat: currentChat,
       getConversationsError: null,
+      getCurrentUserID: 'user-1',
+      'agents/getAgents': [],
+      'teams/getTeams': [],
     },
   };
 
@@ -51,7 +54,10 @@ const mountView = ({
       },
       stubs: {
         ChatList: true,
-        ConversationBox: true,
+        AbravelyConversationPanel: {
+          name: 'AbravelyConversationPanel',
+          template: '<div />',
+        },
         ConversationEmptyState: true,
         CmdBarConversationSnooze: true,
         SidepanelSwitch: true,
@@ -83,7 +89,7 @@ describe('ConversationView', () => {
     });
 
     expect(dispatch).toHaveBeenCalledWith('clearSelectedState');
-    expect(wrapper.findComponent({ name: 'ConversationBox' }).exists()).toBe(
+    expect(wrapper.findComponent({ name: 'AbravelyConversationPanel' }).exists()).toBe(
       false
     );
     expect(
@@ -102,7 +108,7 @@ describe('ConversationView', () => {
       'getConversation',
       'conversation-not-in-list-yet'
     );
-    expect(wrapper.findComponent({ name: 'ConversationBox' }).exists()).toBe(
+    expect(wrapper.findComponent({ name: 'AbravelyConversationPanel' }).exists()).toBe(
       true
     );
   });

@@ -48,8 +48,11 @@ const canReply = computed(() => Boolean(props.conversation.can_reply));
 const isClosed = computed(() => queue.value === 'CLOSED' || props.conversation.status === 'CLOSED');
 const canReopen = computed(() => isClosed.value);
 const metaWindow = computed(() => props.conversation.meta_window);
+const channelType = computed(
+  () => props.conversation.channel?.type || props.conversation.meta?.channel || ''
+);
 const isMetaWindowClosed = computed(
-  () => props.conversation.channel?.type === 'META_CLOUD' && !metaWindow.value?.isOpen
+  () => channelType.value === 'META_CLOUD' && !metaWindow.value?.isOpen
 );
 const panelStyle = computed(() => ({ backgroundImage: `url(${chatWallpaper})` }));
 
