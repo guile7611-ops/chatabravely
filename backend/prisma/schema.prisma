@@ -153,6 +153,7 @@ model Contact {
   workspaceId   String
   workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   conversations Conversation[]
+  resolutions   ConversationResolution[]
   labels        Label[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -254,6 +255,7 @@ model ConversationResolution {
   workspace            Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   channelId            String
   contactId            String
+  contact              Contact      @relation(fields: [contactId], references: [id], onDelete: Restrict)
   departmentId         String?
   departmentName       String?
   assignedAgentId      String?

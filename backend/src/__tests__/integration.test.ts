@@ -18,6 +18,7 @@ import helpRoutes from '../routes/help.routes';
 import webhookRoutes from '../routes/webhook.routes';
 import cannedResponseRoutes from '../routes/canned-response.routes';
 import accountRoutes from '../routes/account.routes';
+import reportRoutes from '../routes/report.routes';
 
 // Validar Isolamento de Banco de Testes via DATABASE_URL_TEST se configurado
 if (process.env.DATABASE_URL_TEST && process.env.DATABASE_URL && process.env.DATABASE_URL_TEST === process.env.DATABASE_URL) {
@@ -38,6 +39,7 @@ app.use('/api/v1/help', helpRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/canned-responses', cannedResponseRoutes);
 app.use('/api/v1/accounts/:accountId', accountRoutes);
+app.use('/api/v1/reports', reportRoutes);
 
 const server = http.createServer(app);
 initSocket(server);
@@ -336,6 +338,12 @@ async function runIntegrationTests() {
     assert.strictEqual(resClose.status, 200, 'Encerramento retorna 200');
     assert.strictEqual(resClose.body.conversation.queue, 'CLOSED');
     assert(resClose.body.resolution?.id, 'Encerramento deve criar snapshot para relatórios');
+
+    const resFinalized = await request(app)
+      .get('/api/v1/reports/finalized')
+      .set('Authorization', `Bearer ${tokenAdminWs1}`);
+    assert.strictEqual(resFinalized.status, 200, 'Relatórios deve listar finalizações do workspace');
+    assert(resFinalized.body.payload.some((item: any) => item.conversation_id === convNoAgent.id));
 
     const resReopen = await request(app)
       .post(`/api/v1/conversations/${convNoAgent.id}/reopen`)

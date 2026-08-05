@@ -22,6 +22,7 @@ import CsatResponses from './CsatResponses.vue';
 import BotReports from './BotReports.vue';
 import LiveReports from './LiveReports.vue';
 import SLAReports from './SLAReports.vue';
+import Finalized from './Finalized.vue';
 
 const meta = {
   permissions: ['administrator', 'report_manage'],
@@ -145,6 +146,12 @@ export default {
           name: 'conversation_reports',
           meta,
           component: Index,
+        },
+        {
+          path: 'finalizados',
+          name: 'finalized_conversations_reports',
+          meta,
+          component: Finalized,
         },
         ...oldReportRoutes,
         ...revisedReportRoutes,

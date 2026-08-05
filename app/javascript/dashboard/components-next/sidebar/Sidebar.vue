@@ -304,6 +304,11 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.REPORTS_OVERVIEW'),
           to: accountScopedRoute('account_overview_reports'),
         },
+        {
+          name: 'Finalized Conversations',
+          label: 'Finalizados',
+          to: accountScopedRoute('finalized_conversations_reports'),
+        },
       ],
     },
 
