@@ -32,29 +32,21 @@ export const getters = {
       .sort((a, b) => a.title.localeCompare(b.title));
   },
   getLabelById: _state => id => {
-    return _state.records.find(record => record.id === Number(id)) || {};
+    return _state.records.find(record => String(record.id) === String(id)) || {};
   },
 };
 
 export const actions = {
-  revalidate: async function revalidate({ commit }, { newKey }) {
-    try {
-      const isExistingKeyValid = await LabelsAPI.validateCacheKey(newKey);
-      if (!isExistingKeyValid) {
-        const response = await LabelsAPI.refetchAndCommit(newKey);
-        commit(types.SET_LABELS, response.data.payload);
-      }
-    } catch (error) {
-      // Ignore error
-    }
+  revalidate: async function revalidate({ dispatch }) {
+    return dispatch('get');
   },
 
   get: async function getLabels({ commit }) {
     commit(types.SET_LABEL_ERROR, null);
     commit(types.SET_LABEL_UI_FLAG, { isFetching: true });
     try {
-      const response = await LabelsAPI.get(true);
-      const sortedLabels = response.data.payload.sort((a, b) =>
+      const response = await LabelsAPI.get();
+      const sortedLabels = response.data.data.sort((a, b) =>
         a.title.localeCompare(b.title)
       );
       commit(types.SET_LABELS, sortedLabels);
@@ -77,9 +69,9 @@ export const actions = {
     try {
       const response = await LabelsAPI.create(cannedObj);
       AnalyticsHelper.track(LABEL_EVENTS.CREATE);
-      commit(types.ADD_LABEL, response.data);
+      commit(types.ADD_LABEL, response.data.data);
       commit(types.SET_LABEL_ERROR, null);
-      return response.data;
+      return response.data.data;
     } catch (error) {
       const errorMessage =
         error?.response?.data?.message ||
@@ -98,9 +90,9 @@ export const actions = {
     try {
       const response = await LabelsAPI.update(id, updateObj);
       AnalyticsHelper.track(LABEL_EVENTS.UPDATE);
-      commit(types.EDIT_LABEL, response.data);
+      commit(types.EDIT_LABEL, response.data.data);
       commit(types.SET_LABEL_ERROR, null);
-      return response.data;
+      return response.data.data;
     } catch (error) {
       const errorMessage =
         error?.response?.data?.message ||

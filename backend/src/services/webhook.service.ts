@@ -1,8 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { MessageContentType, MessageSenderType } from '@prisma/client';
 import { emitToWorkspace } from '../socket/socket';
-import { AiService } from './ai.service';
-import { inMemoryConversations } from '../routes/account.routes';
 
 export class WebhookService {
   /**
@@ -101,12 +99,9 @@ export class WebhookService {
           isNewConversation = true;
           conversation = await prisma.conversation.create({
             data: {
-              idNumber: `#${Math.floor(100 + Math.random() * 900)}`,
+              idNumber: `#${Date.now().toString().slice(-8)}`,
               queue: 'RECEPTION',
               status: 'UNATTENDED',
-              priority: 'Nenhuma',
-              assignedTeam: 'Sem departamento',
-              slaTimer: '1h 00m',
               unreadCount: 1,
               workspaceId: channel.workspaceId,
               channelId: channel.id,
@@ -188,13 +183,6 @@ export class WebhookService {
           conversation: conversation
         });
 
-        // 6. Se for mensagem recebida do cliente na fila RECEPTION e sem atendente -> Disparar IA de Recepção
-        if (!isFromMe && conversation.queue === 'RECEPTION' && conversation.agentId === null) {
-          AiService.handleAiAutoResponse(conversation.id, textContent).catch(err => {
-            console.error('❌ Erro no disparo assíncrono da IA na Recepção:', err);
-          });
-        }
-
         return { success: true, messageId: newMessage.id };
       }
 
@@ -222,7 +210,7 @@ export class WebhookService {
         const phone = '+' + msg.from.replace(/\D/g, '');
         const pushName = contactInfo?.profile?.name || 'Cliente WhatsApp Meta';
 
-        // 1. Localizar canal Meta por Phone Number ID (com busca flexível e fallback por workspace)
+        // 1. Localizar o canal Meta previamente configurado.
         const displayPhoneNumber = value.metadata?.display_phone_number;
         const cleanDisplay = displayPhoneNumber ? displayPhoneNumber.replace(/\D/g, '') : '';
 
@@ -247,31 +235,12 @@ export class WebhookService {
           }
 
           if (!channel) {
-            let workspace = await prisma.workspace.findFirst();
-            if (!workspace) {
-              workspace = await prisma.workspace.create({
-                data: { name: 'Workspace Principal' }
-              });
-            }
-            channel = await prisma.channel.create({
-              data: {
-                name: displayPhoneNumber ? `WhatsApp ${displayPhoneNumber}` : 'WhatsApp Meta Cloud API (Oficial)',
-                type: 'META_CLOUD',
-                connectionStatus: 'CONNECTED',
-                metaPhoneNumberId: phoneNumberId || 'default',
-                workspaceId: workspace.id
-              }
-            });
-            console.log(`✨ [WebhookService] Canal Meta Cloud API criado automaticamente: ${channel.id}`);
+            throw new Error(
+              `Canal Meta não configurado para o Phone Number ID ${phoneNumberId}.`
+            );
           }
         } catch (dbErr) {
-          channel = {
-            id: 'channel_meta_cloud_1',
-            name: displayPhoneNumber ? `WhatsApp ${displayPhoneNumber}` : 'WhatsApp Meta Cloud API (Oficial)',
-            type: 'META_CLOUD',
-            connectionStatus: 'CONNECTED',
-            workspaceId: 'default_workspace_id'
-          };
+          throw dbErr;
         }
 
         let textContent = msg.text?.body || 'Mensagem oficial da Meta';
@@ -299,11 +268,7 @@ export class WebhookService {
             });
           }
         } catch (dbErr) {
-          contact = {
-            id: `contact_${phone.replace(/\D/g, '')}`,
-            name: pushName,
-            phone: phone
-          };
+          throw dbErr;
         }
 
         // 3. Buscar ou criar Conversa (Obrigatório cair na fila RECEPTION se não houver atendente atribuído)
@@ -322,12 +287,9 @@ export class WebhookService {
             isNewConversation = true;
             conversation = await prisma.conversation.create({
               data: {
-                idNumber: `#${Math.floor(100 + Math.random() * 900)}`,
+                idNumber: `#${Date.now().toString().slice(-8)}`,
                 queue: 'RECEPTION',
                 status: 'UNATTENDED',
-                priority: 'Nenhuma',
-                assignedTeam: 'Sem departamento',
-                slaTimer: '1h 00m',
                 unreadCount: 1,
                 workspaceId: channel.workspaceId,
                 channelId: channel.id,
@@ -361,24 +323,11 @@ export class WebhookService {
             });
           }
         } catch (dbErr) {
-          conversation = {
-            id: `conv_${phone.replace(/\D/g, '')}`,
-            queue: 'RECEPTION',
-            status: 'UNATTENDED',
-            unreadCount: 1,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            agentId: null,
-            workspaceId: channel.workspaceId,
-            channelId: channel.id,
-            contactId: contact.id
-          };
+          throw dbErr;
         }
 
         // 4. Salvar Mensagem do Cliente
-        let newMessage: any = null;
-        try {
-          newMessage = await prisma.message.create({
+        const newMessage = await prisma.message.create({
             data: {
               externalId: msg.id,
               conversationId: conversation.id,
@@ -388,41 +337,7 @@ export class WebhookService {
               senderName: contact.name,
               mediaUrl: mediaUrl
             }
-          });
-        } catch (e) {
-          newMessage = {
-            id: msg.id || `msg_${Date.now()}`,
-            content: textContent,
-            contentType: contentType,
-            senderType: 'CUSTOMER',
-            senderName: contact.name,
-            mediaUrl: mediaUrl,
-            createdAt: new Date(),
-            isPrivate: false
-          };
-        }
-
-        // Sincronizar conversa com inMemoryConversations para resiliência local/offline
-        const memConv = {
-          id: conversation.id,
-          channelId: channel.id || 1,
-          status: 'UNATTENDED',
-          queue: conversation.queue || 'RECEPTION',
-          agentId: conversation.agentId || null,
-          departmentId: conversation.departmentId || null,
-          unreadCount: (conversation.unreadCount || 0) + 1,
-          createdAt: conversation.createdAt || new Date(),
-          updatedAt: new Date(),
-          contact,
-          channel,
-          messages: [newMessage]
-        };
-        const existingMemIdx = inMemoryConversations.findIndex((c: any) => c.id === conversation.id);
-        if (existingMemIdx >= 0) {
-          inMemoryConversations[existingMemIdx] = memConv;
-        } else {
-          inMemoryConversations.unshift(memConv);
-        }
+        });
 
         // 5. Emitir eventos WebSocket no formato ActionCable (com notação de ponto) para atualização em tempo real do frontend
         const nowSec = Math.floor(Date.now() / 1000);
@@ -504,13 +419,6 @@ export class WebhookService {
           conversationId: conversation.id,
           conversation: conversation
         });
-
-        // 6. Se a conversa estiver na fila RECEPTION e sem atendente -> Disparar IA da Recepção
-        if (conversation.queue === 'RECEPTION' && conversation.agentId === null) {
-          AiService.handleAiAutoResponse(conversation.id, textContent).catch(err => {
-            console.error('❌ Erro no disparo assíncrono da IA Meta na Recepção:', err);
-          });
-        }
 
         console.log(`📥 [WebhookService] Mensagem Meta processada com sucesso ID ${newMessage.id}`);
         return { success: true, messageId: newMessage.id };

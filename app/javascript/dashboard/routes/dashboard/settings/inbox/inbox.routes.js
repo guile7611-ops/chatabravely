@@ -5,16 +5,13 @@ import ChannelFactory from './ChannelFactory.vue';
 import SettingsContent from '../Wrapper.vue';
 import SettingsWrapper from '../SettingsWrapper.vue';
 import InboxHome from './Index.vue';
-import Settings from './Settings.vue';
 import InboxChannel from './InboxChannels.vue';
 import ChannelList from './ChannelList.vue';
-import AddAgents from './AddAgents.vue';
-import FinishSetup from './FinishSetup.vue';
 
 export default {
   routes: [
     {
-      path: frontendURL('accounts/:accountId/settings/inboxes'),
+      path: frontendURL('accounts/:accountId/settings/channels'),
       component: SettingsWrapper,
       children: [
         {
@@ -35,7 +32,7 @@ export default {
       ],
     },
     {
-      path: frontendURL('accounts/:accountId/settings/inboxes'),
+      path: frontendURL('accounts/:accountId/settings/channels'),
       component: SettingsContent,
       props: params => {
         const showBackButton = params.name !== 'settings_inbox_list';
@@ -62,15 +59,6 @@ export default {
               },
             },
             {
-              path: ':inbox_id/finish',
-              name: 'settings_inbox_finish',
-              component: FinishSetup,
-              meta: {
-                featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
-                permissions: ['administrator'],
-              },
-            },
-            {
               path: ':sub_page',
               name: 'settings_inboxes_page_channel',
               component: ChannelFactory,
@@ -82,27 +70,16 @@ export default {
                 return { channelName: route.params.sub_page };
               },
             },
-            {
-              path: ':inbox_id/agents',
-              name: 'settings_inboxes_add_agents',
-              meta: {
-                featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
-                permissions: ['administrator'],
-              },
-              component: AddAgents,
-            },
           ],
         },
-        {
-          path: ':inboxId/:tab?',
-          name: 'settings_inbox_show',
-          component: Settings,
-          meta: {
-            featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
-            permissions: ['administrator'],
-          },
-        },
       ],
+    },
+    {
+      path: frontendURL('accounts/:accountId/settings/inboxes/:pathMatch(.*)*'),
+      redirect: to => ({
+        name: 'settings_inbox_list',
+        params: { accountId: to.params.accountId },
+      }),
     },
   ],
 };

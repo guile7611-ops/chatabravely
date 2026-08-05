@@ -15,7 +15,7 @@ export const actions = {
     commit(SET_TEAM_UI_FLAG, { isCreating: true });
     try {
       const response = await TeamsAPI.create(teamInfo);
-      const team = response.data;
+      const team = response.data.data;
       commit(SET_TEAM_ITEM, team);
       commit(SET_TEAM_ERROR, null);
       return team;
@@ -30,24 +30,14 @@ export const actions = {
       commit(SET_TEAM_UI_FLAG, { isCreating: false });
     }
   },
-  revalidate: async ({ commit }, { newKey }) => {
-    try {
-      const isExistingKeyValid = await TeamsAPI.validateCacheKey(newKey);
-      if (!isExistingKeyValid) {
-        const response = await TeamsAPI.refetchAndCommit(newKey);
-        commit(SET_TEAMS, response.data);
-      }
-    } catch (error) {
-      // Ignore error
-    }
-  },
+  revalidate: async ({ dispatch }) => dispatch('get'),
   get: async ({ commit }) => {
     commit(SET_TEAM_ERROR, null);
     commit(SET_TEAM_UI_FLAG, { isFetching: true });
     try {
-      const { data } = await TeamsAPI.get(true);
+      const { data } = await TeamsAPI.get();
       commit(CLEAR_TEAMS);
-      commit(SET_TEAMS, data);
+      commit(SET_TEAMS, data.data);
       commit(SET_TEAM_ERROR, null);
     } catch (error) {
       const errorMessage =
@@ -65,7 +55,7 @@ export const actions = {
     commit(SET_TEAM_UI_FLAG, { isFetchingItem: true });
     try {
       const response = await TeamsAPI.show(id);
-      commit(SET_TEAM_ITEM, response.data.payload);
+      commit(SET_TEAM_ITEM, response.data.data);
       commit(SET_TEAM_ERROR, null);
     } catch (error) {
       const errorMessage =
@@ -85,9 +75,9 @@ export const actions = {
     commit(SET_TEAM_UI_FLAG, { isUpdating: true });
     try {
       const response = await TeamsAPI.update(id, updateObj);
-      commit(EDIT_TEAM, response.data);
+      commit(EDIT_TEAM, response.data.data);
       commit(SET_TEAM_ERROR, null);
-      return response.data;
+      return response.data.data;
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||

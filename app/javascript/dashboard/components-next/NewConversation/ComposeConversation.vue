@@ -137,8 +137,16 @@ const handleSelectedContact = async ({ value, action, ...rest }) => {
   }
 };
 
-const handleTargetInbox = inbox => {
+const handleTargetInbox = async inbox => {
   targetInbox.value = inbox;
+  if (inbox?.provider === 'META_CLOUD') {
+    try {
+      const templates = await store.dispatch('inboxes/syncTemplates', inbox.id);
+      targetInbox.value = { ...inbox, messageTemplates: templates };
+    } catch (error) {
+      useAlert('Não foi possível carregar os templates aprovados da Meta.');
+    }
+  }
   if (!inbox) clearFormState();
   resetContacts();
 };
@@ -203,7 +211,7 @@ const onPopoverHide = () => {
 
 watch(
   activeContact,
-  (currentContact, previousContact) => {
+  async (currentContact, previousContact) => {
     if (currentContact && props.contactId) {
       // Reset on contact change
       if (currentContact?.id !== previousContact?.id) {
@@ -213,13 +221,21 @@ watch(
       }
 
       // First process the contactable inboxes to get the right structure
-      const processedInboxes = processContactableInboxes(
-        currentContact.contactInboxes || []
-      );
+      let contactInboxes = currentContact.contactInboxes || [];
+      if (!contactInboxes.length) {
+        isFetchingInboxes.value = true;
+        try {
+          contactInboxes = await fetchContactableInboxes(currentContact.id);
+        } finally {
+          isFetchingInboxes.value = false;
+        }
+      } else {
+        contactInboxes = processContactableInboxes(contactInboxes);
+      }
       // Then Merge processedInboxes with the inboxes list
       selectedContact.value = {
         ...currentContact,
-        contactInboxes: mergeInboxDetails(processedInboxes, inboxesList.value),
+        contactInboxes: mergeInboxDetails(contactInboxes, inboxesList.value),
       };
     }
   },

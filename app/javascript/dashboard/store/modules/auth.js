@@ -145,8 +145,8 @@ export const actions = {
       if (getAbravelyJwtToken() || authAPI.hasAuthCookie()) {
         await dispatch('validityCheck');
       }
-    } catch (e) {
-      // Ignore auth errors in standalone dev mode
+    } catch (error) {
+      clearAbravelyJwtToken();
     } finally {
       commit(types.SET_CURRENT_USER_UI_FLAGS, { isFetching: false });
     }
@@ -163,8 +163,7 @@ export const actions = {
       const response = await authAPI.profileUpdate(params);
       commit(types.SET_CURRENT_USER, response.data);
     } catch (error) {
-      // Mock update
-      commit(types.SET_CURRENT_USER, { ...params, id: 1 });
+      throw error;
     }
   },
 
@@ -173,7 +172,7 @@ export const actions = {
       const response = await authAPI.profilePasswordUpdate(params);
       commit(types.SET_CURRENT_USER, response.data);
     } catch (error) {
-      // Ignore
+      throw error;
     }
   },
 
@@ -182,7 +181,7 @@ export const actions = {
       const response = await authAPI.deleteAvatar();
       commit(types.SET_CURRENT_USER, response.data);
     } catch (error) {
-      // Ignore
+      throw error;
     }
   },
 

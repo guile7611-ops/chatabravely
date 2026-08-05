@@ -19,10 +19,8 @@ import ChannelLeaf from './ChannelLeaf.vue';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
-import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 import {
   SIDEBAR_SORT_SECTIONS,
-  getSidebarSortOptions,
   resolveSidebarSort,
   sortSidebarItems,
 } from 'dashboard/helper/sidebarSort';
@@ -59,14 +57,6 @@ const currentUserId = useMapGetter('getCurrentUserID');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
-
-const hasAdvancedAssignment = computed(() => {
-  if (typeof isFeatureEnabledonAccount?.value !== 'function') return false;
-  return isFeatureEnabledonAccount.value(
-    accountId.value,
-    FEATURE_FLAGS.ADVANCED_ASSIGNMENT
-  );
-});
 
 const hasConversationUnreadCounts = computed(() => {
   if (typeof isFeatureEnabledonAccount?.value !== 'function') return false;
@@ -200,22 +190,9 @@ useEventListener(document, 'touchmove', onResizeMove, { passive: false });
 useEventListener(document, 'touchend', onResizeEnd);
 
 const inboxes = useMapGetter('inboxes/getInboxes');
-const labels = useMapGetter('labels/getLabelsOnSidebar');
-const allUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getAllUnreadCount',
-  0
-);
-
 const getInboxUnreadCount = useMapGetter(
   'conversationUnreadCounts/getInboxUnreadCount'
 );
-const getLabelUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getLabelUnreadCount'
-);
-const getTeamUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getTeamUnreadCount'
-);
-const teams = useMapGetter('teams/getMyTeams', []);
 const getSidebarSectionSort = useMapGetter(
   'sidebarSortPreferences/getSectionSort'
 );
@@ -234,11 +211,7 @@ const safeCall = (getterRef, param, fallback = 0) => {
 };
 
 onMounted(() => {
-  store.dispatch('labels/get');
   store.dispatch('inboxes/get');
-  store.dispatch('notifications/unReadCount');
-  store.dispatch('teams/get');
-  store.dispatch('attributes/get');
 });
 
 watch([accountId, hasConversationUnreadCounts], fetchConversationUnreadCounts, {
@@ -249,11 +222,6 @@ watch([accountId, currentUserId], fetchSidebarSortPreferences, {
   immediate: true,
 });
 
-const getSortOptionsForSection = section =>
-  getSidebarSortOptions(section, {
-    hasUnreadCounts: hasConversationUnreadCounts.value,
-  });
-
 const getSortForSection = section => {
   const sortFn = getSidebarSectionSort.value;
   const sectionSort = typeof sortFn === 'function' ? sortFn(section) : undefined;
@@ -261,27 +229,6 @@ const getSortForSection = section => {
     hasUnreadCounts: hasConversationUnreadCounts.value,
   });
 };
-
-const updateSortPreference = (section, sortBy) => {
-  store.dispatch('sidebarSortPreferences/setSectionSort', {
-    section,
-    sortBy,
-  });
-};
-
-const buildSortConfig = section => ({
-  sortOptions: getSortOptionsForSection(section),
-  activeSort: getSortForSection(section),
-  onSortChange: sortBy => updateSortPreference(section, sortBy),
-});
-
-const sortedTeams = computed(() =>
-  sortSidebarItems(teams.value || [], {
-    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.TEAMS),
-    labelKey: team => team.name,
-    unreadCountKey: team => safeCall(getTeamUnreadCount, team.id, 0),
-  })
-);
 
 const sortedInboxes = computed(() =>
   sortSidebarItems(inboxes.value || [], {
@@ -291,46 +238,10 @@ const sortedInboxes = computed(() =>
   })
 );
 
-const sortedLabels = computed(() =>
-  sortSidebarItems(labels.value || [], {
-    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.LABELS),
-    labelKey: label => label.title,
-    unreadCountKey: label => safeCall(getLabelUnreadCount, label.id, 0),
-  })
-);
-
 const closeMobileSidebar = () => {
   if (!props.isMobileSidebarOpen) return;
   emit('closeMobileSidebar');
 };
-
-const newReportRoutes = () => [
-  {
-    name: 'Reports Agent',
-    label: t('SIDEBAR.REPORTS_AGENT'),
-    to: accountScopedRoute('agent_reports_index'),
-    activeOn: ['agent_reports_show'],
-  },
-  {
-    name: 'Reports Label',
-    label: t('SIDEBAR.REPORTS_LABEL'),
-    to: accountScopedRoute('label_reports_index'),
-  },
-  {
-    name: 'Reports Inbox',
-    label: t('SIDEBAR.REPORTS_INBOX'),
-    to: accountScopedRoute('inbox_reports_index'),
-    activeOn: ['inbox_reports_show'],
-  },
-  {
-    name: 'Reports Team',
-    label: t('SIDEBAR.REPORTS_TEAM'),
-    to: accountScopedRoute('team_reports_index'),
-    activeOn: ['team_reports_show'],
-  },
-];
-
-const reportRoutes = computed(() => newReportRoutes());
 
 const menuItems = computed(() => {
   return [
@@ -338,59 +249,12 @@ const menuItems = computed(() => {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',
-      children: [
-        {
-          name: 'All',
-          label: t('SIDEBAR.ALL_CONVERSATIONS'),
-          icon: 'i-lucide-inbox',
-          badgeCount: allUnreadCount.value || 0,
-          activeOn: ['inbox_conversation'],
-          to: accountScopedRoute('home'),
-        },
-        {
-          name: 'Participating',
-          label: t('SIDEBAR.PARTICIPATING_CONVERSATIONS'),
-          icon: 'i-lucide-user-round-check',
-          activeOn: ['conversation_through_participating'],
-          to: accountScopedRoute('conversation_participating'),
-        },
-        {
-          name: 'Teams',
-          label: t('SIDEBAR.TEAMS'),
-          icon: 'i-lucide-users',
-          activeOn: ['conversations_through_team'],
-          ...buildSortConfig(SIDEBAR_SORT_SECTIONS.TEAMS),
-          collapsible: true,
-          showTreeLine: true,
-          children: (sortedTeams.value || []).map(team => ({
-            name: `${team.name}-${team.id}`,
-            label: team.name,
-            badgeCount: safeCall(getTeamUnreadCount, team.id, 0),
-            to: accountScopedRoute('team_conversations', { teamId: team.id }),
-          })),
-        },
-        {
-          name: 'Labels',
-          label: t('SIDEBAR.LABELS'),
-          icon: 'i-lucide-tag',
-          activeOn: ['conversations_through_label'],
-          ...buildSortConfig(SIDEBAR_SORT_SECTIONS.LABELS),
-          collapsible: true,
-          showTreeLine: true,
-          children: (sortedLabels.value || []).map(label => ({
-            name: `${label.title}-${label.id}`,
-            label: label.title,
-            badgeCount: safeCall(getLabelUnreadCount, label.id, 0),
-            icon: h('span', {
-              class: `size-[8px] rounded-sm`,
-              style: { backgroundColor: label.color },
-            }),
-            to: accountScopedRoute('label_conversations', {
-              label: label.title,
-            }),
-          })),
-        },
+      activeOn: [
+        'home',
+        'inbox_conversation',
+        'conversation_through_inbox',
       ],
+      to: accountScopedRoute('home'),
     },
     {
       name: 'Channels',
@@ -428,23 +292,6 @@ const menuItems = computed(() => {
         'contacts_dashboard_active',
         'contacts_dashboard_labels_index',
         'contacts_edit',
-      ],
-    },
-    {
-      name: 'Companies',
-      label: t('SIDEBAR.COMPANIES'),
-      icon: 'i-lucide-building-2',
-      children: [
-        {
-          name: 'All Companies',
-          label: t('SIDEBAR.ALL_COMPANIES'),
-          to: accountScopedRoute(
-            'companies_dashboard_index',
-            {},
-            { page: 1, search: undefined }
-          ),
-          activeOn: ['companies_dashboard_index', 'companies_dashboard_show'],
-        },
       ],
     },
     {
@@ -496,13 +343,13 @@ const menuItems = computed(() => {
         // },
         {
           name: 'Settings Agents',
-          label: t('SIDEBAR.AGENTS'),
+          label: 'Atendentes',
           icon: 'i-lucide-square-user',
           to: accountScopedRoute('agent_list'),
         },
         {
           name: 'Settings Teams',
-          label: t('SIDEBAR.TEAMS'),
+          label: 'Departamentos',
           icon: 'i-lucide-users',
           activeOn: [
             'settings_teams_list',
@@ -522,11 +369,8 @@ const menuItems = computed(() => {
           icon: 'i-lucide-inbox',
           activeOn: [
             'settings_inbox_list',
-            'settings_inbox_show',
             'settings_inbox_new',
-            'settings_inbox_finish',
             'settings_inboxes_page_channel',
-            'settings_inboxes_add_agents',
           ],
           to: accountScopedRoute('settings_inbox_list'),
         },
@@ -541,36 +385,6 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.CANNED_RESPONSES'),
           icon: 'i-lucide-message-square-quote',
           to: accountScopedRoute('canned_list'),
-        },
-        {
-          name: 'Settings Audit Logs',
-          label: t('SIDEBAR.AUDIT_LOGS'),
-          icon: 'i-lucide-briefcase',
-          to: accountScopedRoute('auditlogs_list'),
-        },
-        {
-          name: 'Settings Custom Roles',
-          label: t('SIDEBAR.CUSTOM_ROLES'),
-          icon: 'i-lucide-shield-plus',
-          to: accountScopedRoute('custom_roles_list'),
-        },
-        {
-          name: 'Settings Sla',
-          label: t('SIDEBAR.SLA'),
-          icon: 'i-lucide-clock-alert',
-          to: accountScopedRoute('sla_list'),
-        },
-        {
-          name: 'Settings Security',
-          label: t('SIDEBAR.SECURITY'),
-          icon: 'i-lucide-shield',
-          to: accountScopedRoute('security_settings_index'),
-        },
-        {
-          name: 'Settings Billing',
-          label: t('SIDEBAR.BILLING'),
-          icon: 'i-lucide-credit-card',
-          to: accountScopedRoute('billing_settings_index'),
         },
       ],
     },
@@ -656,22 +470,6 @@ const menuItems = computed(() => {
         >
           <span class="i-lucide-search size-4 text-n-slate-11" />
         </RouterLink>
-        <ComposeConversation align="start">
-          <template #trigger="{ isOpen }">
-            <Button
-              icon="i-lucide-pen-line"
-              color="slate"
-              size="sm"
-              class="dark:hover:!bg-n-slate-9/30"
-              :class="[
-                isEffectivelyCollapsed
-                  ? '!size-8 !outline-n-weak !text-n-slate-11'
-                  : '!h-7 !outline-n-weak !text-n-slate-11',
-                { '!bg-n-alpha-2 dark:!bg-n-slate-9/30': isOpen },
-              ]"
-            />
-          </template>
-        </ComposeConversation>
       </div>
     </section>
     <nav

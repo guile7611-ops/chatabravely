@@ -16,40 +16,8 @@ export const routes = [
     meta: commonMeta,
   },
   {
-    path: frontendURL('accounts/:accountId/contacts/segments/:segmentId'),
-    name: 'contacts_dashboard_segments_index',
-    component: ContactsIndex,
-    meta: commonMeta,
-  },
-  {
-    path: frontendURL('accounts/:accountId/contacts/labels/:label'),
-    name: 'contacts_dashboard_labels_index',
-    component: ContactsIndex,
-    meta: commonMeta,
-  },
-  {
-    path: frontendURL('accounts/:accountId/contacts/active'),
-    name: 'contacts_dashboard_active',
-    component: ContactsIndex,
-    meta: commonMeta,
-  },
-  {
     path: frontendURL('accounts/:accountId/contacts/:contactId'),
     name: 'contacts_edit',
-    component: ContactManageView,
-    meta: commonMeta,
-  },
-  {
-    path: frontendURL(
-      'accounts/:accountId/contacts/:contactId/segments/:segmentId'
-    ),
-    name: 'contacts_edit_segment',
-    component: ContactManageView,
-    meta: commonMeta,
-  },
-  {
-    path: frontendURL('accounts/:accountId/contacts/:contactId/labels/:label'),
-    name: 'contacts_edit_label',
     component: ContactManageView,
     meta: commonMeta,
   },

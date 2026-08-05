@@ -25,8 +25,7 @@ export function useAccount() {
   
   const currentAccount = computed(() => {
     if (!accountId.value) return null;
-    const account = getAccountFn.value ? getAccountFn.value(accountId.value) : null;
-    return account || { id: accountId.value, name: 'Abravely Chat', role: 'administrator', status: 'active' };
+    return getAccountFn.value ? getAccountFn.value(accountId.value) : null;
   });
 
   const accountScopedUrl = url => {
@@ -34,8 +33,10 @@ export function useAccount() {
   };
 
   const isCloudFeatureEnabled = feature => {
-    if (!currentAccount.value) return true;
-    return isFeatureEnabledonAccount.value ? isFeatureEnabledonAccount.value(currentAccount.value.id, feature) : true;
+    if (!currentAccount.value) return false;
+    return isFeatureEnabledonAccount.value
+      ? isFeatureEnabledonAccount.value(currentAccount.value.id, feature)
+      : false;
   };
 
   const accountScopedRoute = (name, params, query) => {
@@ -52,16 +53,16 @@ export function useAccount() {
         ...data,
         options,
       });
-    } catch (e) {
-      // Mock fallback
+    } catch (error) {
+      throw error;
     }
   };
 
   const finishOnboarding = async data => {
     try {
       await store.dispatch('accounts/finishOnboarding', data);
-    } catch (e) {
-      // Mock fallback
+    } catch (error) {
+      throw error;
     }
   };
 

@@ -3,11 +3,15 @@ export const getters = {
     return $state.error;
   },
   getTeams($state) {
-    return Object.values($state.records).sort((a, b) => a.id - b.id);
+    return Object.values($state.records).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
   },
   getTeamById: $state => id => {
     return (
-      Object.values($state.records).find(record => record.id === Number(id)) ||
+      Object.values($state.records).find(
+        record => String(record.id) === String(id)
+      ) ||
       {}
     );
   },

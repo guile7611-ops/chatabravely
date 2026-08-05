@@ -151,16 +151,16 @@ model Contact {
 
 model Conversation {
   id                    String             @id @default(uuid())
-  idNumber              String             @default("#100")
+  idNumber              String             @default("")
   channelId             String
   channel               Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
   contactId             String
   contact               Contact            @relation(fields: [contactId], references: [id], onDelete: Cascade)
   status                ConversationStatus @default(UNATTENDED)
   queue                 ConversationQueue  @default(RECEPTION)
-  priority              String             @default("Nenhuma") // Nenhuma, Baixa, Média, Urgente
-  assignedTeam          String             @default("SD 🤝 Sucesso do Cliente")
-  slaTimer              String             @default("9d 22h")
+  priority              String             @default("")
+  assignedTeam          String             @default("")
+  slaTimer              String             @default("")
   unreadCount           Int                @default(0)
   workspaceId           String
   workspace             Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -203,14 +203,16 @@ model ActivityLog {
 }
 
 model Department {
-  id            String         @id @default(uuid())
-  name          String
-  workspaceId   String
-  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  conversations Conversation[]
-  users         User[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id              String         @id @default(uuid())
+  name            String
+  description     String?
+  allowAutoAssign Boolean        @default(true)
+  workspaceId     String
+  workspace       Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversations   Conversation[]
+  users           User[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model CannedResponse {
@@ -265,14 +267,16 @@ model HelpArticle {
 }
 
 model Label {
-  id          String    @id @default(uuid())
-  name        String
-  color       String    @default("#0091ff")
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  contacts    Contact[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String    @id @default(uuid())
+  name          String
+  color         String    @default("#0091ff")
+  description   String?
+  showOnSidebar Boolean   @default(true)
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contacts      Contact[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@unique([workspaceId, name])
 }

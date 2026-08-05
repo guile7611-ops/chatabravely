@@ -105,8 +105,8 @@ export default {
           class="!ps-12"
           name="title"
           spacing="compact"
-          :label="$t('TEAMS_SETTINGS.FORM.NAME.LABEL')"
-          :placeholder="$t('TEAMS_SETTINGS.FORM.NAME.PLACEHOLDER')"
+          label="Nome do departamento"
+          placeholder="Ex.: Comercial"
           :has-error="v$.title.$error"
           :error-message="v$.title.$error ? v$.title.$errors[0].$message : ''"
           @blur="v$.title.$touch"
@@ -146,8 +146,8 @@ export default {
         v-model="state.description"
         name="description"
         spacing="compact"
-        :label="$t('TEAMS_SETTINGS.FORM.DESCRIPTION.LABEL')"
-        :placeholder="$t('TEAMS_SETTINGS.FORM.DESCRIPTION.PLACEHOLDER')"
+        label="Descrição"
+        placeholder="Descreva quando a conversa deve entrar nesta fila"
         :has-error="v$.description.$error"
         :error-message="
           v$.description.$error ? v$.description.$errors[0].$message : ''
@@ -157,7 +157,7 @@ export default {
       <div class="w-full flex items-center gap-2">
         <input v-model="state.allowAutoAssign" type="checkbox" :value="true" />
         <label for="conversation_creation">
-          {{ $t('TEAMS_SETTINGS.FORM.AUTO_ASSIGN.LABEL') }}
+          Permitir que atendentes vinculados assumam conversas desta fila
         </label>
       </div>
       <div class="flex flex-row justify-end gap-2 py-2 px-0 w-full">

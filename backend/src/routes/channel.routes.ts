@@ -26,6 +26,24 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const channel = await prisma.channel.findFirst({
+      where: {
+        id: req.params.id,
+        workspaceId: req.user!.workspaceId,
+        active: true,
+      },
+    });
+    if (!channel) {
+      return res.status(404).json({ success: false, message: 'Canal não encontrado.' });
+    }
+    return res.json({ success: true, channel });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Não foi possível consultar o canal.' });
+  }
+});
+
 /**
  * POST /api/v1/channels/evolution/qr
  * Gerar QR Code base64 e criar/conectar instância no container Evolution API GO

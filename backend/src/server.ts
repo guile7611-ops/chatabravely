@@ -8,10 +8,12 @@ import accountRoutes from './routes/account.routes';
 import webhookRoutes from './routes/webhook.routes';
 import channelRoutes from './routes/channel.routes';
 import conversationRoutes from './routes/conversation.routes';
-import aiRoutes from './routes/ai.routes';
 import helpRoutes from './routes/help.routes';
 import userRoutes from './routes/user.routes';
 import departmentRoutes from './routes/department.routes';
+import attendantRoutes from './routes/attendant.routes';
+import labelRoutes from './routes/label.routes';
+import contactRoutes from './routes/contact.routes';
 
 dotenv.config();
 
@@ -37,10 +39,12 @@ app.use('/api/v1/accounts/:accountId', accountRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/channels', channelRoutes);
 app.use('/api/v1/conversations', conversationRoutes);
-app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/help', helpRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/departments', departmentRoutes);
+app.use('/api/v1/attendants', attendantRoutes);
+app.use('/api/v1/labels', labelRoutes);
+app.use('/api/v1/contacts', contactRoutes);
 
 // Rota de Health Check e Verificacao da Infraestrutura (PostgreSQL + Express + Socket.io)
 app.get('/api/v1/health', async (req: Request, res: Response) => {

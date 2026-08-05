@@ -1,296 +1,70 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { actions } from '../../inboxes';
 import * as types from '../../../mutation-types';
-import WebChannel from '../../../../api/channel/webChannel';
 import InboxesAPI from '../../../../api/inboxes';
-import FBChannel from '../../../../api/channel/fbChannel';
+
+vi.mock('../../../../api/inboxes');
 
 const commit = vi.fn();
-const dispatch = vi.fn();
-vi.mock('../../../../api/inboxes');
-vi.mock('../../../../api/channel/webChannel');
-vi.mock('../../../../api/channel/fbChannel');
 
-describe('inboxes/actions', () => {
-  beforeEach(() => {
-    commit.mockClear();
-    dispatch.mockClear();
-    vi.clearAllMocks();
+describe('inboxes/actions (Meta Oficial e Evolution Go)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('carrega somente os canais reais devolvidos pela API', async () => {
+    InboxesAPI.get.mockResolvedValue({ data: { channels: [{ id: 'meta-1', name: 'WhatsApp Oficial', type: 'META_CLOUD', connectionStatus: 'CONNECTED', metaPhoneNumberId: '123' }] } });
+    await actions.get({ commit });
+    expect(commit).toHaveBeenCalledWith(types.default.SET_INBOXES, [expect.objectContaining({ id: 'meta-1', provider: 'META_CLOUD', medium: 'meta', connection_status: 'CONNECTED' })]);
+    expect(commit).toHaveBeenLastCalledWith(types.default.SET_INBOXES_UI_FLAG, { isFetching: false });
   });
 
-  describe('#get', () => {
-    it('sends correct actions if API is success with list', async () => {
-      const inboxList = [{ id: 1, name: 'Inbox 1', channel_type: 'Channel::Whatsapp' }];
-      InboxesAPI.get.mockResolvedValue({ data: { payload: inboxList } });
-      await actions.get({ commit });
-      expect(InboxesAPI.get).toHaveBeenCalledWith();
-      expect(commit.mock.calls).toEqual([
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isFetching: true }],
-        [types.default.SET_INBOXES, inboxList],
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isFetching: false }],
-      ]);
-    });
-
-    it('sends correct actions if API is success with empty list', async () => {
-      InboxesAPI.get.mockResolvedValue({ data: { payload: [] } });
-      await actions.get({ commit });
-      expect(commit.mock.calls).toEqual([
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isFetching: true }],
-        [types.default.SET_INBOXES, []],
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isFetching: false }],
-      ]);
-    });
-
-    it('handles API failure, saves error message, preserves list and finishes fetching status as false', async () => {
-      const apiError = { response: { data: { message: 'Erro ao carregar inboxes' } } };
-      InboxesAPI.get.mockRejectedValue(apiError);
-      await actions.get({ commit });
-      expect(commit.mock.calls).toEqual([
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isFetching: true }],
-        ['SET_INBOX_ERROR', 'Erro ao carregar inboxes'],
-        [types.default.SET_INBOXES_UI_FLAG, { isFetching: false }],
-      ]);
-    });
-
-    it('clears error on a new successful attempt after failure', async () => {
-      const inboxList = [{ id: 1, name: 'Inbox 1' }];
-      InboxesAPI.get.mockResolvedValue({ data: { payload: inboxList } });
-      await actions.get({ commit });
-      expect(commit.mock.calls[0]).toEqual(['SET_INBOX_ERROR', null]);
-      expect(commit.mock.calls[3]).toEqual(['SET_INBOX_ERROR', null]);
-      expect(commit.mock.calls[4]).toEqual([
-        types.default.SET_INBOXES_UI_FLAG,
-        { isFetching: false },
-      ]);
-    });
+  it('preserva a lista e propaga a falha ao carregar', async () => {
+    const error = { response: { data: { message: 'Banco indisponível' } } };
+    InboxesAPI.get.mockRejectedValue(error);
+    await expect(actions.get({ commit })).rejects.toBe(error);
+    expect(commit).toHaveBeenCalledWith('SET_INBOX_ERROR', 'Banco indisponível');
+    expect(commit).not.toHaveBeenCalledWith(types.default.SET_INBOXES, expect.anything());
   });
 
-  describe('#createMetaChannel', () => {
-    it('sends correct actions and adds inbox on API success', async () => {
-      const payload = {
-        name: 'WhatsApp Meta Test',
-        phoneNumber: '+5511999999999',
-        phoneNumberId: '123456',
-        businessAccountId: '654321',
-        apiKey: 'token123',
-      };
-      const createdChannel = { id: 10, name: 'WhatsApp Meta Test', channel_type: 'Channel::MetaCloud' };
-      InboxesAPI.createMetaChannel.mockResolvedValue({
-        data: { channel: createdChannel },
-      });
-
-      const result = await actions.createMetaChannel({ commit }, payload);
-
-      expect(commit.mock.calls).toEqual([
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isCreating: true }],
-        [
-          types.default.ADD_INBOXES,
-          {
-            ...createdChannel,
-            channel_id: createdChannel.id,
-            channel_type: 'Channel::Whatsapp',
-            provider: 'META_CLOUD',
-            medium: 'meta',
-            connection_status: undefined,
-          },
-        ],
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isCreating: false }],
-      ]);
-      expect(result).toEqual({
-        ...createdChannel,
-        channel_id: createdChannel.id,
-        channel_type: 'Channel::Whatsapp',
-        provider: 'META_CLOUD',
-        medium: 'meta',
-        connection_status: undefined,
-      });
-    });
-
-    it('handles API failure, saves real error message, does NOT add local inbox to records and sets isCreating to false in finally', async () => {
-      const payload = { name: 'WhatsApp Meta Fail' };
-      const apiError = { response: { data: { message: 'Token Meta inválido' } } };
-      InboxesAPI.createMetaChannel.mockRejectedValue(apiError);
-
-      await expect(actions.createMetaChannel({ commit }, payload)).rejects.toEqual(apiError);
-
-      expect(commit.mock.calls).toEqual([
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isCreating: true }],
-        ['SET_INBOX_ERROR', 'Token Meta inválido'],
-        [types.default.SET_INBOXES_UI_FLAG, { isCreating: false }],
-      ]);
-    });
+  it('cria uma conexão Meta Oficial confirmada pelo backend', async () => {
+    InboxesAPI.createMetaChannel.mockResolvedValue({ data: { channel: { id: 'meta-2', name: 'Comercial', type: 'META_CLOUD', connectionStatus: 'CONNECTED' } } });
+    const result = await actions.createMetaChannel({ commit }, { name: 'Comercial', metaPhoneNumberId: '123', metaToken: 'token' });
+    expect(result.provider).toBe('META_CLOUD');
+    expect(commit).toHaveBeenCalledWith(types.default.ADD_INBOXES, expect.objectContaining({ id: 'meta-2', connection_status: 'CONNECTED' }));
   });
 
-  describe('#createChannel', () => {
-    it('creates channel via WebChannel and adds inbox on success', async () => {
-      const params = { name: 'Test API Channel', channel: { type: 'api' } };
-      const newChannel = { id: 101, name: 'Test API Channel' };
-      WebChannel.create.mockResolvedValue({ data: newChannel });
-
-      const result = await actions.createChannel({ commit }, params);
-
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_INBOXES_UI_FLAG, { isCreating: true }],
-        [types.default.ADD_INBOXES, newChannel],
-        [types.default.SET_INBOXES_UI_FLAG, { isCreating: false }],
-      ]);
-      expect(result).toEqual(newChannel);
-    });
-
-    it('handles API failure on createChannel and sets isCreating to false in finally', async () => {
-      const params = { name: 'Test API Fail', channel: { type: 'api' } };
-      const apiError = new Error('Falha de criação de canal');
-      WebChannel.create.mockRejectedValue(apiError);
-
-      await actions.createChannel({ commit }, params);
-
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_INBOXES_UI_FLAG, { isCreating: true }],
-        [types.default.SET_INBOXES_UI_FLAG, { isCreating: false }],
-      ]);
-    });
+  it('cria uma conexão Evolution Go confirmada pelo backend', async () => {
+    InboxesAPI.createEvolutionChannel.mockResolvedValue({ data: { channelId: 'evo-1', instanceName: 'vendas', connectionStatus: 'CONNECTING', qrCodeBase64: 'base64' } });
+    const result = await actions.createEvolutionChannel({ commit }, { name: 'Vendas' });
+    expect(result.channel.provider).toBe('EVOLUTION');
+    expect(commit).toHaveBeenCalledWith(types.default.ADD_INBOXES, expect.objectContaining({ id: 'evo-1', connection_status: 'CONNECTING' }));
   });
 
-  describe('#updateInbox', () => {
-    it('sends correct actions on update success and sets isUpdating to false in finally', async () => {
-      const updatedInbox = { id: 1, name: 'Inbox Atualizado' };
-      InboxesAPI.update.mockResolvedValue({ data: updatedInbox });
-
-      await actions.updateInbox({ commit }, { id: 1, name: 'Inbox Atualizado', formData: false });
-
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdating: true }],
-        [types.default.EDIT_INBOXES, updatedInbox],
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdating: false }],
-      ]);
-    });
-
-    it('handles API failure on updateInbox and sets isUpdating to false in finally', async () => {
-      const apiError = new Error('Falha ao atualizar inbox');
-      InboxesAPI.update.mockRejectedValue(apiError);
-
-      await actions.updateInbox({ commit }, { id: 1, name: 'Inbox Fail', formData: false });
-
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdating: true }],
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdating: false }],
-      ]);
-    });
+  it('não cria canal local quando a API rejeita a conexão', async () => {
+    const error = { response: { data: { message: 'Credenciais inválidas' } } };
+    InboxesAPI.createMetaChannel.mockRejectedValue(error);
+    await expect(actions.createMetaChannel({ commit }, { name: 'Inválido' })).rejects.toBe(error);
+    expect(commit).toHaveBeenCalledWith('SET_INBOX_ERROR', 'Credenciais inválidas');
+    expect(commit).not.toHaveBeenCalledWith(types.default.ADD_INBOXES, expect.anything());
   });
 
-  describe('#updateInboxIMAP', () => {
-    it('sends correct actions on update IMAP success', async () => {
-      const updatedInbox = { id: 1, name: 'IMAP Inbox' };
-      InboxesAPI.update.mockResolvedValue({ data: updatedInbox });
-
-      await actions.updateInboxIMAP({ commit }, { id: 1, imap_address: 'imap.example.com' });
-
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdatingIMAP: true }],
-        [types.default.EDIT_INBOXES, updatedInbox],
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdatingIMAP: false }],
-      ]);
-    });
-
-    it('handles API failure on update IMAP and finishes isUpdatingIMAP as false', async () => {
-      InboxesAPI.update.mockRejectedValue(new Error('IMAP Error'));
-
-      await actions.updateInboxIMAP({ commit }, { id: 1 });
-
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdatingIMAP: true }],
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdatingIMAP: false }],
-      ]);
-    });
+  it('remove o canal local somente após confirmação do backend', async () => {
+    InboxesAPI.delete.mockResolvedValue({ data: { success: true } });
+    await actions.delete({ commit }, 'meta-1');
+    expect(commit).toHaveBeenCalledWith(types.default.DELETE_INBOXES, 'meta-1');
   });
 
-  describe('#updateInboxSMTP', () => {
-    it('sends correct actions on update SMTP success', async () => {
-      const updatedInbox = { id: 1, name: 'SMTP Inbox' };
-      InboxesAPI.update.mockResolvedValue({ data: updatedInbox });
-
-      await actions.updateInboxSMTP({ commit }, { id: 1, smtp_address: 'smtp.example.com' });
-
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdatingSMTP: true }],
-        [types.default.EDIT_INBOXES, updatedInbox],
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdatingSMTP: false }],
-      ]);
-    });
-
-    it('handles API failure on update SMTP and finishes isUpdatingSMTP as false', async () => {
-      InboxesAPI.update.mockRejectedValue(new Error('SMTP Error'));
-
-      await actions.updateInboxSMTP({ commit }, { id: 1 });
-
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdatingSMTP: true }],
-        [types.default.SET_INBOXES_UI_FLAG, { isUpdatingSMTP: false }],
-      ]);
-    });
+  it('mantém o canal local quando a exclusão falha', async () => {
+    const error = { response: { data: { message: 'Falha ao excluir' } } };
+    InboxesAPI.delete.mockRejectedValue(error);
+    await expect(actions.delete({ commit }, 'meta-1')).rejects.toBe(error);
+    expect(commit).not.toHaveBeenCalledWith(types.default.DELETE_INBOXES, 'meta-1');
   });
 
-  describe('#delete', () => {
-    it('deletes inbox on success', async () => {
-      InboxesAPI.delete.mockResolvedValue({});
-      await actions.delete({ commit }, 1);
-      expect(commit.mock.calls).toEqual([
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isDeleting: true }],
-        [types.default.DELETE_INBOXES, 1],
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isDeleting: false }],
-      ]);
-    });
-
-    it('saves error on deletion failure, does NOT delete local inbox and sets isDeleting to false in finally', async () => {
-      const apiError = { response: { data: { message: 'Erro ao deletar inbox' } } };
-      InboxesAPI.delete.mockRejectedValue(apiError);
-      await expect(actions.delete({ commit }, 1)).rejects.toEqual(apiError);
-      expect(commit.mock.calls).toEqual([
-        ['SET_INBOX_ERROR', null],
-        [types.default.SET_INBOXES_UI_FLAG, { isDeleting: true }],
-        ['SET_INBOX_ERROR', 'Erro ao deletar inbox'],
-        [types.default.SET_INBOXES_UI_FLAG, { isDeleting: false }],
-      ]);
-    });
-  });
-
-  describe('#reauthorizeFacebookPage', () => {
-    it('edits inbox on reauthorization success', async () => {
-      const responseData = { id: 5, name: 'FB Page' };
-      FBChannel.reauthorizeFacebookPage.mockResolvedValue({ data: responseData });
-      await actions.reauthorizeFacebookPage({ commit }, { omniauth_token: '123' });
-      expect(commit.mock.calls).toEqual([[types.default.EDIT_INBOXES, responseData]]);
-    });
-
-    it('throws error on reauthorization failure', async () => {
-      FBChannel.reauthorizeFacebookPage.mockRejectedValue(new Error('Auth failed'));
-      await expect(actions.reauthorizeFacebookPage({ commit }, {})).rejects.toThrow('Auth failed');
-    });
-  });
-
-  describe('#resetSecret', () => {
-    it('resets secret on success and edits inbox', async () => {
-      const responseData = { id: 2, hmac_token: 'new_secret' };
-      InboxesAPI.resetSecret.mockResolvedValue({ data: responseData });
-      const res = await actions.resetSecret({ commit }, 2);
-      expect(commit.mock.calls).toEqual([[types.default.EDIT_INBOXES, responseData]]);
-      expect(res).toEqual(responseData);
-    });
-
-    it('handles error on reset secret failure', async () => {
-      InboxesAPI.resetSecret.mockRejectedValue(new Error('Reset error'));
-      const res = await actions.resetSecret({ commit }, 2);
-      expect(res).toBeNull();
-    });
+  it('sincroniza templates aprovados no canal Meta correto', async () => {
+    const currentState = { records: [{ id: 'meta-1', message_templates: [] }, { id: 'evo-1' }] };
+    const templates = [{ name: 'boas_vindas', status: 'APPROVED' }];
+    InboxesAPI.getApprovedTemplates.mockResolvedValue({ data: { templates } });
+    await actions.syncTemplates({ commit, state: currentState }, 'meta-1');
+    expect(commit).toHaveBeenCalledWith(types.default.SET_INBOXES, [{ id: 'meta-1', message_templates: templates }, { id: 'evo-1' }]);
   });
 });

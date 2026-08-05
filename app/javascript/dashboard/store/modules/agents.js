@@ -2,6 +2,13 @@ import * as MutationHelpers from 'shared/helpers/vuex/mutationHelpers';
 import * as types from '../mutation-types';
 import AgentAPI from '../../api/agents';
 
+const asError = error =>
+  error instanceof Error
+    ? error
+    : new Error(
+        error?.response?.data?.message || error?.message || String(error)
+      );
+
 export const state = {
   records: [],
   error: null,
@@ -27,7 +34,7 @@ export const getters = {
     return $state.uiFlags;
   },
   getAgentById: $state => id => {
-    return $state.records.find(record => record.id === Number(id)) || {};
+    return $state.records.find(record => String(record.id) === String(id)) || {};
   },
   getAgentStatus($state) {
     let status = {
@@ -50,7 +57,7 @@ export const actions = {
     commit(types.default.SET_AGENT_FETCHING_STATUS, true);
     try {
       const response = await AgentAPI.get();
-      commit(types.default.SET_AGENTS, response.data || []);
+      commit(types.default.SET_AGENTS, response.data?.data || []);
       commit('SET_AGENT_ERROR', null);
     } catch (error) {
       const errorMessage =
@@ -66,22 +73,22 @@ export const actions = {
     commit(types.default.SET_AGENT_CREATING_STATUS, true);
     try {
       const response = await AgentAPI.create(agentInfo);
-      commit(types.default.ADD_AGENT, response.data);
-      commit(types.default.SET_AGENT_CREATING_STATUS, false);
+      commit(types.default.ADD_AGENT, response.data.data);
     } catch (error) {
+      throw asError(error);
+    } finally {
       commit(types.default.SET_AGENT_CREATING_STATUS, false);
-      throw error;
     }
   },
   update: async ({ commit }, { id, ...agentParams }) => {
     commit(types.default.SET_AGENT_UPDATING_STATUS, true);
     try {
       const response = await AgentAPI.update(id, agentParams);
-      commit(types.default.EDIT_AGENT, response.data);
-      commit(types.default.SET_AGENT_UPDATING_STATUS, false);
+      commit(types.default.EDIT_AGENT, response.data.data);
     } catch (error) {
+      throw asError(error);
+    } finally {
       commit(types.default.SET_AGENT_UPDATING_STATUS, false);
-      throw new Error(error);
     }
   },
   updateSingleAgentPresence: ({ commit }, { id, availabilityStatus }) => {
@@ -98,10 +105,10 @@ export const actions = {
     try {
       await AgentAPI.delete(agentId);
       commit(types.default.DELETE_AGENT, agentId);
-      commit(types.default.SET_AGENT_DELETING_STATUS, false);
     } catch (error) {
+      throw asError(error);
+    } finally {
       commit(types.default.SET_AGENT_DELETING_STATUS, false);
-      throw new Error(error);
     }
   },
 };

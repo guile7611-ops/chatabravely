@@ -59,15 +59,15 @@ export default {
 <template>
   <div class="h-full w-full p-8 col-span-6 overflow-y-auto">
     <PageHeader
-      :header-title="$t('TEAMS_SETTINGS.EDIT_FLOW.CREATE.TITLE')"
-      :header-content="$t('TEAMS_SETTINGS.EDIT_FLOW.CREATE.DESC')"
+      header-title="Editar departamento"
+      header-content="Atualize os dados e as regras desta fila."
     />
     <div class="flex flex-wrap">
       <TeamForm
         v-if="showTeamForm"
         :on-submit="updateTeam"
         :submit-in-progress="false"
-        :submit-button-text="$t('TEAMS_SETTINGS.EDIT_FLOW.CREATE.BUTTON_TEXT')"
+        submit-button-text="Salvar e continuar"
         :form-data="teamData"
       />
       <Spinner v-else />

@@ -16,7 +16,7 @@ describe('#actions', () => {
 
   describe('#get', () => {
     it('sends correct actions if API is success with list', async () => {
-      axios.get.mockResolvedValue({ data: agentList });
+      axios.get.mockResolvedValue({ data: { success: true, data: agentList } });
       await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
         ['SET_AGENT_ERROR', null],
@@ -29,7 +29,7 @@ describe('#actions', () => {
 
     it('sends correct actions if API is success with empty list', async () => {
       commit.mockClear();
-      axios.get.mockResolvedValue({ data: [] });
+      axios.get.mockResolvedValue({ data: { success: true, data: [] } });
       await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
         ['SET_AGENT_ERROR', null],
@@ -55,7 +55,7 @@ describe('#actions', () => {
 
     it('clears error on a new successful attempt after failure', async () => {
       commit.mockClear();
-      axios.get.mockResolvedValue({ data: agentList });
+      axios.get.mockResolvedValue({ data: { success: true, data: agentList } });
       await actions.get({ commit });
       expect(commit.mock.calls[0]).toEqual(['SET_AGENT_ERROR', null]);
       expect(commit.mock.calls[3]).toEqual(['SET_AGENT_ERROR', null]);
@@ -65,7 +65,9 @@ describe('#actions', () => {
 
   describe('#create', () => {
     it('sends correct actions if API is success', async () => {
-      axios.post.mockResolvedValue({ data: agentList[0] });
+      axios.post.mockResolvedValue({
+        data: { success: true, data: agentList[0] },
+      });
       await actions.create({ commit }, agentList[0]);
       expect(commit.mock.calls).toEqual([
         [types.default.SET_AGENT_CREATING_STATUS, true],
@@ -75,9 +77,9 @@ describe('#actions', () => {
     });
     it('sends correct actions if API is error', async () => {
       axios.post.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(actions.create({ commit })).rejects.toEqual({
-        message: 'Incorrect header',
-      });
+      await expect(actions.create({ commit })).rejects.toThrow(
+        'Incorrect header'
+      );
       expect(commit.mock.calls).toEqual([
         [types.default.SET_AGENT_CREATING_STATUS, true],
         [types.default.SET_AGENT_CREATING_STATUS, false],
@@ -87,7 +89,9 @@ describe('#actions', () => {
 
   describe('#update', () => {
     it('sends correct actions if API is success', async () => {
-      axios.patch.mockResolvedValue({ data: agentList[0] });
+      axios.patch.mockResolvedValue({
+        data: { success: true, data: agentList[0] },
+      });
       await actions.update({ commit }, agentList[0]);
       expect(commit.mock.calls).toEqual([
         [types.default.SET_AGENT_UPDATING_STATUS, true],

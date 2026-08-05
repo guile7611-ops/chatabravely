@@ -94,8 +94,8 @@ const confirmPlaceHolderText = computed(() =>
     <template #header>
       <BaseSettingsHeader
         v-model:search-query="searchQuery"
-        :title="$t('TEAMS_SETTINGS.HEADER')"
-        :description="$t('TEAMS_SETTINGS.DESCRIPTION')"
+        title="Departamentos"
+        description="Organize os atendentes nas filas de atendimento."
         :link-text="$t('TEAMS_SETTINGS.LEARN_MORE')"
         :search-placeholder="$t('TEAMS_SETTINGS.SEARCH_PLACEHOLDER')"
         feature-name="team_management"
@@ -107,7 +107,7 @@ const confirmPlaceHolderText = computed(() =>
         </template>
         <template #actions>
           <router-link v-if="isAdmin" :to="{ name: 'settings_teams_new' }">
-            <Button :label="$t('TEAMS_SETTINGS.NEW_TEAM')" size="sm" />
+            <Button label="Novo departamento" size="sm" />
           </router-link>
         </template>
       </BaseSettingsHeader>

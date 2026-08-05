@@ -1,10 +1,11 @@
 import { shallowMount } from '@vue/test-utils';
+import { createStore } from 'vuex';
+import { createMemoryHistory, createRouter } from 'vue-router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Evolution from '../Evolution.vue';
 
 const mockDispatch = vi.fn();
 const mockAlert = vi.fn();
-global.fetch = vi.fn();
 
 vi.mock('dashboard/composables', () => ({
   useAlert: message => mockAlert(message),
@@ -12,95 +13,98 @@ vi.mock('dashboard/composables', () => ({
 
 describe('Evolution.vue', () => {
   beforeEach(() => {
-    mockDispatch.mockClear();
-    mockAlert.mockClear();
-    vi.clearAllMocks();
+    mockDispatch.mockReset();
+    mockAlert.mockReset();
   });
 
-  const createWrapper = () => {
-    const mockStore = {
-      dispatch: mockDispatch,
-      getters: {
-        'inboxes/getUIFlags': { isCreating: false },
-        getCurrentUser: { access_token: 'token123' },
-        getCurrentAccountId: 1,
-      },
-    };
-
-    return shallowMount(Evolution, {
-      global: {
-        mocks: {
-          $t: key => key,
-          $store: mockStore,
+  const createWrapper = async () => {
+    const store = createStore({
+      modules: {
+        inboxes: {
+          namespaced: true,
+          state: () => ({ uiFlags: { isCreating: false } }),
+          getters: { getUIFlags: state => state.uiFlags },
+          actions: {
+            createEvolutionChannel: (_context, payload) =>
+              mockDispatch('inboxes/createEvolutionChannel', payload),
+          },
         },
       },
     });
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'settings_inbox_list', component: { template: '<div />' } },
+      ],
+    });
+    await router.push('/');
+    await router.isReady();
+
+    return shallowMount(Evolution, {
+      global: { plugins: [store, router] },
+    });
   };
 
-  it('starts in idle status and transitions through creating state', async () => {
-    const wrapper = createWrapper();
-    expect(wrapper.vm.connectionStatus).toBe('idle');
-  });
+  const fillForm = wrapper => {
+    wrapper.vm.name = 'WhatsApp Vendas';
+    wrapper.vm.instanceName = 'vendas';
+  };
 
-  it('sets error status when Evolution instance creation fetch fails', async () => {
-    mockDispatch.mockResolvedValue({ id: 99, inbox_identifier: 'ident123' });
-    global.fetch.mockRejectedValue(new Error('Serviço de QR Code indisponível'));
-
-    const wrapper = createWrapper();
-    wrapper.setData({
-      channelName: 'WhatsApp Evolution Fail',
-      phoneNumber: '11988888888',
-      evolutionUrl: 'http://localhost:8080',
+  it('creates an Evolution Go channel and renders the returned QR Code', async () => {
+    mockDispatch.mockResolvedValue({
+      qrCodeBase64: 'data:image/png;base64,123',
     });
+    const wrapper = await createWrapper();
+    fillForm(wrapper);
 
-    await wrapper.vm.createChannel();
+    await wrapper.vm.connect();
 
-    expect(mockDispatch).toHaveBeenCalledWith('inboxes/createChannel', expect.any(Object));
-    expect(wrapper.vm.connectionStatus).toBe('error');
-    expect(wrapper.vm.errorMessage).toContain('WhatsApp QR Code');
-    expect(wrapper.vm.connectionStatus).not.toBe('connected');
-  });
-
-  it('sets error status when instance creation returns HTTP error', async () => {
-    mockDispatch.mockResolvedValue({ id: 99, inbox_identifier: 'ident123' });
-    global.fetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: () => Promise.resolve({ message: 'Instância já em uso' }),
-    });
-
-    const wrapper = createWrapper();
-    wrapper.setData({
-      channelName: 'WhatsApp Evolution Err',
-      phoneNumber: '11988888888',
-    });
-
-    await wrapper.vm.createChannel();
-
-    expect(wrapper.vm.connectionStatus).toBe('error');
-    expect(wrapper.vm.errorMessage).toContain('Instância já em uso');
-    expect(wrapper.vm.connectionStatus).not.toBe('connected');
-  });
-
-  it('resets error and allows retry when createChannel is called again', async () => {
-    const wrapper = createWrapper();
-    wrapper.setData({
-      connectionStatus: 'error',
-      errorMessage: 'Erro anterior',
-      channelName: 'WhatsApp Evolution Retry',
-      phoneNumber: '11988888888',
-    });
-
-    mockDispatch.mockResolvedValue({ id: 100, inbox_identifier: 'ident456' });
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve({ qrcode: { base64: 'data:image/png;base64,123' } }),
-    });
-
-    await wrapper.vm.createChannel();
-
+    expect(mockDispatch).toHaveBeenCalledWith(
+      'inboxes/createEvolutionChannel',
+      { name: 'WhatsApp Vendas', instanceName: 'vendas' }
+    );
+    expect(wrapper.vm.qrCode).toBe('data:image/png;base64,123');
     expect(wrapper.vm.errorMessage).toBe('');
-    expect(wrapper.vm.connectionStatus).not.toBe('error');
+  });
+
+  it('shows the real backend error and does not invent a connected state', async () => {
+    mockDispatch.mockRejectedValue({
+      response: { data: { message: 'Instância já em uso' } },
+    });
+    const wrapper = await createWrapper();
+    fillForm(wrapper);
+
+    await wrapper.vm.connect();
+
+    expect(wrapper.vm.errorMessage).toBe('Instância já em uso');
+    expect(wrapper.vm.qrCode).toBe('');
+  });
+
+  it('keeps the form open when the backend has no QR Code yet', async () => {
+    mockDispatch.mockResolvedValue({ qrCodeBase64: '' });
+    const wrapper = await createWrapper();
+    fillForm(wrapper);
+
+    await wrapper.vm.connect();
+
+    expect(wrapper.vm.qrCode).toBe('');
+    expect(mockAlert).toHaveBeenCalledWith(
+      'Instância criada. Aguarde a conexão da Evolution Go.'
+    );
+  });
+
+  it('clears the previous error before a successful retry', async () => {
+    mockDispatch
+      .mockRejectedValueOnce(new Error('Falha de conexão'))
+      .mockResolvedValueOnce({ qrCodeBase64: 'data:image/png;base64,retry' });
+    const wrapper = await createWrapper();
+    fillForm(wrapper);
+
+    await wrapper.vm.connect();
+    expect(wrapper.vm.errorMessage).toBe('Falha de conexão');
+
+    await wrapper.vm.connect();
+    expect(wrapper.vm.errorMessage).toBe('');
+    expect(wrapper.vm.qrCode).toContain('retry');
   });
 });

@@ -1,84 +1,25 @@
 /* global axios */
-import CacheEnabledApiClient from './CacheEnabledApiClient';
+import ApiClient from './ApiClient';
 
-class Inboxes extends CacheEnabledApiClient {
+class Inboxes extends ApiClient {
   constructor() {
-    super('inboxes', { accountScoped: true });
+    super('channels');
   }
 
-  // eslint-disable-next-line class-methods-use-this
-  get cacheModelName() {
-    return 'inbox';
+  createEvolutionChannel(payload) {
+    return axios.post(`${this.url}/evolution/qr`, payload);
   }
 
-  // Channels are managed by the Abravely backend outside the legacy
-  // account-scoped Chatwoot inbox contract.
-  delete(inboxId) {
-    return axios.delete(`/api/v1/channels/${inboxId}`);
+  getChannelStatus(channelId) {
+    return this.show(channelId);
   }
 
   createMetaChannel(payload) {
-    return axios.post('/api/v1/channels/meta/save', payload);
+    return axios.post(`${this.url}/meta/save`, payload);
   }
 
   getApprovedTemplates(channelId) {
-    return axios.get(`/api/v1/channels/${channelId}/templates`);
-  }
-
-  getCampaigns(inboxId) {
-    return axios.get(`${this.url}/${inboxId}/campaigns`);
-  }
-
-  deleteInboxAvatar(inboxId) {
-    return axios.delete(`${this.url}/${inboxId}/avatar`);
-  }
-
-  getAgentBot(inboxId) {
-    return axios.get(`${this.url}/${inboxId}/agent_bot`);
-  }
-
-  setAgentBot(inboxId, botId) {
-    return axios.post(`${this.url}/${inboxId}/set_agent_bot`, {
-      agent_bot: botId,
-    });
-  }
-
-  syncTemplates(inboxId) {
-    return axios.post(`${this.url}/${inboxId}/sync_templates`);
-  }
-
-  createCSATTemplate(inboxId, template) {
-    return axios.post(`${this.url}/${inboxId}/csat_template`, {
-      template,
-    });
-  }
-
-  getCSATTemplateStatus(inboxId) {
-    return axios.get(`${this.url}/${inboxId}/csat_template`);
-  }
-
-  analyzeCSATTemplateUtility(inboxId, template) {
-    return axios.post(`${this.url}/${inboxId}/csat_template/analyze`, {
-      template,
-    });
-  }
-
-  resetSecret(inboxId) {
-    return axios.post(`${this.url}/${inboxId}/reset_secret`);
-  }
-
-  enableWhatsappCalling(inboxId) {
-    return axios.post(`${this.url}/${inboxId}/enable_whatsapp_calling`);
-  }
-
-  disableWhatsappCalling(inboxId) {
-    return axios.post(`${this.url}/${inboxId}/disable_whatsapp_calling`);
-  }
-
-  setInboundCalls(inboxId, enabled) {
-    return axios.post(`${this.url}/${inboxId}/set_inbound_calls`, {
-      inbound_calls_enabled: enabled,
-    });
+    return axios.get(`${this.url}/${channelId}/templates`);
   }
 }
 

@@ -1,39 +1,23 @@
 /* global axios */
-// import ApiClient from './ApiClient';
-import CacheEnabledApiClient from './CacheEnabledApiClient';
+import ApiClient from './ApiClient';
 
-export class TeamsAPI extends CacheEnabledApiClient {
+export class TeamsAPI extends ApiClient {
   constructor() {
-    super('teams', { accountScoped: true });
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  get cacheModelName() {
-    return 'team';
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  extractDataFromResponse(response) {
-    return response.data;
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  marshallData(dataToParse) {
-    return { data: dataToParse };
+    super('departments');
   }
 
   getAgents({ teamId }) {
-    return axios.get(`${this.url}/${teamId}/team_members`);
+    return axios.get(`${this.url}/${teamId}/members`);
   }
 
   addAgents({ teamId, agentsList }) {
-    return axios.post(`${this.url}/${teamId}/team_members`, {
+    return axios.post(`${this.url}/${teamId}/members`, {
       user_ids: agentsList,
     });
   }
 
   updateAgents({ teamId, agentsList }) {
-    return axios.patch(`${this.url}/${teamId}/team_members`, {
+    return axios.patch(`${this.url}/${teamId}/members`, {
       user_ids: agentsList,
     });
   }

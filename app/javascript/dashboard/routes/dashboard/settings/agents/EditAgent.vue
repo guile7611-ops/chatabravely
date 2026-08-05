@@ -6,21 +6,16 @@ import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Auth from '../../../../api/auth';
 import wootConstants from 'dashboard/constants/globals';
 
 const props = defineProps({
   id: {
-    type: Number,
+    type: [String, Number],
     required: true,
   },
   name: {
     type: String,
     required: true,
-  },
-  email: {
-    type: String,
-    default: '',
   },
   type: {
     type: String,
@@ -29,14 +24,6 @@ const props = defineProps({
   availability: {
     type: String,
     default: '',
-  },
-  provider: {
-    type: String,
-    default: '',
-  },
-  customRoleId: {
-    type: Number,
-    default: null,
   },
 });
 
@@ -49,8 +36,7 @@ const { t } = useI18n();
 
 const agentName = ref(props.name);
 const agentAvailability = ref(props.availability);
-const selectedRoleId = ref(props.customRoleId || props.type);
-const agentCredentials = ref({ email: props.email });
+const selectedRoleId = ref(props.type);
 
 const rules = {
   agentName: { required, minLength: minLength(1) },
@@ -69,10 +55,8 @@ const pageTitle = computed(
 );
 
 const uiFlags = useMapGetter('agents/getUIFlags');
-const getCustomRoles = useMapGetter('customRole/getCustomRoles');
-
 const roles = computed(() => {
-  const defaultRoles = [
+  return [
     {
       id: 'administrator',
       name: 'administrator',
@@ -84,14 +68,6 @@ const roles = computed(() => {
       label: t('AGENT_MGMT.AGENT_TYPES.AGENT'),
     },
   ];
-
-  const customRoles = getCustomRoles.value.map(role => ({
-    id: role.id,
-    name: `custom_${role.id}`,
-    label: role.name,
-  }));
-
-  return [...defaultRoles, ...customRoles];
 });
 
 const selectedRole = computed(() =>
@@ -128,12 +104,7 @@ const editAgent = async () => {
       availability: agentAvailability.value,
     };
 
-    if (selectedRole.value.name.startsWith('custom_')) {
-      payload.custom_role_id = selectedRole.value.id;
-    } else {
-      payload.role = selectedRole.value.name;
-      payload.custom_role_id = null;
-    }
+    payload.role = selectedRole.value.name;
 
     await store.dispatch('agents/update', payload);
     useAlert(t('AGENT_MGMT.EDIT.API.SUCCESS_MESSAGE'));
@@ -143,14 +114,6 @@ const editAgent = async () => {
   }
 };
 
-const resetPassword = async () => {
-  try {
-    await Auth.resetPassword(agentCredentials.value);
-    useAlert(t('AGENT_MGMT.EDIT.PASSWORD_RESET.ADMIN_SUCCESS_MESSAGE'));
-  } catch (error) {
-    useAlert(t('AGENT_MGMT.EDIT.PASSWORD_RESET.ERROR_MESSAGE'));
-  }
-};
 </script>
 
 <template>
@@ -205,18 +168,7 @@ const resetPassword = async () => {
       </div>
 
       <div class="flex flex-row justify-start w-full gap-2 px-0 py-2">
-        <div class="w-[50%] ltr:text-left rtl:text-right">
-          <Button
-            v-if="provider !== 'saml'"
-            ghost
-            type="button"
-            icon="i-lucide-lock-keyhole"
-            class="!px-2"
-            :label="$t('AGENT_MGMT.EDIT.PASSWORD_RESET.ADMIN_RESET_BUTTON')"
-            @click.prevent="resetPassword"
-          />
-        </div>
-        <div class="w-[50%] flex justify-end items-center gap-2">
+        <div class="w-full flex justify-end items-center gap-2">
           <Button
             faded
             slate

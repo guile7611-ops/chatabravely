@@ -39,14 +39,14 @@ export default {
 <template>
   <div class="h-full w-full p-6 col-span-6 overflow-y-auto">
     <PageHeader
-      :header-title="$t('TEAMS_SETTINGS.CREATE_FLOW.CREATE.TITLE')"
-      :header-content="$t('TEAMS_SETTINGS.CREATE_FLOW.CREATE.DESC')"
+      header-title="Criar departamento"
+      header-content="Defina o nome e as regras básicas da nova fila."
     />
     <div class="flex flex-wrap">
       <TeamForm
         :on-submit="createTeam"
         :submit-in-progress="false"
-        :submit-button-text="$t('TEAMS_SETTINGS.FORM.SUBMIT_CREATE')"
+        submit-button-text="Criar departamento"
       />
     </div>
   </div>

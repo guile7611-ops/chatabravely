@@ -16,7 +16,9 @@ describe('#actions', () => {
     it('sends correct actions if API is success', async () => {
       const mockedGet = vi.fn(url => {
         if (url === '/api/v1/labels') {
-          return Promise.resolve({ data: { payload: labelsList } });
+          return Promise.resolve({
+            data: { success: true, data: labelsList },
+          });
         }
         if (url === '/api/v1/accounts//cache_keys') {
           return Promise.resolve({ data: { cache_keys: { labels: 0 } } });
@@ -50,7 +52,9 @@ describe('#actions', () => {
 
   describe('#create', () => {
     it('sends correct actions if API is success', async () => {
-      axios.post.mockResolvedValue({ data: labelsList[0] });
+      axios.post.mockResolvedValue({
+        data: { success: true, data: labelsList[0] },
+      });
       await actions.create({ commit }, labelsList[0]);
       expect(commit.mock.calls).toEqual([
         [types.default.SET_LABEL_ERROR, null],
@@ -75,7 +79,9 @@ describe('#actions', () => {
 
   describe('#update', () => {
     it('sends correct actions if API is success', async () => {
-      axios.patch.mockResolvedValue({ data: labelsList[0] });
+      axios.patch.mockResolvedValue({
+        data: { success: true, data: labelsList[0] },
+      });
       await actions.update({ commit }, labelsList[0]);
       expect(commit.mock.calls).toEqual([
         [types.default.SET_LABEL_ERROR, null],

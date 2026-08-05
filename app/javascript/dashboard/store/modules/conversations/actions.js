@@ -13,11 +13,6 @@ import {
 import messageReadActions from './actions/messageReadActions';
 import messageTranslateActions from './actions/messageTranslateActions';
 import * as Sentry from '@sentry/vue';
-import {
-  handleVoiceCallCreated,
-  handleVoiceCallUpdated,
-  syncConversationCallVisibility,
-} from 'dashboard/helper/voice';
 
 export const hasMessageFailedWithExternalError = pendingMessage => {
   // This helper is used to check if the message has failed with an external error.
@@ -453,7 +448,7 @@ const actions = {
     }
   },
 
-  addMessage({ commit, rootGetters }, message) {
+  addMessage({ commit }, message) {
     commit(types.ADD_MESSAGE, message);
     if (message.message_type === MESSAGE_TYPE.INCOMING) {
       commit(types.SET_CONVERSATION_CAN_REPLY, {
@@ -462,21 +457,10 @@ const actions = {
       });
       commit(types.ADD_CONVERSATION_ATTACHMENTS, message);
     }
-    handleVoiceCallCreated(
-      message,
-      rootGetters?.getCurrentUserID,
-      rootGetters?.getCurrentUserAvailability
-    );
   },
 
-  updateMessage({ commit, rootGetters }, message) {
+  updateMessage({ commit }, message) {
     commit(types.ADD_MESSAGE, message);
-    handleVoiceCallUpdated(
-      commit,
-      message,
-      rootGetters?.getCurrentUserID,
-      rootGetters?.getCurrentUserAvailability
-    );
   },
 
   deleteMessage: async function deleteLabels(
@@ -536,12 +520,10 @@ const actions = {
     }
   },
 
-  updateConversation({ commit, dispatch, rootGetters }, conversation) {
+  updateConversation({ commit, dispatch }, conversation) {
     const sender = conversation.meta?.sender;
 
     commit(types.UPDATE_CONVERSATION, conversation);
-    syncConversationCallVisibility(conversation, rootGetters?.getCurrentUserID);
-
     dispatch('conversationLabels/setConversationLabel', {
       id: conversation.id,
       data: conversation.labels,

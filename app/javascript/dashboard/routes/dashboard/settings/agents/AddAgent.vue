@@ -4,7 +4,7 @@ import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useVuelidate } from '@vuelidate/core';
-import { required, email } from '@vuelidate/validators';
+import { required, email, minLength } from '@vuelidate/validators';
 import Button from 'dashboard/components-next/button/Button.vue';
 
 const emit = defineEmits(['close']);
@@ -14,25 +14,26 @@ const { t } = useI18n();
 
 const agentName = ref('');
 const agentEmail = ref('');
+const agentPassword = ref('');
 const selectedRoleId = ref('agent');
 
 const rules = {
   agentName: { required },
   agentEmail: { required, email },
+  agentPassword: { required, minLength: minLength(8) },
   selectedRoleId: { required },
 };
 
 const v$ = useVuelidate(rules, {
   agentName,
   agentEmail,
+  agentPassword,
   selectedRoleId,
 });
 
 const uiFlags = useMapGetter('agents/getUIFlags');
-const getCustomRoles = useMapGetter('customRole/getCustomRoles');
-
 const roles = computed(() => {
-  const defaultRoles = [
+  return [
     {
       id: 'administrator',
       name: 'administrator',
@@ -44,14 +45,6 @@ const roles = computed(() => {
       label: t('AGENT_MGMT.AGENT_TYPES.AGENT'),
     },
   ];
-
-  const customRoles = getCustomRoles.value.map(role => ({
-    id: role.id,
-    name: `custom_${role.id}`,
-    label: role.name,
-  }));
-
-  return [...defaultRoles, ...customRoles];
 });
 
 const selectedRole = computed(() =>
@@ -69,13 +62,10 @@ const addAgent = async () => {
     const payload = {
       name: agentName.value,
       email: agentEmail.value,
+      password: agentPassword.value,
     };
 
-    if (selectedRole.value.name.startsWith('custom_')) {
-      payload.custom_role_id = selectedRole.value.id;
-    } else {
-      payload.role = selectedRole.value.name;
-    }
+    payload.role = selectedRole.value.name;
 
     await store.dispatch('agents/create', payload);
     useAlert(t('AGENT_MGMT.ADD.API.SUCCESS_MESSAGE'));
@@ -144,6 +134,22 @@ const addAgent = async () => {
             :placeholder="$t('AGENT_MGMT.ADD.FORM.EMAIL.PLACEHOLDER')"
             @input="v$.agentEmail.$touch"
           />
+        </label>
+      </div>
+
+      <div class="w-full">
+        <label :class="{ error: v$.agentPassword.$error }">
+          Senha inicial
+          <input
+            v-model="agentPassword"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Mínimo de 8 caracteres"
+            @input="v$.agentPassword.$touch"
+          />
+          <span v-if="v$.agentPassword.$error" class="message">
+            A senha inicial deve possuir pelo menos 8 caracteres.
+          </span>
         </label>
       </div>
 

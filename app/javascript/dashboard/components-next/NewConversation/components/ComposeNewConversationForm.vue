@@ -75,21 +75,17 @@ const state = props.formState || {
 
 const inboxTypes = computed(() => ({
   isEmail: props.targetInbox?.channelType === INBOX_TYPES.EMAIL,
-  isTwilio: props.targetInbox?.channelType === INBOX_TYPES.TWILIO,
   isWhatsapp: props.targetInbox?.channelType === INBOX_TYPES.WHATSAPP,
   isWebWidget: props.targetInbox?.channelType === INBOX_TYPES.WEB,
   isApi: props.targetInbox?.channelType === INBOX_TYPES.API,
   isEmailOrWebWidget:
     props.targetInbox?.channelType === INBOX_TYPES.EMAIL ||
     props.targetInbox?.channelType === INBOX_TYPES.WEB,
-  isTwilioSMS:
-    props.targetInbox?.channelType === INBOX_TYPES.TWILIO &&
-    props.targetInbox?.medium === 'sms',
-  isTwilioWhatsapp:
-    props.targetInbox?.channelType === INBOX_TYPES.TWILIO &&
-    props.targetInbox?.medium === 'whatsapp',
 }));
 
+const isMetaCloud = computed(
+  () => props.targetInbox?.provider === 'META_CLOUD'
+);
 const whatsappMessageTemplates = computed(() =>
   Object.keys(props.targetInbox?.messageTemplates || {}).length
     ? props.targetInbox.messageTemplates
@@ -109,7 +105,7 @@ const effectiveChannelType = computed(() =>
 const validationRules = computed(() => ({
   selectedContact: { required },
   targetInbox: { required },
-  message: { required: requiredIf(!inboxTypes.value.isWhatsapp) },
+  message: { required: requiredIf(!isMetaCloud.value) },
   subject: { required: requiredIf(inboxTypes.value.isEmail) },
 }));
 
@@ -320,26 +316,8 @@ const handleSendWhatsappMessage = async ({ message, templateParams }) => {
   });
 };
 
-const handleSendTwilioMessage = async ({ message, templateParams }) => {
-  const twilioMessagePayload = prepareWhatsAppMessagePayload({
-    targetInbox: props.targetInbox,
-    selectedContact: props.selectedContact,
-    message,
-    templateParams,
-    currentUser: props.currentUser,
-  });
-  await emit('createConversation', {
-    payload: twilioMessagePayload,
-    isFromWhatsApp: true,
-  });
-};
-
 const shouldShowMessageEditor = computed(() => {
-  return (
-    !inboxTypes.value.isWhatsapp &&
-    !showNoInboxAlert.value &&
-    !inboxTypes.value.isTwilioWhatsapp
-  );
+  return !isMetaCloud.value && !showNoInboxAlert.value;
 });
 
 const isCopilotActive = computed(() => copilot.isActive?.value ?? false);
@@ -438,10 +416,8 @@ useKeyboardEvents({
     <ActionButtons
       v-else
       :attached-files="state.attachedFiles"
-      :is-whatsapp-inbox="inboxTypes.isWhatsapp"
+      :is-whatsapp-inbox="isMetaCloud"
       :is-email-or-web-widget-inbox="inboxTypes.isEmailOrWebWidget"
-      :is-twilio-sms-inbox="inboxTypes.isTwilioSMS"
-      :is-twilio-whats-app-inbox="inboxTypes.isTwilioWhatsapp"
       :message-templates="whatsappMessageTemplates"
       :channel-type="inboxChannelType"
       :voice-enabled="voiceCallEnabled"
@@ -459,7 +435,6 @@ useKeyboardEvents({
       @discard="$emit('discard')"
       @send-message="handleSendMessage"
       @send-whatsapp-message="handleSendWhatsappMessage"
-      @send-twilio-message="handleSendTwilioMessage"
     />
   </div>
 </template>

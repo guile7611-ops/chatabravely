@@ -246,7 +246,7 @@ export const actions = {
     try {
       const response = await ContactAPI.getContactableInboxes(id);
       const contact = {
-        id: Number(id),
+        id: String(id),
         contact_inboxes: response.data.payload,
       };
       commit(types.SET_CONTACT_ITEM, contact);

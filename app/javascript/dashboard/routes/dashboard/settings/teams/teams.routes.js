@@ -15,7 +15,7 @@ import SettingsWrapper from '../SettingsWrapper.vue';
 export default {
   routes: [
     {
-      path: frontendURL('accounts/:accountId/settings/teams'),
+      path: frontendURL('accounts/:accountId/settings/departments'),
       component: SettingsWrapper,
       children: [
         {
@@ -36,7 +36,7 @@ export default {
       ],
     },
     {
-      path: frontendURL('accounts/:accountId/settings/teams'),
+      path: frontendURL('accounts/:accountId/settings/departments'),
       component: SettingsContent,
       props: () => {
         return {
@@ -113,6 +113,13 @@ export default {
           ],
         },
       ],
+    },
+    {
+      path: frontendURL('accounts/:accountId/settings/teams/:pathMatch(.*)*'),
+      redirect: to => ({
+        name: 'settings_teams_list',
+        params: { accountId: to.params.accountId },
+      }),
     },
   ],
 };

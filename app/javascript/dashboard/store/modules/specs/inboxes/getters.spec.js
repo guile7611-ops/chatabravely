@@ -1,141 +1,34 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { getters } from '../../inboxes';
-import { INBOX_TYPES } from 'dashboard/helper/inbox';
 
-describe('inboxes/getters', () => {
-  const sampleState = {
-    error: 'Mensagem de erro de teste em inboxes',
-    records: [
-      {
-        id: 1,
-        name: 'Web Inbox',
-        channel_type: INBOX_TYPES.WEB,
-      },
-      {
-        id: 2,
-        name: 'Email Inbox',
-        channel_type: INBOX_TYPES.EMAIL,
-      },
-      {
-        id: 3,
-        name: 'Twilio SMS Inbox',
-        channel_type: INBOX_TYPES.TWILIO,
-        medium: 'sms',
-        phone_number: '+1234567890',
-      },
-      {
-        id: 4,
-        name: 'Twilio Whatsapp Inbox',
-        channel_type: INBOX_TYPES.TWILIO,
-        medium: 'whatsapp',
-        phone_number: 'whatsapp:+1234567890',
-      },
-      {
-        id: 5,
-        name: 'WhatsApp Official',
-        channel_type: INBOX_TYPES.WHATSAPP,
-        message_templates: [
-          { name: 'hello_world', status: 'approved', components: [] },
-          { name: 'auth_template', status: 'approved', category: 'AUTHENTICATION', components: [] },
-          { name: 'customer_satisfaction_survey', status: 'approved', components: [] },
-          { name: 'rejected_template', status: 'rejected', components: [] },
-          { name: 'unsupported_template', status: 'approved', components: [{ type: 'PRODUCT' }] },
-        ],
-      },
-      {
-        id: 6,
-        name: 'FB Inbox',
-        channel_type: INBOX_TYPES.FB,
-        instagram_id: 'insta_123',
-      },
-      {
-        id: 7,
-        name: 'Instagram Inbox',
-        channel_type: INBOX_TYPES.INSTAGRAM,
-        instagram_id: 'insta_123',
-      },
-      {
-        id: 8,
-        name: 'TikTok Inbox',
-        channel_type: INBOX_TYPES.TIKTOK,
-        business_id: 'tiktok_456',
-      },
-    ],
-    uiFlags: {
-      isFetching: false,
-      isCreating: false,
-    },
-  };
+const records = [
+  { id: 'meta-1', name: 'WhatsApp Oficial', provider: 'META_CLOUD', connection_status: 'CONNECTED', message_templates: [
+    { name: 'boas_vindas', status: 'APPROVED', components: [] },
+    { name: 'login', status: 'APPROVED', category: 'AUTHENTICATION', components: [] },
+    { name: 'rejeitado', status: 'REJECTED', components: [] },
+  ] },
+  { id: 'evo-1', name: 'WhatsApp Vendas', provider: 'EVOLUTION', connection_status: 'DISCONNECTED' },
+];
+const sampleState = { records, error: 'Falha real', uiFlags: { isFetching: false } };
 
-  it('getInboxesError', () => {
-    expect(getters.getInboxesError(sampleState)).toEqual('Mensagem de erro de teste em inboxes');
+describe('inboxes/getters (Meta Oficial e Evolution Go)', () => {
+  it('expõe lista, erro e flags', () => {
+    expect(getters.getInboxes(sampleState)).toBe(records);
+    expect(getters.getInboxesError(sampleState)).toBe('Falha real');
+    expect(getters.getUIFlags(sampleState)).toEqual({ isFetching: false });
   });
-
-  it('getInboxes', () => {
-    expect(getters.getInboxes(sampleState)).toEqual(sampleState.records);
+  it('busca canal por UUID sem coerção numérica', () => {
+    expect(getters.getInbox(sampleState)('meta-1')).toBe(records[0]);
+    expect(getters.getInboxById(sampleState)('evo-1').name).toBe('WhatsApp Vendas');
   });
-
-  it('getAllInboxes', () => {
-    const all = getters.getAllInboxes(sampleState);
-    expect(all[0].channelType).toEqual(INBOX_TYPES.WEB);
+  it('libera nova conversa somente em canal conectado', () => {
+    expect(getters.getNewConversationInboxes(sampleState)).toEqual([records[0]]);
   });
-
-  it('getWhatsAppTemplates', () => {
-    const templates = getters.getWhatsAppTemplates(sampleState)(5);
-    expect(templates).toHaveLength(5);
+  it('expõe somente templates Meta aprovados e compatíveis', () => {
+    const localGetters = { getWhatsAppTemplates: getters.getWhatsAppTemplates(sampleState) };
+    expect(getters.getFilteredWhatsAppTemplates(sampleState, localGetters)('meta-1')).toEqual([records[0].message_templates[0]]);
   });
-
-  it('getFilteredWhatsAppTemplates', () => {
-    const filtered = getters.getFilteredWhatsAppTemplates(sampleState)(5);
-    expect(filtered).toHaveLength(1);
-    expect(filtered[0].name).toEqual('hello_world');
-  });
-
-  it('getNewConversationInboxes', () => {
-    const newConvInboxes = getters.getNewConversationInboxes(sampleState);
-    expect(newConvInboxes.map(i => i.id)).toEqual([2, 4]);
-  });
-
-  it('getInbox and getInboxById', () => {
-    expect(getters.getInbox(sampleState)(1)).toEqual(sampleState.records[0]);
-    expect(getters.getInboxById(sampleState)(1).name).toEqual('Web Inbox');
-    expect(getters.getInbox(sampleState)(999)).toEqual({});
-  });
-
-  it('getUIFlags', () => {
-    expect(getters.getUIFlags(sampleState)).toEqual(sampleState.uiFlags);
-  });
-
-  it('getWebsiteInboxes', () => {
-    expect(getters.getWebsiteInboxes(sampleState)).toHaveLength(1);
-  });
-
-  it('getTwilioInboxes', () => {
-    expect(getters.getTwilioInboxes(sampleState)).toHaveLength(2);
-  });
-
-  it('getSMSInboxes', () => {
-    expect(getters.getSMSInboxes(sampleState)).toHaveLength(1);
-    expect(getters.getSMSInboxes(sampleState)[0].id).toEqual(3);
-  });
-
-  it('getWhatsAppInboxes', () => {
-    expect(getters.getWhatsAppInboxes(sampleState)).toHaveLength(1);
-  });
-
-  it('dialogFlowEnabledInboxes', () => {
-    expect(getters.dialogFlowEnabledInboxes(sampleState)).toHaveLength(7);
-  });
-
-  it('getFacebookInboxByInstagramId', () => {
-    expect(getters.getFacebookInboxByInstagramId(sampleState)('insta_123').id).toEqual(6);
-  });
-
-  it('getInstagramInboxByInstagramId', () => {
-    expect(getters.getInstagramInboxByInstagramId(sampleState)('insta_123').id).toEqual(7);
-  });
-
-  it('getTiktokInboxByBusinessId', () => {
-    expect(getters.getTiktokInboxByBusinessId(sampleState)('tiktok_456').id).toEqual(8);
+  it('não anuncia integrações legadas como Dialogflow', () => {
+    expect(getters.dialogFlowEnabledInboxes(sampleState)).toEqual([]);
   });
 });

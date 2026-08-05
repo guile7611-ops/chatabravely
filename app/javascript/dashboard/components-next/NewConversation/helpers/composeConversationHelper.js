@@ -7,7 +7,6 @@ const CHANNEL_PRIORITY = {
   'Channel::Email': 1,
   'Channel::Whatsapp': 2,
   'Channel::Sms': 3,
-  'Channel::TwilioSms': 4,
   'Channel::WebWidget': 5,
   'Channel::Api': 6,
 };
@@ -21,10 +20,7 @@ export const generateLabelForContactableInboxesList = ({
   if (channelType === INBOX_TYPES.EMAIL) {
     return `${name} (${email})`;
   }
-  if (
-    channelType === INBOX_TYPES.TWILIO ||
-    channelType === INBOX_TYPES.WHATSAPP
-  ) {
+  if (channelType === INBOX_TYPES.WHATSAPP) {
     return phoneNumber ? `${name} (${phoneNumber})` : name;
   }
   return name;
@@ -133,7 +129,7 @@ export const prepareNewMessagePayload = ({
   const payload = {
     inboxId: targetInbox.id,
     sourceId: targetInbox.sourceId,
-    contactId: Number(selectedContact.id),
+    contactId: String(selectedContact.id),
     message: { content: message },
     assigneeId: currentUser.id,
   };

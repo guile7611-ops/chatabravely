@@ -6,7 +6,7 @@ import AgentHome from './Index.vue';
 export default {
   routes: [
     {
-      path: frontendURL('accounts/:accountId/settings/agents'),
+      path: frontendURL('accounts/:accountId/settings/attendants'),
       component: SettingsWrapper,
       children: [
         {
@@ -25,6 +25,13 @@ export default {
           },
         },
       ],
+    },
+    {
+      path: frontendURL('accounts/:accountId/settings/agents/:pathMatch(.*)*'),
+      redirect: to => ({
+        name: 'agent_list',
+        params: { accountId: to.params.accountId },
+      }),
     },
   ],
 };

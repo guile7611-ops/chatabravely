@@ -14,7 +14,7 @@ export const buildContactParams = (page, sortAttr, label, search) => {
 
 class ContactAPI extends ApiClient {
   constructor() {
-    super('contacts', { accountScoped: true });
+    super('contacts');
   }
 
   get(page, sortAttr = 'name', label = '') {
@@ -76,7 +76,7 @@ class ContactAPI extends ApiClient {
   }
 
   active(page = 1, sortAttr = 'name') {
-    let requestURL = `${this.url}/active?${buildContactParams(page, sortAttr)}`;
+    let requestURL = `${this.url}?${buildContactParams(page, sortAttr)}`;
     return axios.get(requestURL);
   }
 
@@ -87,11 +87,12 @@ class ContactAPI extends ApiClient {
   }
 
   importContacts(file) {
-    const formData = new FormData();
-    formData.append('import_file', file);
-    return axios.post(`${this.url}/import`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return file.text().then(content =>
+      axios.post(`${this.url}/import`, {
+        content,
+        filename: file.name,
+      })
+    );
   }
 
   destroyCustomAttributes(contactId, customAttributes) {
@@ -105,7 +106,23 @@ class ContactAPI extends ApiClient {
   }
 
   exportContacts(queryPayload) {
-    return axios.post(`${this.url}/export`, queryPayload);
+    return axios
+      .post(`${this.url}/export`, queryPayload, { responseType: 'blob' })
+      .then(response => {
+        const url = URL.createObjectURL(response.data);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'contatos-abravely.csv';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        return response;
+      });
+  }
+
+  createConversation(contactId, payload) {
+    return axios.post(`${this.url}/${contactId}/conversations`, payload);
   }
 }
 

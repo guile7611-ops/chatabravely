@@ -34,7 +34,6 @@ import {
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import wootConstants from 'dashboard/constants/globals';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
-import { INBOX_TYPES } from 'dashboard/helper/inbox';
 
 export default {
   components: {
@@ -152,21 +151,6 @@ export default {
       return (
         (this.currentChat && this.currentChat.dataFetched === undefined) ||
         (!this.listLoadingStatus && this.isLoadingPrevious)
-      );
-    },
-    // Check there is a instagram inbox exists with the same instagram_id
-    hasDuplicateInstagramInbox() {
-      const instagramId = this.inbox.instagram_id;
-      const { additional_attributes: additionalAttributes = {} } = this.inbox;
-      const instagramInbox =
-        this.$store.getters['inboxes/getInstagramInboxByInstagramId'](
-          instagramId
-        );
-
-      return (
-        this.inbox.channel_type === INBOX_TYPES.FB &&
-        additionalAttributes.type === 'instagram_direct_message' &&
-        instagramInbox
       );
     },
 
@@ -439,12 +423,6 @@ export default {
         :banner-message="replyWindowBannerMessage"
         :href-link="replyWindowLink"
         :href-link-text="replyWindowLinkText"
-      />
-      <Banner
-        v-else-if="hasDuplicateInstagramInbox"
-        color-scheme="alert"
-        class="mx-2 mt-2 overflow-hidden rounded-lg"
-        :banner-message="$t('CONVERSATION.OLD_INSTAGRAM_INBOX_REPLY_BANNER')"
       />
     </div>
     <MessageList

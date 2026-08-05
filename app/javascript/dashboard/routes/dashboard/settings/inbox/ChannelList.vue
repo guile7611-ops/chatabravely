@@ -1,24 +1,13 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useMapGetter } from 'dashboard/composables/store';
 
 import { useAccount } from 'dashboard/composables/useAccount';
 
 import ChannelItem from 'dashboard/components/widgets/ChannelItem.vue';
 
-const { t } = useI18n();
 const router = useRouter();
-const { accountId, currentAccount } = useAccount();
-
-const globalConfig = useMapGetter('globalConfig/get');
-
-const enabledFeatures = ref({});
-
-const hasTiktokConfigured = computed(() => {
-  return window.chatwootConfig?.tiktokAppId;
-});
+const { accountId } = useAccount();
 
 const channelList = computed(() => {
   return [
@@ -37,10 +26,6 @@ const channelList = computed(() => {
   ];
 });
 
-const initializeEnabledFeatures = async () => {
-  enabledFeatures.value = currentAccount.value.features;
-};
-
 const initChannelAuth = channel => {
   const params = {
     sub_page: channel,
@@ -48,10 +33,6 @@ const initChannelAuth = channel => {
   };
   router.push({ name: 'settings_inboxes_page_channel', params });
 };
-
-onMounted(() => {
-  initializeEnabledFeatures();
-});
 </script>
 
 <template>
@@ -62,7 +43,7 @@ onMounted(() => {
       v-for="channel in channelList"
       :key="channel.key"
       :channel="channel"
-      :enabled-features="enabledFeatures"
+      :enabled-features="{}"
       @channel-item-click="initChannelAuth"
     />
   </div>

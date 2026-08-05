@@ -28,7 +28,6 @@ import {
   getUndefinedVariablesInMessage,
 } from '@chatwoot/utils';
 import WhatsappTemplates from './WhatsappTemplates/Modal.vue';
-import ContentTemplates from './ContentTemplates/ContentTemplatesModal.vue';
 import { MESSAGE_MAX_LENGTH } from 'shared/helpers/MessageTypeHelper';
 import inboxMixin, { INBOX_FEATURES } from 'shared/mixins/inboxMixin';
 import { trimContent, debounce, getRecipients } from '@chatwoot/utils';
@@ -74,7 +73,6 @@ export default {
     ReplyEmailHead,
     ReplyToMessage,
     ReplyTopPanel,
-    ContentTemplates,
     WhatsappTemplates,
     WootMessageEditor,
     QuotedEmailPreview,
@@ -125,7 +123,6 @@ export default {
       toEmails: '',
       doAutoSaveDraft: () => {},
       showWhatsAppTemplatesModal: false,
-      showContentTemplatesModal: false,
       updateEditorSelectionWith: '',
       undefinedVariableMessage: '',
       showMentions: false,
@@ -172,9 +169,6 @@ export default {
         this.currentChat?.queue === 'CONVERSATION' &&
         this.currentChat?.can_reply === true
       );
-    },
-    showContentTemplates() {
-      return this.isATwilioWhatsAppChannel && !this.isPrivate;
     },
     isPrivate() {
       if (
@@ -274,9 +268,6 @@ export default {
       if (this.isATiktokChannel) {
         return MESSAGE_MAX_LENGTH.TIKTOK;
       }
-      if (this.isATwilioWhatsAppChannel) {
-        return MESSAGE_MAX_LENGTH.TWILIO_WHATSAPP;
-      }
       if (this.isAWhatsAppCloudChannel) {
         return MESSAGE_MAX_LENGTH.WHATSAPP_CLOUD;
       }
@@ -285,9 +276,6 @@ export default {
       }
       if (this.isAnEmailChannel) {
         return MESSAGE_MAX_LENGTH.EMAIL;
-      }
-      if (this.isATwilioSMSChannel) {
-        return MESSAGE_MAX_LENGTH.TWILIO_SMS;
       }
       if (this.isAWhatsAppChannel) {
         return MESSAGE_MAX_LENGTH.WHATSAPP_CLOUD;
@@ -788,22 +776,13 @@ export default {
     hideWhatsappTemplatesModal() {
       this.showWhatsAppTemplatesModal = false;
     },
-    openContentTemplateModal() {
-      this.showContentTemplatesModal = true;
-    },
-    hideContentTemplatesModal() {
-      this.showContentTemplatesModal = false;
-    },
     confirmOnSendReply() {
       if (this.isReplyButtonDisabled) {
         return;
       }
       if (!this.showMentions) {
         const copilotAcceptedMessage = this.getCopilotAcceptedMessage();
-        const isOnWhatsApp =
-          this.isATwilioWhatsAppChannel ||
-          this.isAWhatsAppCloudChannel ||
-          this.is360DialogWhatsAppChannel;
+        const isOnWhatsApp = this.isAWhatsAppChannel;
         // Instagram and TikTok do not support sending text and attachments in the same message.
         // For Instagram, combining them causes duplicate messages due to separate echo events per component.
         // For TikTok, the API rejects messages that mix text and media.
@@ -964,13 +943,6 @@ export default {
         });
       }
       this.hideWhatsappTemplatesModal();
-    },
-    async onSendContentTemplateReply(messagePayload) {
-      this.sendMessage({
-        conversationId: this.currentChat.id,
-        ...messagePayload,
-      });
-      this.hideContentTemplatesModal();
     },
     setReplyMode(mode = REPLY_EDITOR_MODES.REPLY) {
       // Clear attachments when switching between private note and reply modes
@@ -1470,7 +1442,6 @@ export default {
         :conversation-id="conversationId"
         :enable-multiple-file-upload="enableMultipleFileUpload"
         :enable-whats-app-templates="showWhatsappTemplates"
-        :enable-content-templates="showContentTemplates"
         :inbox="inbox"
         :is-on-private-note="isOnPrivateNote"
         :is-recording-audio="isRecordingAudio"
@@ -1495,7 +1466,6 @@ export default {
         :portal-slug="connectedPortalSlug"
         :new-conversation-modal-active="newConversationModalActive"
         @select-whatsapp-template="openWhatsappTemplateModal"
-        @select-content-template="openContentTemplateModal"
         @toggle-insert-article="toggleInsertArticle"
         @toggle-quoted-reply="toggleQuotedReply"
       />
@@ -1507,14 +1477,6 @@ export default {
       @close="hideWhatsappTemplatesModal"
       @on-send="onSendWhatsAppReply"
       @cancel="hideWhatsappTemplatesModal"
-    />
-
-    <ContentTemplates
-      :inbox-id="inbox.id"
-      :show="showContentTemplatesModal"
-      @close="hideContentTemplatesModal"
-      @on-send="onSendContentTemplateReply"
-      @cancel="hideContentTemplatesModal"
     />
 
     <woot-confirm-modal

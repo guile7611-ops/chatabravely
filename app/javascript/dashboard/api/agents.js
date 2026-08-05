@@ -4,13 +4,13 @@ import ApiClient from './ApiClient';
 
 class Agents extends ApiClient {
   constructor() {
-    super('agents', { accountScoped: true });
+    super('attendants');
   }
 
   bulkInvite({ emails }) {
-    return axios.post(`${this.url}/bulk_create`, {
-      emails,
-    });
+    return Promise.reject(
+      new Error(`Convite em massa ainda não está disponível (${emails.length})`)
+    );
   }
 }
 

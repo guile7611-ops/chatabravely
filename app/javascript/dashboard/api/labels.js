@@ -1,13 +1,8 @@
-import CacheEnabledApiClient from './CacheEnabledApiClient';
+import ApiClient from './ApiClient';
 
-class LabelsAPI extends CacheEnabledApiClient {
+class LabelsAPI extends ApiClient {
   constructor() {
-    super('labels', { accountScoped: true });
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  get cacheModelName() {
-    return 'label';
+    super('labels');
   }
 }
 

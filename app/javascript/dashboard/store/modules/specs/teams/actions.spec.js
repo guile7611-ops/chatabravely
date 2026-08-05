@@ -22,7 +22,9 @@ describe('#actions', () => {
 
   describe('#get', () => {
     it('sends correct actions if API is success', async () => {
-      axios.get.mockResolvedValue({ data: [teamsList[1]] });
+      axios.get.mockResolvedValue({
+        data: { success: true, data: [teamsList[1]] },
+      });
 
       await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
@@ -36,7 +38,7 @@ describe('#actions', () => {
     });
 
     it('handles empty list success', async () => {
-      axios.get.mockResolvedValue({ data: [] });
+      axios.get.mockResolvedValue({ data: { success: true, data: [] } });
 
       await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
@@ -66,7 +68,9 @@ describe('#actions', () => {
 
   describe('#create', () => {
     it('sends correct actions if API is success', async () => {
-      axios.post.mockResolvedValue({ data: teamsList[1] });
+      axios.post.mockResolvedValue({
+        data: { success: true, data: teamsList[1] },
+      });
       await actions.create({ commit }, teamsList[1]);
 
       expect(commit.mock.calls).toEqual([
@@ -95,7 +99,9 @@ describe('#actions', () => {
 
   describe('#update', () => {
     it('sends correct actions if API is success', async () => {
-      axios.patch.mockResolvedValue({ data: teamsList[1] });
+      axios.patch.mockResolvedValue({
+        data: { success: true, data: teamsList[1] },
+      });
       await actions.update({ commit }, teamsList[1]);
 
       expect(commit.mock.calls).toEqual([

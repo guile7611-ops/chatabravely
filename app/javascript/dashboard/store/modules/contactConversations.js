@@ -1,6 +1,5 @@
 import * as types from '../mutation-types';
 import ContactAPI from '../../api/contacts';
-import ConversationApi from '../../api/conversations';
 import camelcaseKeys from 'camelcase-keys';
 
 export const createMessagePayload = (payload, message) => {
@@ -75,29 +74,33 @@ export const getters = {
     return $state.uiFlags;
   },
   getContactConversation: $state => id => {
-    return $state.records[Number(id)] || [];
+    return $state.records[String(id)] || [];
   },
   getAllConversationsByContactId: $state => id => {
-    const records = $state.records[Number(id)] || [];
+    const records = $state.records[String(id)] || [];
     return camelcaseKeys(records, { deep: true });
   },
 };
 
 export const actions = {
-  create: async ({ commit }, { params, isFromWhatsApp }) => {
+  create: async ({ commit, rootGetters }, { params, isFromWhatsApp }) => {
     commit(types.default.SET_CONTACT_CONVERSATIONS_UI_FLAG, {
       isCreating: true,
     });
     const { contactId, files } = params;
     try {
-      const payload = setNewConversationPayload({
-        isFromWhatsApp,
-        params,
+      const normalizedPayload = {
+        inbox_id: params.inboxId,
+        contact_id: contactId,
+        source_id: params.sourceId,
+        assignee_id: params.assigneeId,
+        account_id: rootGetters.getCurrentAccountId,
+        message: params.message,
+      };
+      const { data } = await ContactAPI.createConversation(
         contactId,
-        files,
-      });
-
-      const { data } = await ConversationApi.create(payload);
+        normalizedPayload
+      );
       commit(types.default.ADD_CONTACT_CONVERSATION, {
         id: contactId,
         data,

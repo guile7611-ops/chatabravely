@@ -7,23 +7,13 @@ import EnterpriseAccountAPI from '../../api/enterprise/account';
 import { throwErrorMessage } from '../utils/api';
 import { getLanguageDirection } from 'dashboard/components/widgets/conversation/advancedFilterItems/languages';
 
-const defaultAccount = {
-  id: 1,
-  name: 'Abravely Chat',
-  role: 'administrator',
-  status: 'active',
-  locale: 'pt_BR',
-  created_at: new Date().toISOString(),
-  features: {}
-};
-
 const findRecordById = ($state, id) =>
-  $state.records.find(record => record.id === Number(id)) || defaultAccount;
+  $state.records.find(record => String(record.id) === String(id)) || null;
 
 const TRIAL_PERIOD_DAYS = 15;
 
 const state = {
-  records: [defaultAccount],
+  records: [],
   uiFlags: {
     isFetching: false,
     isFetchingItem: false,
@@ -41,7 +31,7 @@ export const getters = {
     return $state.uiFlags;
   },
   isRTL: ($state, _getters, rootState, rootGetters) => {
-    const accountId = Number(rootState.route?.params?.accountId) || 1;
+    const accountId = rootState.route?.params?.accountId || null;
     const userLocale = rootGetters?.getUISettings?.locale;
     const accountLocale =
       accountId && findRecordById($state, accountId)?.locale;
@@ -52,14 +42,15 @@ export const getters = {
   },
   isTrialAccount: $state => id => {
     const account = findRecordById($state, id);
+    if (!account?.created_at) return false;
     const createdAt = new Date(account.created_at || Date.now());
     const diffDays = differenceInDays(new Date(), createdAt);
 
     return diffDays <= TRIAL_PERIOD_DAYS;
   },
   isFeatureEnabledonAccount: $state => (id, featureName) => {
-    const { features = {} } = findRecordById($state, id);
-    return features[featureName] ?? true;
+    const account = findRecordById($state, id);
+    return Boolean(account?.features?.[featureName]);
   },
 };
 
@@ -71,9 +62,8 @@ export const actions = {
     try {
       const response = await AccountAPI.get();
       commit(types.default.ADD_ACCOUNT, response.data);
-    } catch {
-      // silent failure, fallback to default account
-      commit(types.default.ADD_ACCOUNT, defaultAccount);
+    } catch (error) {
+      throw error;
     } finally {
       if (!silent) {
         commit(types.default.SET_ACCOUNT_UI_FLAG, { isFetchingItem: false });
@@ -132,7 +122,7 @@ export const actions = {
       return account_id;
     } catch (error) {
       commit(types.default.SET_ACCOUNT_UI_FLAG, { isCreating: false });
-      return 1;
+      throw error;
     }
   },
 
@@ -148,9 +138,6 @@ export const actions = {
     commit(types.default.SET_ACCOUNT_UI_FLAG, { isFetchingLimits: false });
   },
 
-  getCacheKeys: async () => {
-    return AccountAPI.getCacheKeys();
-  },
 };
 
 export const mutations = {

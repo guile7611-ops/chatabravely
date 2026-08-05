@@ -2,7 +2,6 @@
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
-import ContactSortMenu from './components/ContactSortMenu.vue';
 import ContactMoreActions from './components/ContactMoreActions.vue';
 
 defineProps({
@@ -10,23 +9,13 @@ defineProps({
   searchValue: { type: String, default: '' },
   headerTitle: { type: String, required: true },
   buttonLabel: { type: String, default: '' },
-  activeSort: { type: String, default: 'last_activity_at' },
-  activeOrdering: { type: String, default: '' },
-  isSegmentsView: { type: Boolean, default: false },
-  hasActiveFilters: { type: Boolean, default: false },
-  isLabelView: { type: Boolean, default: false },
-  isActiveView: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
   'search',
-  'filter',
-  'update:sort',
   'add',
   'import',
   'export',
-  'createSegment',
-  'deleteSegment',
 ]);
 </script>
 
@@ -60,53 +49,7 @@ const emit = defineEmits([
         </div>
         <div class="flex items-center flex-shrink-0 gap-4">
           <div class="flex items-center gap-2">
-            <div v-if="!isLabelView && !isActiveView" class="relative">
-              <Button
-                id="toggleContactsFilterButton"
-                :icon="
-                  isSegmentsView ? 'i-lucide-pen-line' : 'i-lucide-list-filter'
-                "
-                color="slate"
-                size="sm"
-                class="relative w-8"
-                variant="ghost"
-                @click="emit('filter')"
-              >
-                <div
-                  v-if="hasActiveFilters && !isSegmentsView"
-                  class="absolute top-0 right-0 w-2 h-2 rounded-full bg-n-brand"
-                />
-              </Button>
-              <slot name="filter" />
-            </div>
-            <Button
-              v-if="
-                hasActiveFilters &&
-                !isSegmentsView &&
-                !isLabelView &&
-                !isActiveView
-              "
-              icon="i-lucide-save"
-              color="slate"
-              size="sm"
-              variant="ghost"
-              @click="emit('createSegment')"
-            />
-            <Button
-              v-if="isSegmentsView && !isLabelView && !isActiveView"
-              icon="i-lucide-trash"
-              color="slate"
-              size="sm"
-              variant="ghost"
-              @click="emit('deleteSegment')"
-            />
-            <ContactSortMenu
-              :active-sort="activeSort"
-              :active-ordering="activeOrdering"
-              @update:sort="emit('update:sort', $event)"
-            />
             <ContactMoreActions
-              @add="emit('add')"
               @import="emit('import')"
               @export="emit('export')"
             />

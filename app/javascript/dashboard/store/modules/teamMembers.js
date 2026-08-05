@@ -33,7 +33,7 @@ export const actions = {
     commit(SET_TEAM_MEMBERS_UI_FLAG, { isFetching: true });
     try {
       const { data } = await TeamsAPI.getAgents({ teamId });
-      commit(ADD_AGENTS_TO_TEAM, { data, teamId });
+      commit(ADD_AGENTS_TO_TEAM, { data: data.data, teamId });
       commit(SET_TEAM_MEMBERS_ERROR, null);
     } catch (error) {
       const errorMessage =
@@ -51,9 +51,9 @@ export const actions = {
     commit(SET_TEAM_MEMBERS_UI_FLAG, { isCreating: true });
     try {
       const { data } = await TeamsAPI.addAgents({ agentsList, teamId });
-      commit(ADD_AGENTS_TO_TEAM, { teamId, data });
+      commit(ADD_AGENTS_TO_TEAM, { teamId, data: data.data });
       commit(SET_TEAM_MEMBERS_ERROR, null);
-      return data;
+      return data.data;
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
@@ -73,7 +73,7 @@ export const actions = {
         agentsList,
         teamId,
       });
-      const data = response.data || response;
+      const data = response.data?.data || [];
       commit(ADD_AGENTS_TO_TEAM, { teamId, data });
       commit(SET_TEAM_MEMBERS_ERROR, null);
       return data;
@@ -96,7 +96,7 @@ export const actions = {
         agentsList,
         teamId,
       });
-      const data = response.data || response;
+      const data = response.data?.data || [];
       commit(ADD_AGENTS_TO_TEAM, { teamId, data });
       commit(SET_TEAM_MEMBERS_ERROR, null);
       return data;
