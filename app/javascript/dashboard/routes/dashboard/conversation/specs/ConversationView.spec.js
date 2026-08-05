@@ -53,7 +53,10 @@ const mountView = ({
         $router: { push: routerPush },
       },
       stubs: {
-        ChatList: true,
+        AbravelyQueueList: {
+          name: 'AbravelyQueueList',
+          template: '<div />',
+        },
         AbravelyConversationPanel: {
           name: 'AbravelyConversationPanel',
           template: '<div />',

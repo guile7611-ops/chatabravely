@@ -117,7 +117,11 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
 
     // First call with canonical event message.created
     eventHandlers['message.created'](payload);
-    expect(mockDispatch).toHaveBeenCalledTimes(2); // addMessage + updateConversationLastActivity
+    expect(mockDispatch).toHaveBeenCalledTimes(3); // legacy message state + native queue preview + last activity
+    expect(mockDispatch).toHaveBeenCalledWith(
+      'abravelyConversationPanel/applyRealtimeMessage',
+      expect.objectContaining({ id: 99, content: 'Mensagem via socket' })
+    );
 
     mockDispatch.mockClear();
 
@@ -144,6 +148,10 @@ describe('SocketIoConnector Real Authenticated Integration', () => {
         id: 'uuid-conversa-123',
         assignee_id: 5,
       })
+    );
+    expect(mockDispatch).toHaveBeenCalledWith(
+      'abravelyConversationPanel/applyRealtimeConversation',
+      expect.objectContaining({ id: 'uuid-conversa-123', assignee_id: 5 })
     );
   });
 

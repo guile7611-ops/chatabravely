@@ -105,6 +105,7 @@ const actions = {
           normalizedConversation.meta.sender
         );
       }
+      return normalizedConversation;
     } catch (error) {
       // Ignore error
     }
@@ -339,11 +340,14 @@ const actions = {
     commit(types.CLEAR_ALL_MESSAGES_LOADED, data.id);
     if (data.dataFetched === undefined) {
       try {
-        await dispatch('fetchPreviousMessages', {
-          after,
-          before: data.messages[0].id,
-          conversationId: data.id,
-        });
+        const firstMessageId = data.messages?.[0]?.id;
+        if (firstMessageId) {
+          await dispatch('fetchPreviousMessages', {
+            after,
+            before: firstMessageId,
+            conversationId: data.id,
+          });
+        }
         commit(types.SET_CHAT_DATA_FETCHED, data.id);
       } catch (error) {
         // Ignore error

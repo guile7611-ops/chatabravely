@@ -2,7 +2,7 @@
 import { mapGetters } from 'vuex';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAccount } from 'dashboard/composables/useAccount';
-import ChatList from '../../../components/ChatList.vue';
+import AbravelyQueueList from '../../../components/AbravelyQueueList.vue';
 import AbravelyConversationPanel from '../../../components/AbravelyConversationPanel.vue';
 import ConversationEmptyState from '../../../components/widgets/conversation/EmptyState/EmptyState.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -14,7 +14,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 
 export default {
   components: {
-    ChatList,
+    AbravelyQueueList,
     AbravelyConversationPanel,
     ConversationEmptyState,
     CmdBarConversationSnooze,
@@ -163,13 +163,25 @@ export default {
         previously_used_conversation_display_type: newViewType,
       });
     },
-    fetchConversationIfUnavailable() {
+    async fetchConversationIfUnavailable() {
       if (this.conversationId) {
+        if (String(this.currentChat?.id) === String(this.conversationId)) {
+          return;
+        }
         const selectedConversation = this.chatList.find(
           c => String(c.id) === String(this.conversationId)
         );
         if (!selectedConversation) {
-          this.$store.dispatch('getConversation', this.conversationId);
+          const loadedConversation = await this.$store.dispatch(
+            'getConversation',
+            this.conversationId
+          );
+          if (loadedConversation) {
+            await this.$store.dispatch('setActiveChat', {
+              data: loadedConversation,
+              after: this.$route.query.messageId,
+            });
+          }
           return;
         }
 
@@ -244,6 +256,21 @@ export default {
         ...message,
       });
     },
+    async selectNativeConversation(conversation) {
+      const loadedConversation = await this.$store.dispatch(
+        'getConversation',
+        conversation.id
+      );
+      if (!loadedConversation) return;
+      await this.$store.dispatch('setActiveChat', { data: loadedConversation });
+      await this.$router.push({
+        name: 'inbox_conversation',
+        params: {
+          accountId: this.$route.params.accountId,
+          conversation_id: conversation.id,
+        },
+      });
+    },
   },
 };
 </script>
@@ -264,15 +291,12 @@ export default {
     </div>
 
     <div class="flex w-full h-full min-w-0 flex-1">
-      <ChatList
+      <AbravelyQueueList
         :show-conversation-list="showConversationList"
-        :conversation-inbox="inboxId"
-        :label="label"
-        :team-id="teamId"
-        :conversation-type="conversationType"
-        :folders-id="foldersId"
         :is-on-expanded-layout="isOnExpandedLayout"
+        :selected-conversation-id="conversationId"
         @conversation-load="onConversationLoad"
+        @select-conversation="selectNativeConversation"
       />
       <AbravelyConversationPanel
         v-if="showMessageView"

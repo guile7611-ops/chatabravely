@@ -220,6 +220,10 @@ class SocketIoConnector {
     if (this.isDuplicateConversationEvent(conversation?.id, 'created')) return;
     const uiConversation = toUIConversation(conversation);
     this.app?.$store?.dispatch('addConversation', uiConversation);
+    this.app?.$store?.dispatch(
+      'abravelyConversationPanel/applyRealtimeConversation',
+      uiConversation
+    );
   }
 
   onConversationUpdated(payload) {
@@ -227,6 +231,10 @@ class SocketIoConnector {
     if (this.isDuplicateConversationEvent(conversation?.id, 'updated')) return;
     const uiConversation = toUIConversation(conversation);
     this.app?.$store?.dispatch('updateConversation', uiConversation);
+    this.app?.$store?.dispatch(
+      'abravelyConversationPanel/applyRealtimeConversation',
+      uiConversation
+    );
   }
 
   onMessageCreated(payload) {
@@ -236,6 +244,10 @@ class SocketIoConnector {
     const lastActivityAt = uiMessage.created_at;
 
     this.app?.$store?.dispatch('addMessage', uiMessage);
+    this.app?.$store?.dispatch(
+      'abravelyConversationPanel/applyRealtimeMessage',
+      uiMessage
+    );
     if (conversationId && lastActivityAt) {
       this.app?.$store?.dispatch('updateConversationLastActivity', {
         conversationId,
@@ -249,6 +261,10 @@ class SocketIoConnector {
     if (this.isDuplicateConversationEvent(conversation?.id, 'assigned')) return;
     const uiConversation = toUIConversation(conversation);
     this.app?.$store?.dispatch('updateConversation', uiConversation);
+    this.app?.$store?.dispatch(
+      'abravelyConversationPanel/applyRealtimeConversation',
+      uiConversation
+    );
   }
 
   onConversationStatusUpdated(payload) {
@@ -256,6 +272,10 @@ class SocketIoConnector {
     if (this.isDuplicateConversationEvent(conversation?.id, 'status_updated')) return;
     const uiConversation = toUIConversation(conversation);
     this.app?.$store?.dispatch('updateConversation', uiConversation);
+    this.app?.$store?.dispatch(
+      'abravelyConversationPanel/applyRealtimeConversation',
+      uiConversation
+    );
   }
 
   onConversationQueueChanged(payload) {
@@ -263,6 +283,10 @@ class SocketIoConnector {
     if (this.isDuplicateConversationEvent(conversation?.id, 'queue_changed')) return;
     const uiConversation = toUIConversation(conversation);
     this.app?.$store?.dispatch('updateConversation', uiConversation);
+    this.app?.$store?.dispatch(
+      'abravelyConversationPanel/applyRealtimeConversation',
+      uiConversation
+    );
   }
 }
 
