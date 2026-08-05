@@ -96,6 +96,49 @@ const actions = {
   clearSelectedConversation({ commit }) {
     commit('CLEAR_SELECTED_CONVERSATION');
   },
+
+  async claim({ dispatch }, conversationId) {
+    const response = await ConversationApi.claim(conversationId);
+    await dispatch('openConversation', conversationId);
+    return response;
+  },
+
+  async transfer({ dispatch }, { conversationId, departmentId, agentId }) {
+    const response = await ConversationApi.transfer(conversationId, {
+      departmentId,
+      agentId,
+    });
+    await dispatch('openConversation', conversationId);
+    return response;
+  },
+
+  async close({ dispatch }, { conversationId, reason }) {
+    const response = await ConversationApi.close(conversationId, { reason });
+    await dispatch('openConversation', conversationId);
+    return response;
+  },
+
+  async reopen({ dispatch }, conversationId) {
+    const response = await ConversationApi.reopen(conversationId);
+    await dispatch('openConversation', conversationId);
+    return response;
+  },
+
+  async sendMessage({ dispatch }, { conversationId, content, isPrivate, avatarPill }) {
+    const response = await ConversationApi.sendMessage(conversationId, {
+      content,
+      isPrivate,
+      avatarPill,
+    });
+    await dispatch('openConversation', conversationId);
+    return response;
+  },
+
+  async sendTemplate({ dispatch }, { conversationId, ...payload }) {
+    const response = await ConversationApi.sendTemplate(conversationId, payload);
+    await dispatch('openConversation', conversationId);
+    return response;
+  },
 };
 
 export default {

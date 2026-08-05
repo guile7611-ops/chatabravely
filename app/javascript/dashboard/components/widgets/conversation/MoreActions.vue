@@ -4,7 +4,7 @@ import { useStore } from 'vuex';
 import ResolveAction from '../../buttons/ResolveAction.vue';
 import SidepanelSwitch from 'dashboard/components-next/Conversation/SidepanelSwitch.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import ConversationApi from 'dashboard/api/inbox/conversation';
+import ConversationApi from 'dashboard/api/abravely/conversations';
 import { useAlert } from 'dashboard/composables';
 
 const store = useStore();

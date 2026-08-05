@@ -1,6 +1,6 @@
 import types from '../../mutation-types';
 import ConversationApi from '../../../api/inbox/conversation';
-import MessageApi from '../../../api/inbox/message';
+import AbravelyConversationApi from '../../../api/abravely/conversations';
 import { MESSAGE_STATUS, MESSAGE_TYPE } from 'shared/constants/messages';
 import { createPendingMessage } from 'dashboard/helper/commons';
 import {
@@ -427,7 +427,7 @@ const actions = {
 
   createPendingMessageAndSend: async ({ dispatch }, data) => {
     const pendingMessage = createPendingMessage(data);
-    dispatch('sendMessageWithData', pendingMessage);
+    return dispatch('sendMessageWithData', pendingMessage);
   },
 
   sendMessageWithData: async ({ commit }, pendingMessage) => {
@@ -437,15 +437,30 @@ const actions = {
         ...pendingMessage,
         status: MESSAGE_STATUS.PROGRESS,
       });
-      const response = hasMessageFailedWithExternalError(pendingMessage)
-        ? await MessageApi.retry(conversationId, id)
-        : await MessageApi.create(pendingMessage);
+      if (pendingMessage.files?.length || pendingMessage.file) {
+        throw new Error('Envio de anexos ainda não está disponível no backend Abravely.');
+      }
+
+      const response = await AbravelyConversationApi.sendMessage(conversationId, {
+        content: pendingMessage.content || pendingMessage.message || '',
+        isPrivate: Boolean(pendingMessage.private),
+        avatarPill: pendingMessage.avatarPill,
+      });
+      const persistedMessage = response.message || {};
       commit(types.ADD_MESSAGE, {
-        ...response.data,
+        ...pendingMessage,
+        ...persistedMessage,
+        conversation_id: persistedMessage.conversationId || conversationId,
+        created_at: persistedMessage.createdAt
+          ? Math.floor(new Date(persistedMessage.createdAt).getTime() / 1000)
+          : pendingMessage.created_at,
+        private: persistedMessage.isPrivate ?? pendingMessage.private,
         status: MESSAGE_STATUS.SENT,
       });
       commit(types.ADD_CONVERSATION_ATTACHMENTS, {
-        ...response.data,
+        ...pendingMessage,
+        ...persistedMessage,
+        conversation_id: persistedMessage.conversationId || conversationId,
         status: MESSAGE_STATUS.SENT,
       });
     } catch (error) {

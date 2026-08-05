@@ -19,6 +19,7 @@ import {
 import ButtonGroup from 'dashboard/components-next/buttonGroup/ButtonGroup.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
+import ConversationApi from 'dashboard/api/abravely/conversations';
 
 const store = useStore();
 const getters = useStoreGetters();
@@ -81,24 +82,37 @@ const openSnoozeModal = () => {
   ninja.open({ parent: 'snooze_conversation' });
 };
 
-const toggleStatus = (status, snoozedUntil, customAttributes = null) => {
+const refreshConversation = async () => {
+  await store.dispatch('getConversation', currentChat.value.id);
+  await store.dispatch('fetchAllConversations');
+};
+
+const toggleStatus = async (status, snoozedUntil, customAttributes = null) => {
   closeDropdown();
   isLoading.value = true;
+  try {
+    if (status === wootConstants.STATUS_TYPE.RESOLVED) {
+      await ConversationApi.close(currentChat.value.id);
+    } else if (
+      status === wootConstants.STATUS_TYPE.OPEN &&
+      currentChat.value.queue === 'CLOSED'
+    ) {
+      await ConversationApi.reopen(currentChat.value.id);
+    } else {
+      throw new Error('O status solicitado não faz parte do fluxo Abravely.');
+    }
 
-  const payload = {
-    conversationId: currentChat.value.id,
-    status,
-    snoozedUntil,
-  };
-
-  if (customAttributes) {
-    payload.customAttributes = customAttributes;
-  }
-
-  store.dispatch('toggleStatus', payload).then(() => {
+    await refreshConversation();
     useAlert(t('CONVERSATION.CHANGE_STATUS'));
+  } catch (error) {
+    useAlert(
+      error?.response?.data?.message ||
+        error?.message ||
+        'Não foi possível atualizar a conversa.'
+    );
+  } finally {
     isLoading.value = false;
-  });
+  }
 };
 
 const handleResolveWithAttributes = ({ attributes, context }) => {

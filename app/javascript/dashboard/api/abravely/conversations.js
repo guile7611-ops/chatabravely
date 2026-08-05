@@ -27,8 +27,8 @@ export default {
     return unwrap(await axios.post(`${BASE_URL}/${conversationId}/transfer`, data));
   },
 
-  async close(conversationId) {
-    return unwrap(await axios.post(`${BASE_URL}/${conversationId}/close`));
+  async close(conversationId, data = {}) {
+    return unwrap(await axios.post(`${BASE_URL}/${conversationId}/close`, data));
   },
 
   async reopen(conversationId) {
