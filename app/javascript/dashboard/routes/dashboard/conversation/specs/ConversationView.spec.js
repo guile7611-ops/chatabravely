@@ -28,19 +28,17 @@ afterEach(() => {
 const mountView = ({
   conversationId = 'conversation-1',
   currentChat = {},
-  chatList = [conversation],
 } = {}) => {
   const dispatch = vi.fn().mockResolvedValue();
   const routerPush = vi.fn().mockResolvedValue();
   const store = {
     dispatch,
     getters: {
-      getAllConversations: chatList,
-      getSelectedChat: currentChat,
       getConversationsError: null,
       getCurrentUserID: 'user-1',
       'agents/getAgents': [],
       'teams/getTeams': [],
+      'abravelyConversationPanel/getSelectedConversation': currentChat,
     },
   };
 
@@ -75,14 +73,13 @@ const mountView = ({
 };
 
 describe('ConversationView', () => {
-  it('selects the routed conversation during mount without throwing', () => {
+  it('opens the routed conversation through the native store during mount', () => {
     const { dispatch } = mountView();
 
-    expect(dispatch).toHaveBeenCalledWith('setActiveInbox', 0);
-    expect(dispatch).toHaveBeenCalledWith('setActiveChat', {
-      data: conversation,
-      after: undefined,
-    });
+    expect(dispatch).toHaveBeenCalledWith(
+      'abravelyConversationPanel/openConversation',
+      'conversation-1'
+    );
   });
 
   it('clears a stale selected conversation when the route has no conversation id', () => {
@@ -91,7 +88,9 @@ describe('ConversationView', () => {
       currentChat: { id: 'previous-conversation' },
     });
 
-    expect(dispatch).toHaveBeenCalledWith('clearSelectedState');
+    expect(dispatch).toHaveBeenCalledWith(
+      'abravelyConversationPanel/clearSelectedConversation'
+    );
     expect(wrapper.findComponent({ name: 'AbravelyConversationPanel' }).exists()).toBe(
       false
     );
@@ -104,11 +103,10 @@ describe('ConversationView', () => {
     const { wrapper, dispatch } = mountView({
       conversationId: 'conversation-not-in-list-yet',
       currentChat: {},
-      chatList: [],
     });
 
     expect(dispatch).toHaveBeenCalledWith(
-      'getConversation',
+      'abravelyConversationPanel/openConversation',
       'conversation-not-in-list-yet'
     );
     expect(wrapper.findComponent({ name: 'AbravelyConversationPanel' }).exists()).toBe(
@@ -125,6 +123,8 @@ describe('ConversationView', () => {
     wrapper.unmount();
     mountedWrapper = null;
 
-    expect(dispatch).toHaveBeenCalledWith('clearSelectedState');
+    expect(dispatch).toHaveBeenCalledWith(
+      'abravelyConversationPanel/clearSelectedConversation'
+    );
   });
 });

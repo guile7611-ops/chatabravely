@@ -6,10 +6,6 @@ import AbravelyQueueList from '../../../components/AbravelyQueueList.vue';
 import AbravelyConversationPanel from '../../../components/AbravelyConversationPanel.vue';
 import ConversationEmptyState from '../../../components/widgets/conversation/EmptyState/EmptyState.vue';
 import wootConstants from 'dashboard/constants/globals';
-import { BUS_EVENTS } from 'shared/constants/busEvents';
-import CmdBarConversationSnooze from 'dashboard/routes/dashboard/commands/CmdBarConversationSnooze.vue';
-import { emitter } from 'shared/helpers/mitt';
-import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import InboxesAPI from 'dashboard/api/inboxes';
 
@@ -18,8 +14,6 @@ export default {
     AbravelyQueueList,
     AbravelyConversationPanel,
     ConversationEmptyState,
-    CmdBarConversationSnooze,
-    ConversationSidebar,
     Button,
   },
   props: {
@@ -67,13 +61,18 @@ export default {
   },
   computed: {
     ...mapGetters({
-      chatList: 'getAllConversations',
-      currentChat: 'getSelectedChat',
       conversationsError: 'getConversationsError',
       currentUserId: 'getCurrentUserID',
       attendants: 'agents/getAgents',
       departments: 'teams/getTeams',
     }),
+    currentChat() {
+      return (
+        this.$store.getters[
+          'abravelyConversationPanel/getSelectedConversation'
+        ] || {}
+      );
+    },
     showConversationList() {
       return this.isOnExpandedLayout ? !this.conversationId : true;
     },
@@ -89,14 +88,6 @@ export default {
       return conversationDisplayType !== CONDENSED;
     },
 
-    shouldShowSidebar() {
-      if (!this.currentChat.id) {
-        return false;
-      }
-
-      const { is_contact_sidebar_open: isContactSidebarOpen } = this.uiSettings;
-      return isContactSidebarOpen;
-    },
   },
   watch: {
     conversationId() {
@@ -105,8 +96,8 @@ export default {
   },
 
   created() {
-    if (!this.conversationId && this.currentChat?.id) {
-      this.$store.dispatch('clearSelectedState');
+    if (!this.conversationId) {
+      this.$store.dispatch('abravelyConversationPanel/clearSelectedConversation');
     }
   },
 
@@ -118,36 +109,21 @@ export default {
         this.initialize();
       }
     });
-    this.$watch('chatList.length', (newLen, oldLen) => {
-      if (newLen !== oldLen) {
-        this.setActiveChat();
-      }
-    });
   },
   unmounted() {
-    if (this.conversationId) {
-      this.$store.dispatch('clearSelectedState');
-    }
+    this.$store.dispatch('abravelyConversationPanel/clearSelectedConversation');
   },
   methods: {
     retryConnection() {
       if (window.__abravelySocketConnector) {
         window.__abravelySocketConnector.connect();
       }
-      this.$store.dispatch('fetchAllConversations');
+      this.$store.dispatch('abravelyConversationPanel/refreshActiveQueue');
     },
     onConversationLoad() {
       this.fetchConversationIfUnavailable();
     },
     initialize() {
-      this.$store.dispatch('setActiveInbox', this.inboxId);
-      this.setActiveChat();
-    },
-    setActiveChat() {
-      // A route change can happen before its conversation is present in the
-      // list. The existing selector handles both cases: it fetches a missing
-      // conversation or selects the matching one. Keeping that behavior in a
-      // component method also makes the initial mount and list watcher safe.
       this.fetchConversationIfUnavailable();
     },
     toggleConversationLayout() {
@@ -171,42 +147,24 @@ export default {
           await this.fetchMetaTemplates();
           return;
         }
-        const selectedConversation = this.chatList.find(
-          c => String(c.id) === String(this.conversationId)
-        );
-        if (!selectedConversation) {
-          const loadedConversation = await this.$store.dispatch(
-            'getConversation',
+        try {
+          await this.$store.dispatch(
+            'abravelyConversationPanel/openConversation',
             this.conversationId
           );
-          if (loadedConversation) {
-            await this.$store.dispatch('setActiveChat', {
-              data: loadedConversation,
-              after: this.$route.query.messageId,
-            });
-            await this.fetchMetaTemplates();
-          }
-          return;
+          await this.fetchMetaTemplates();
+        } catch (error) {
+          this.$store.commit(
+            'SET_CONVERSATIONS_ERROR',
+            error?.response?.data?.message ||
+              error?.message ||
+              'Não foi possível carregar a conversa.'
+          );
         }
-
-        if (
-          !selectedConversation ||
-          selectedConversation.id === this.currentChat.id
-        ) {
-          return;
-        }
-        const { messageId } = this.$route.query;
-        this.$store
-          .dispatch('setActiveChat', {
-            data: selectedConversation,
-            after: messageId,
-          })
-          .then(() => {
-            emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE, { messageId });
-            this.fetchMetaTemplates();
-          });
       } else if (this.currentChat?.id) {
-        this.$store.dispatch('clearSelectedState');
+        this.$store.dispatch(
+          'abravelyConversationPanel/clearSelectedConversation'
+        );
       }
     },
     onSearch() {
@@ -216,8 +174,11 @@ export default {
       this.showSearchModal = false;
     },
     async refreshCurrentConversation() {
-      await this.$store.dispatch('getConversation', this.conversationId);
-      await this.$store.dispatch('fetchAllConversations');
+      await this.$store.dispatch(
+        'abravelyConversationPanel/openConversation',
+        this.conversationId
+      );
+      await this.$store.dispatch('abravelyConversationPanel/refreshActiveQueue');
       await this.fetchMetaTemplates();
     },
     async fetchMetaTemplates() {
@@ -293,12 +254,10 @@ export default {
       });
     },
     async selectNativeConversation(conversation) {
-      const loadedConversation = await this.$store.dispatch(
-        'getConversation',
+      await this.$store.dispatch(
+        'abravelyConversationPanel/openConversation',
         conversation.id
       );
-      if (!loadedConversation) return;
-      await this.$store.dispatch('setActiveChat', { data: loadedConversation });
       await this.$router.push({
         name: 'inbox_conversation',
         params: {
@@ -353,8 +312,6 @@ export default {
         v-else
         :is-on-expanded-layout="isOnExpandedLayout"
       />
-      <ConversationSidebar v-if="shouldShowSidebar" :current-chat="currentChat" />
-      <CmdBarConversationSnooze />
     </div>
   </section>
 </template>
