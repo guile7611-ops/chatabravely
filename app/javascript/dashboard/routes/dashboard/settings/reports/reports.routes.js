@@ -1,5 +1,4 @@
 import { frontendURL } from '../../../../helper/URLHelper';
-import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 import ReportsWrapper from './components/ReportsWrapper.vue';
 import Index from './Index.vue';
@@ -25,7 +24,6 @@ import LiveReports from './LiveReports.vue';
 import SLAReports from './SLAReports.vue';
 
 const meta = {
-  featureFlag: FEATURE_FLAGS.REPORTS,
   permissions: ['administrator', 'report_manage'],
 };
 

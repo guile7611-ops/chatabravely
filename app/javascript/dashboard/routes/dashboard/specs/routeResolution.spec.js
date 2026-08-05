@@ -29,4 +29,18 @@ describe('dashboard route resolution', () => {
     expect(result.name).toBe(expectedName);
     expect(result.leaf?.components?.default).toBeTruthy();
   });
+
+  it.each([
+    '/app/accounts/1/contacts?page=1',
+    '/app/accounts/1/reports/overview',
+    '/app/accounts/1/portals/portals_articles_index',
+    '/app/accounts/1/settings/attendants/list',
+    '/app/accounts/1/settings/departments/list',
+    '/app/accounts/1/settings/channels/list',
+    '/app/accounts/1/settings/labels/list',
+    '/app/accounts/1/settings/canned-response/list',
+  ])('keeps Abravely base module visible without legacy feature flags: %s', path => {
+    const result = resolvedLeaf(path);
+    expect(result.leaf?.meta?.featureFlag).toBeUndefined();
+  });
 });

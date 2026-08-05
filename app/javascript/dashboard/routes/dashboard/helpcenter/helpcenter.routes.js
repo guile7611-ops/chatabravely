@@ -1,4 +1,3 @@
-import { FEATURE_FLAGS } from '../../../featureFlags';
 import { getPortalRoute } from './helpers/routeHelper';
 
 import HelpCenterPageRouteView from './pages/HelpCenterPageRouteView.vue';
@@ -17,7 +16,6 @@ const PortalsCategoriesIndexPage = () =>
 
 
 const meta = {
-  featureFlag: FEATURE_FLAGS.HELP_CENTER,
   permissions: ['administrator', 'agent', 'knowledge_base_manage'],
 };
 const portalRoutes = [
@@ -76,7 +74,6 @@ const portalRoutes = [
     path: getPortalRoute(':navigationPath'),
     name: 'portals_index',
     meta: {
-      featureFlag: FEATURE_FLAGS.HELP_CENTER,
       permissions: ['administrator', 'knowledge_base_manage'],
     },
     component: PortalsIndex,

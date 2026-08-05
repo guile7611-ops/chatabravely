@@ -1,4 +1,3 @@
-import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { frontendURL } from '../../../../helper/URLHelper';
 import ChannelFactory from './ChannelFactory.vue';
 
@@ -25,7 +24,6 @@ export default {
           name: 'settings_inbox_list',
           component: InboxHome,
           meta: {
-            featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
             permissions: ['administrator'],
           },
         },
@@ -54,7 +52,6 @@ export default {
               name: 'settings_inbox_new',
               component: ChannelList,
               meta: {
-                featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
                 permissions: ['administrator'],
               },
             },
@@ -63,7 +60,6 @@ export default {
               name: 'settings_inboxes_page_channel',
               component: ChannelFactory,
               meta: {
-                featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
                 permissions: ['administrator'],
               },
               props: route => {
