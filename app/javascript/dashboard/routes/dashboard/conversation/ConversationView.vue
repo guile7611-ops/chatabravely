@@ -104,6 +104,7 @@ export default {
   mounted() {
     this.$store.dispatch('agents/get');
     this.initialize();
+    document.addEventListener('keydown', this.handleGlobalKeydown);
     this.$watch('$route.params', (newParams, oldParams) => {
       if (JSON.stringify(newParams) !== JSON.stringify(oldParams)) {
         this.initialize();
@@ -111,9 +112,27 @@ export default {
     });
   },
   unmounted() {
+    document.removeEventListener('keydown', this.handleGlobalKeydown);
     this.$store.dispatch('abravelyConversationPanel/clearSelectedConversation');
   },
   methods: {
+    handleGlobalKeydown(event) {
+      if (event.key !== 'Escape' || !this.conversationId) {
+        return;
+      }
+
+      event.preventDefault();
+      this.closeSelectedConversation();
+    },
+    async closeSelectedConversation() {
+      await this.$store.dispatch(
+        'abravelyConversationPanel/clearSelectedConversation'
+      );
+      await this.$router.replace({
+        name: 'home',
+        params: { accountId: this.$route.params.accountId },
+      });
+    },
     retryConnection() {
       if (window.__abravelySocketConnector) {
         window.__abravelySocketConnector.connect();

@@ -31,6 +31,7 @@ const mountView = ({
 } = {}) => {
   const dispatch = vi.fn().mockResolvedValue();
   const routerPush = vi.fn().mockResolvedValue();
+  const routerReplace = vi.fn().mockResolvedValue();
   const store = {
     dispatch,
     getters: {
@@ -47,8 +48,8 @@ const mountView = ({
     global: {
       mocks: {
         $store: store,
-        $route: { params: {}, query: {} },
-        $router: { push: routerPush },
+        $route: { params: { accountId: '1' }, query: {} },
+        $router: { push: routerPush, replace: routerReplace },
       },
       stubs: {
         AbravelyQueueList: {
@@ -69,7 +70,7 @@ const mountView = ({
   });
   mountedWrapper = wrapper;
 
-  return { wrapper, dispatch, routerPush };
+  return { wrapper, dispatch, routerPush, routerReplace };
 };
 
 describe('ConversationView', () => {
@@ -126,5 +127,25 @@ describe('ConversationView', () => {
     expect(dispatch).toHaveBeenCalledWith(
       'abravelyConversationPanel/clearSelectedConversation'
     );
+  });
+
+  it('closes the selected conversation when Escape is pressed', async () => {
+    const { dispatch, routerReplace } = mountView({
+      conversationId: 'conversation-1',
+      currentChat: conversation,
+    });
+
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    );
+    await Promise.resolve();
+
+    expect(dispatch).toHaveBeenCalledWith(
+      'abravelyConversationPanel/clearSelectedConversation'
+    );
+    expect(routerReplace).toHaveBeenCalledWith({
+      name: 'home',
+      params: { accountId: '1' },
+    });
   });
 });
