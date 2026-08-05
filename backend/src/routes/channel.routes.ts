@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { EvolutionService } from '../services/evolution.service';
 import { MetaService } from '../services/meta.service';
-import { authenticateToken } from '../middlewares/auth.middleware';
+import { authenticateToken, requireAdmin } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -48,7 +48,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * POST /api/v1/channels/evolution/qr
  * Gerar QR Code base64 e criar/conectar instância no container Evolution API GO
  */
-router.post('/evolution/qr', async (req: Request, res: Response) => {
+router.post('/evolution/qr', requireAdmin, async (req: Request, res: Response) => {
   try {
     const user = req.user!;
     const { name, instanceName } = req.body;
@@ -113,7 +113,7 @@ router.post('/evolution/qr', async (req: Request, res: Response) => {
  * POST /api/v1/channels/meta/save
  * Cadastrar credenciais da Meta Cloud API (Phone Number ID + Permanent Access Token)
  */
-router.post('/meta/save', async (req: Request, res: Response) => {
+router.post('/meta/save', requireAdmin, async (req: Request, res: Response) => {
   try {
     const user = req.user!;
     const { name, metaPhoneNumberId, metaToken, metaWabaId } = req.body;
@@ -209,7 +209,7 @@ router.get('/:id/templates', async (req: Request, res: Response) => {
  * DELETE /api/v1/channels/:id
  * Excluir conexão de canal do Workspace do usuário autenticado
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const user = req.user!;
