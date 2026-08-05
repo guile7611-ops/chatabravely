@@ -59,7 +59,7 @@ export default {
     },
     isSegmentSection() {
       return (
-        this.activeFilterType === 1 && this.$route.name !== 'contacts_dashboard'
+        this.activeFilterType === 1 && this.$route.name !== 'contacts_dashboard_index'
       );
     },
   },
