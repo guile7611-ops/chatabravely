@@ -1,3 +1,5 @@
+name: agoravai
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -8,9 +10,16 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: chatabravely
     ports:
-      - "5432:5432"
+      # Evita conflito com outros projetos PostgreSQL locais. Dentro do Docker,
+      # os serviços continuam usando `postgres:5432`.
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chatabravely"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   redis:
     image: redis:7-alpine
@@ -20,6 +29,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   evolution-api:
     image: evoapicloud/evolution-api:latest
@@ -42,8 +56,10 @@ services:
       - CACHE_REDIS_ENABLED=true
       - CACHE_REDIS_URI=redis://redis:6379
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - evolution_go_data:/evolution/instances
 
@@ -62,9 +78,10 @@ services:
       - EVOLUTION_API_URL=http://evolution-api:8080
       - EVOLUTION_API_KEY=EvolutionApiKey123!
     depends_on:
-      - postgres
-      - redis
-      - evolution-api
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./backend:/app
       - /app/node_modules
