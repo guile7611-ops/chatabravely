@@ -6,6 +6,7 @@ import articles from './modules/helpCenterArticles';
 import attributes from './modules/attributes';
 import auditlogs from './modules/auditlogs';
 import auth from './modules/auth';
+import bulkActions from './modules/bulkActions';
 import cannedResponse from './modules/cannedResponse';
 import categories from './modules/helpCenterCategories';
 import campaigns from './modules/campaigns';
@@ -49,6 +50,7 @@ export default createStore({
     attributes,
     auditlogs,
     auth,
+    bulkActions,
     cannedResponse,
     categories,
     campaigns,
