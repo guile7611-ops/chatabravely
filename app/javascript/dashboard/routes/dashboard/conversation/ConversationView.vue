@@ -2,7 +2,7 @@
 import { mapGetters } from 'vuex';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAccount } from 'dashboard/composables/useAccount';
-import ChatList from '../../../components/ChatList.vue';
+import AbravelyQueueList from '../../../components/AbravelyQueueList.vue';
 import ConversationBox from '../../../components/widgets/conversation/ConversationBox.vue';
 import ConversationEmptyState from '../../../components/widgets/conversation/EmptyState/EmptyState.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -14,7 +14,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 
 export default {
   components: {
-    ChatList,
+    AbravelyQueueList,
     ConversationBox,
     ConversationEmptyState,
     CmdBarConversationSnooze,
@@ -214,15 +214,9 @@ export default {
     </div>
 
     <div class="flex w-full h-full min-w-0 flex-1">
-      <ChatList
+      <AbravelyQueueList
         :show-conversation-list="showConversationList"
-        :conversation-inbox="inboxId"
-        :label="label"
-        :team-id="teamId"
-        :conversation-type="conversationType"
-        :folders-id="foldersId"
         :is-on-expanded-layout="isOnExpandedLayout"
-        @conversation-load="onConversationLoad"
       />
       <ConversationBox
         v-if="showMessageView"
