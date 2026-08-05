@@ -79,9 +79,10 @@ router.get('/me', async (req: Request, res: Response) => {
           id: dbUser.id,
           name: dbUser.name,
           email: dbUser.email,
+          avatar_url: dbUser.avatarUrl,
           role: userRole,
           account_id: 1,
-          ui_settings: { locale: 'pt_BR', theme: 'dark' },
+          ui_settings: { locale: dbUser.workspace?.locale || 'pt_BR', theme: 'dark' },
           accounts: [
             {
               id: 1,
@@ -89,7 +90,7 @@ router.get('/me', async (req: Request, res: Response) => {
               role: userRole,
               status: 'active',
               availability: 'online',
-              locale: 'pt_BR',
+              locale: dbUser.workspace?.locale || 'pt_BR',
               permissions
             }
           ]
@@ -98,6 +99,83 @@ router.get('/me', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     return res.status(503).json({ success: false, message: 'Serviço de banco de dados indisponível.' });
+  }
+});
+
+const serializeCurrentUser = (user: {
+  id: string; name: string; email: string; avatarUrl: string | null;
+  role: string; isOnline: boolean;
+}) => {
+  const { role, permissions } = getMappedRolePayload(user.role);
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatar_url: user.avatarUrl,
+    role,
+    account_id: 1,
+    availability: user.isOnline ? 'online' : 'offline',
+    accounts: [{ id: 1, role, permissions, availability: user.isOnline ? 'online' : 'offline' }],
+  };
+};
+
+/** Atualiza o próprio perfil; role e workspace nunca vêm do cliente. */
+router.patch('/me', async (req: Request, res: Response) => {
+  try {
+    const { name, email, avatar_url: avatarUrl } = req.body || {};
+    if (name !== undefined && (typeof name !== 'string' || !name.trim())) {
+      return res.status(400).json({ success: false, message: 'Nome é obrigatório.' });
+    }
+    if (email !== undefined && (typeof email !== 'string' || !/^\S+@\S+\.\S+$/.test(email))) {
+      return res.status(400).json({ success: false, message: 'E-mail inválido.' });
+    }
+    if (avatarUrl !== undefined && avatarUrl !== null && typeof avatarUrl !== 'string') {
+      return res.status(400).json({ success: false, message: 'Avatar inválido.' });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.user!.id },
+      data: {
+        ...(name !== undefined ? { name: name.trim() } : {}),
+        ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
+        ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || null } : {}),
+      },
+    });
+    return res.json(serializeCurrentUser(user));
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      return res.status(409).json({ success: false, message: 'Este e-mail já está em uso.' });
+    }
+    return res.status(503).json({ success: false, message: 'Não foi possível atualizar o perfil.' });
+  }
+});
+
+router.patch('/me/password', async (req: Request, res: Response) => {
+  try {
+    const { currentPassword, password, passwordConfirmation } = req.body || {};
+    if (!currentPassword || !password || password !== passwordConfirmation || password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Informe a senha atual e uma nova senha de ao menos 8 caracteres.' });
+    }
+    const currentUser = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (!currentUser || !(await bcrypt.compare(currentPassword, currentUser.password))) {
+      return res.status(401).json({ success: false, message: 'Senha atual inválida.' });
+    }
+    const user = await prisma.user.update({
+      where: { id: req.user!.id },
+      data: { password: await bcrypt.hash(password, 10) },
+    });
+    return res.json(serializeCurrentUser(user));
+  } catch (_error) {
+    return res.status(503).json({ success: false, message: 'Não foi possível atualizar a senha.' });
+  }
+});
+
+router.delete('/me/avatar', async (req: Request, res: Response) => {
+  try {
+    const user = await prisma.user.update({ where: { id: req.user!.id }, data: { avatarUrl: null } });
+    return res.json(serializeCurrentUser(user));
+  } catch (_error) {
+    return res.status(503).json({ success: false, message: 'Não foi possível remover o avatar.' });
   }
 });
 

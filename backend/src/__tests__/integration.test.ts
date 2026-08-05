@@ -16,6 +16,8 @@ import channelRoutes from '../routes/channel.routes';
 import aiRoutes from '../routes/ai.routes';
 import helpRoutes from '../routes/help.routes';
 import webhookRoutes from '../routes/webhook.routes';
+import cannedResponseRoutes from '../routes/canned-response.routes';
+import accountRoutes from '../routes/account.routes';
 
 // Validar Isolamento de Banco de Testes via DATABASE_URL_TEST se configurado
 if (process.env.DATABASE_URL_TEST && process.env.DATABASE_URL && process.env.DATABASE_URL_TEST === process.env.DATABASE_URL) {
@@ -34,6 +36,8 @@ app.use('/api/v1/conversations', conversationRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/help', helpRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/canned-responses', cannedResponseRoutes);
+app.use('/api/v1/accounts/:accountId', accountRoutes);
 
 const server = http.createServer(app);
 initSocket(server);
@@ -165,6 +169,63 @@ async function runIntegrationTests() {
     // -------------------------------------------------------------
     // CENÁRIO 2: Acesso a rotas privadas sem JWT retorna 401
     // -------------------------------------------------------------
+    const resCannedCreate = await request(app)
+      .post('/api/v1/canned-responses')
+      .set('Authorization', `Bearer ${tokenAdminWs1}`)
+      .send({ short_code: '/ola', content: 'Olá! Como posso ajudar?' });
+    assert.strictEqual(resCannedCreate.status, 201, 'Admin deve criar resposta pronta');
+
+    const resCannedListAgent = await request(app)
+      .get('/api/v1/canned-responses')
+      .set('Authorization', `Bearer ${tokenAgentWs1}`);
+    assert.strictEqual(resCannedListAgent.status, 200, 'Atendente deve listar respostas do workspace');
+    assert.strictEqual(resCannedListAgent.body.length, 1);
+
+    const resCannedListOtherWorkspace = await request(app)
+      .get('/api/v1/canned-responses')
+      .set('Authorization', `Bearer ${tokenAdminWs2}`);
+    assert.strictEqual(resCannedListOtherWorkspace.status, 200);
+    assert.strictEqual(
+      resCannedListOtherWorkspace.body.length,
+      0,
+      'Outro workspace não pode ver respostas alheias'
+    );
+
+    const resCannedForbidden = await request(app)
+      .post('/api/v1/canned-responses')
+      .set('Authorization', `Bearer ${tokenAgentWs1}`)
+      .send({ short_code: '/sem-permissao', content: 'Não deve criar' });
+    assert.strictEqual(resCannedForbidden.status, 403, 'Atendente não pode criar resposta pronta');
+
+    const resCannedUpdate = await request(app)
+      .patch(`/api/v1/canned-responses/${resCannedCreate.body.id}`)
+      .set('Authorization', `Bearer ${tokenAdminWs1}`)
+      .send({ content: 'Olá! Em que posso ajudar?' });
+    assert.strictEqual(resCannedUpdate.status, 200, 'Admin deve editar resposta pronta');
+
+    const resCannedDelete = await request(app)
+      .delete(`/api/v1/canned-responses/${resCannedCreate.body.id}`)
+      .set('Authorization', `Bearer ${tokenAdminWs1}`);
+    assert.strictEqual(resCannedDelete.status, 204, 'Admin deve excluir resposta pronta');
+    console.log('✅ Respostas prontas: CRUD e isolamento por workspace validados.');
+
+    const resAccountUpdate = await request(app)
+      .patch('/api/v1/accounts/1')
+      .set('Authorization', `Bearer ${tokenAdminWs1}`)
+      .send({ name: 'Workspace WS1 Atualizado', locale: 'pt_BR', support_email: 'suporte@ws1.test' });
+    assert.strictEqual(resAccountUpdate.status, 200, 'Admin deve atualizar as configurações da própria conta');
+    assert.strictEqual(resAccountUpdate.body.name, 'Workspace WS1 Atualizado');
+    assert.strictEqual(resAccountUpdate.body.support_email, 'suporte@ws1.test');
+
+    const resProfileUpdate = await request(app)
+      .patch('/api/v1/users/me')
+      .set('Authorization', `Bearer ${tokenAgentWs1}`)
+      .send({ name: 'Agente WS1 Atualizado', role: 'ADMIN', workspaceId: 'test-ws-2' });
+    assert.strictEqual(resProfileUpdate.status, 200, 'Atendente deve atualizar apenas o próprio perfil');
+    assert.strictEqual(resProfileUpdate.body.name, 'Agente WS1 Atualizado');
+    assert.strictEqual(resProfileUpdate.body.role, 'agent', 'Perfil não pode elevar a própria permissão');
+    console.log('✅ Conta e perfil: persistência no workspace e proteção de escopo validadas.');
+
     const resNoToken = await request(app).get('/api/v1/conversations');
     assert.strictEqual(resNoToken.status, 401, 'Requisição sem token JWT deve retornar 401');
     console.log('✅ Cenário 2 Passou: Acesso sem token JWT rejeitado com 401 Unauthorized.');
@@ -274,13 +335,18 @@ async function runIntegrationTests() {
       .send({ reason: 'Encerrado em teste' });
     assert.strictEqual(resClose.status, 200, 'Encerramento retorna 200');
     assert.strictEqual(resClose.body.conversation.queue, 'CLOSED');
+    assert(resClose.body.resolution?.id, 'Encerramento deve criar snapshot para relatórios');
 
     const resReopen = await request(app)
       .post(`/api/v1/conversations/${convNoAgent.id}/reopen`)
       .set('Authorization', `Bearer ${tokenAdminWs1}`);
-    assert.strictEqual(resReopen.status, 200, 'Reabertura retorna 200 e vai para RECEPTION');
-    assert.strictEqual(resReopen.body.conversation.queue, 'RECEPTION');
-    assert.strictEqual(resReopen.body.conversation.agentId, null);
+    assert.strictEqual(resReopen.status, 200, 'Reabertura retorna 200 e vai para Ativas');
+    assert.strictEqual(resReopen.body.conversation.queue, 'CONVERSATION');
+    assert.strictEqual(resReopen.body.conversation.agentId, userAdminWs1.id);
+    const resolutionsAfterReopen = await prisma.conversationResolution.count({
+      where: { conversationId: convNoAgent.id },
+    });
+    assert.strictEqual(resolutionsAfterReopen, 1, 'Reabrir não pode apagar finalização anterior');
     console.log('✅ Cenário 9 Passou: Encerrar (CLOSED) e Reabrir (RECEPTION) validados.');
 
     // -------------------------------------------------------------

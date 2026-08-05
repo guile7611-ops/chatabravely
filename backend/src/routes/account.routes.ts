@@ -37,12 +37,55 @@ router.get('/', async (req: Request, res: Response) => {
       id: accountId,
       name: dbUser.workspace.name,
       role: userRole,
-      locale: 'pt_BR',
+      locale: dbUser.workspace.locale,
       domain: '',
-      support_email: dbUser.email,
+      support_email: dbUser.workspace.supportEmail || dbUser.email,
       features: {},
     });
   } catch (error: any) {
+    return res.status(503).json({ success: false, message: 'Serviço de banco de dados indisponível.' });
+  }
+});
+
+/** Atualiza somente dados do workspace autenticado. */
+router.patch('/', async (req: Request, res: Response) => {
+  try {
+    const accountId = Number(req.params.accountId);
+    if (!Number.isInteger(accountId) || accountId <= 0) {
+      return res.status(400).json({ success: false, message: 'Identificador da conta inválido.' });
+    }
+
+    const { name, locale, support_email: supportEmail } = req.body || {};
+    if (name !== undefined && (typeof name !== 'string' || !name.trim())) {
+      return res.status(400).json({ success: false, message: 'Nome da conta é obrigatório.' });
+    }
+    if (locale !== undefined && (typeof locale !== 'string' || !locale.trim())) {
+      return res.status(400).json({ success: false, message: 'Idioma inválido.' });
+    }
+    if (supportEmail !== undefined && supportEmail !== null && typeof supportEmail !== 'string') {
+      return res.status(400).json({ success: false, message: 'E-mail de suporte inválido.' });
+    }
+
+    const workspace = await prisma.workspace.update({
+      where: { id: req.user!.workspaceId },
+      data: {
+        ...(name !== undefined ? { name: name.trim() } : {}),
+        ...(locale !== undefined ? { locale: locale.trim() } : {}),
+        ...(supportEmail !== undefined ? { supportEmail: supportEmail?.trim() || null } : {}),
+      },
+    });
+    const currentUser = await prisma.user.findUnique({ where: { id: req.user!.id } });
+
+    return res.json({
+      id: accountId,
+      name: workspace.name,
+      role: currentUser ? getMappedRolePayload(currentUser.role).role : 'agent',
+      locale: workspace.locale,
+      domain: '',
+      support_email: workspace.supportEmail || currentUser?.email || '',
+      features: {},
+    });
+  } catch (_error) {
     return res.status(503).json({ success: false, message: 'Serviço de banco de dados indisponível.' });
   }
 });
@@ -232,15 +275,6 @@ router.get('/conversations/unread_count', async (req: Request, res: Response) =>
       message: 'ServiÃ§o de banco de dados indisponÃ­vel.',
     });
   }
-});
-
-/**
- * GET /api/v1/accounts/:accountId/canned_responses
- * Temporary compatibility endpoint. Quick replies will receive their own
- * workspace-scoped API in the next migration step.
- */
-router.get('/canned_responses', (req: Request, res: Response) => {
-  return res.status(200).json([]);
 });
 
 export default router;

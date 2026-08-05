@@ -14,6 +14,7 @@ import departmentRoutes from './routes/department.routes';
 import attendantRoutes from './routes/attendant.routes';
 import labelRoutes from './routes/label.routes';
 import contactRoutes from './routes/contact.routes';
+import cannedResponseRoutes from './routes/canned-response.routes';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use('/api/v1/departments', departmentRoutes);
 app.use('/api/v1/attendants', attendantRoutes);
 app.use('/api/v1/labels', labelRoutes);
 app.use('/api/v1/contacts', contactRoutes);
+app.use('/api/v1/canned-responses', cannedResponseRoutes);
 
 // Rota de Health Check e Verificacao da Infraestrutura (PostgreSQL + Express + Socket.io)
 app.get('/api/v1/health', async (req: Request, res: Response) => {

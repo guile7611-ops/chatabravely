@@ -78,9 +78,13 @@ export const actions = {
     try {
       const response = await AccountAPI.update('', updateObj);
       commit(types.default.EDIT_ACCOUNT, response.data);
-      commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: false });
+      return response.data;
     } catch (error) {
-      commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: false });
+      throw error;
+    } finally {
+      if (options?.silent !== true) {
+        commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: false });
+      }
     }
   },
   finishOnboarding: async ({ commit }, payload) => {

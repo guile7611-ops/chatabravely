@@ -32,6 +32,13 @@ enum ConversationQueue {
   CLOSED
 }
 
+enum ConversationEventType {
+  CLAIMED
+  TRANSFERRED
+  CLOSED
+  REOPENED
+}
+
 enum MessageContentType {
   TEXT
   IMAGE
@@ -56,6 +63,8 @@ enum HelpArticleStatus {
 model Workspace {
   id                      String                  @id @default(uuid())
   name                    String
+  locale                  String                  @default("pt_BR")
+  supportEmail            String?
   active                  Boolean                 @default(true)
   blocked                 Boolean                 @default(false)
   plan                    String                  @default("ENTERPRISE")
@@ -73,6 +82,8 @@ model Workspace {
   helpArticles            HelpArticle[]
   labels                  Label[]
   savedExecutiveSummaries SavedExecutiveSummary[]
+  conversationEvents      ConversationEvent[]
+  conversationResolutions ConversationResolution[]
 }
 
 model SavedExecutiveSummary {
@@ -170,12 +181,19 @@ model Conversation {
   department            Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   messages              Message[]
   activityLogs          ActivityLog[]
+  events                ConversationEvent[]
+  resolutions           ConversationResolution[]
   closedAt              DateTime?
   closureReason         String?
   aiSummary             String?            @db.Text
   lastCustomerMessageAt DateTime?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
+
+  @@index([workspaceId, queue, updatedAt])
+  @@index([workspaceId, closedAt])
+  @@index([workspaceId, agentId])
+  @@index([workspaceId, departmentId])
 }
 
 model Message {
@@ -200,6 +218,57 @@ model ActivityLog {
   userName       String
   action         String       @db.Text
   createdAt      DateTime     @default(now())
+}
+
+// Histórico estruturado das mudanças de fila. Ele é a fonte de auditoria
+// para o atendimento e evita depender de textos livres em ActivityLog.
+model ConversationEvent {
+  id               String                @id @default(uuid())
+  type             ConversationEventType
+  conversationId   String
+  conversation     Conversation          @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  workspaceId      String
+  workspace        Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actorId          String?
+  actorName        String?
+  fromQueue        ConversationQueue?
+  toQueue          ConversationQueue?
+  fromAgentId      String?
+  toAgentId        String?
+  fromDepartmentId String?
+  toDepartmentId   String?
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([conversationId, createdAt])
+}
+
+// Snapshot imutável de cada encerramento. Uma conversa pode ser reaberta e
+// encerrada novamente sem perder o atendimento finalizado anterior.
+model ConversationResolution {
+  id                   String       @id @default(uuid())
+  conversationId       String
+  conversation         Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  workspaceId          String
+  workspace            Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  channelId            String
+  contactId            String
+  departmentId         String?
+  departmentName       String?
+  assignedAgentId      String?
+  assignedAgentName    String?
+  closedById           String
+  closedByName         String
+  reason               String
+  openedAt             DateTime
+  firstAgentResponseAt DateTime?
+  closedAt             DateTime
+  createdAt            DateTime     @default(now())
+
+  @@index([workspaceId, closedAt])
+  @@index([workspaceId, departmentId, closedAt])
+  @@index([workspaceId, assignedAgentId, closedAt])
 }
 
 model Department {

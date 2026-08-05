@@ -43,28 +43,17 @@ export default {
     }
     return false;
   },
-  profileUpdate({ displayName, avatar, ...profileAttributes }) {
-    const formData = new FormData();
-    Object.keys(profileAttributes).forEach(key => {
-      const hasValue = profileAttributes[key] === undefined;
-      if (!hasValue) {
-        formData.append(`profile[${key}]`, profileAttributes[key]);
-      }
-    });
-    formData.append('profile[display_name]', displayName || '');
-    if (avatar) {
-      formData.append('profile[avatar]', avatar);
-    }
-    return axios.put(endPoints('profileUpdate').url, formData);
+  profileUpdate({ displayName: _displayName, avatar: _avatar, ...profileAttributes }) {
+    // A API Abravely trabalha com JSON. Não simulamos envio de arquivo;
+    // avatar terá upload próprio quando esse recurso for implementado.
+    return axios.patch(endPoints('profileUpdate').url, profileAttributes);
   },
 
   profilePasswordUpdate({ currentPassword, password, passwordConfirmation }) {
-    return axios.put(endPoints('profileUpdate').url, {
-      profile: {
-        current_password: currentPassword,
-        password,
-        password_confirmation: passwordConfirmation,
-      },
+    return axios.patch(endPoints('profilePasswordUpdate').url, {
+      currentPassword,
+      password,
+      passwordConfirmation,
     });
   },
 

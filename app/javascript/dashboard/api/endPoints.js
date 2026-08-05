@@ -11,7 +11,10 @@ const endPoints = {
     url: '/api/v1/users/me',
   },
   profileUpdate: {
-    url: '/api/v1/profile',
+    url: '/api/v1/users/me',
+  },
+  profilePasswordUpdate: {
+    url: '/api/v1/users/me/password',
   },
   availabilityUpdate: {
     url: '/api/v1/profile/availability',
@@ -41,7 +44,7 @@ const endPoints = {
   },
 
   deleteAvatar: {
-    url: '/api/v1/profile/avatar',
+    url: '/api/v1/users/me/avatar',
   },
 
   setActiveAccount: {

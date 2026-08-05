@@ -14,7 +14,9 @@ export default {
     WootMessageEditor,
   },
   props: {
-    id: { type: Number, default: null },
+    // O Abravely usa UUIDs; manter Number aqui fazia a edição falhar
+    // silenciosamente para respostas vindas da nova API.
+    id: { type: [String, Number], default: null },
     edcontent: { type: String, default: '' },
     edshortCode: { type: String, default: '' },
     onClose: { type: Function, default: () => {} },

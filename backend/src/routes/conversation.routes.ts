@@ -610,6 +610,13 @@ router.post('/:id/close', async (req: Request, res: Response) => {
       });
     }
 
+    if (conversation.queue === 'CLOSED' || conversation.status === 'CLOSED') {
+      return res.status(409).json({
+        success: false,
+        message: 'Esta conversa já está finalizada.',
+      });
+    }
+
     const closed = await prisma.conversation.update({
       where: { id: id },
       data: {
@@ -630,13 +637,59 @@ router.post('/:id/close', async (req: Request, res: Response) => {
       }
     });
 
+    const firstAgentMessage = await prisma.message.findFirst({
+      where: {
+        conversationId: id,
+        senderType: 'AGENT',
+        isPrivate: false,
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    });
+
+    await prisma.conversationEvent.create({
+      data: {
+        type: 'CLOSED',
+        conversationId: id,
+        workspaceId: user.workspaceId,
+        actorId: user.id,
+        actorName: user.name,
+        fromQueue: conversation.queue,
+        toQueue: 'CLOSED',
+        fromAgentId: conversation.agentId,
+        toAgentId: conversation.agentId,
+        fromDepartmentId: conversation.departmentId,
+        toDepartmentId: conversation.departmentId,
+        metadata: { reason: closed.closureReason },
+      },
+    });
+
+    const resolution = await prisma.conversationResolution.create({
+      data: {
+        conversationId: id,
+        workspaceId: user.workspaceId,
+        channelId: closed.channelId,
+        contactId: closed.contactId,
+        departmentId: closed.departmentId,
+        departmentName: closed.department?.name || null,
+        assignedAgentId: closed.agentId,
+        assignedAgentName: closed.agent?.name || null,
+        closedById: user.id,
+        closedByName: user.name,
+        reason: closed.closureReason || 'Resolvido pelo atendente',
+        openedAt: conversation.createdAt,
+        firstAgentResponseAt: firstAgentMessage?.createdAt || null,
+        closedAt: closed.closedAt || new Date(),
+      },
+    });
+
     emitToWorkspace(user.workspaceId, 'conversation:updated', {
       conversationId: id,
       conversation: closed,
       log
     });
 
-    return res.json({ success: true, conversation: closed, log });
+    return res.json({ success: true, conversation: closed, log, resolution });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
   }
@@ -667,6 +720,13 @@ router.post('/:id/reopen', async (req: Request, res: Response) => {
       });
     }
 
+    if (conversation.queue !== 'CLOSED' || conversation.status !== 'CLOSED') {
+      return res.status(409).json({
+        success: false,
+        message: 'Apenas conversas finalizadas podem ser reabertas.',
+      });
+    }
+
     const reopened = await prisma.conversation.update({
       where: { id: id },
       data: {
@@ -686,6 +746,22 @@ router.post('/:id/reopen', async (req: Request, res: Response) => {
         userName: user.name,
         action: `🔔 Conversa reaberta e atribuída a ${user.name}`
       }
+    });
+
+    await prisma.conversationEvent.create({
+      data: {
+        type: 'REOPENED',
+        conversationId: id,
+        workspaceId: user.workspaceId,
+        actorId: user.id,
+        actorName: user.name,
+        fromQueue: 'CLOSED',
+        toQueue: 'CONVERSATION',
+        fromAgentId: conversation.agentId,
+        toAgentId: user.id,
+        fromDepartmentId: conversation.departmentId,
+        toDepartmentId: conversation.departmentId,
+      },
     });
 
     emitToWorkspace(user.workspaceId, 'conversation:updated', {

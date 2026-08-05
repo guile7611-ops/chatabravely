@@ -4,7 +4,7 @@ import ApiClient from './ApiClient';
 
 class CannedResponse extends ApiClient {
   constructor() {
-    super('canned_responses', { accountScoped: true });
+    super('canned-responses');
   }
 
   get({ searchKey }) {
