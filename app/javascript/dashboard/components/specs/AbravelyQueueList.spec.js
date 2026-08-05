@@ -41,4 +41,24 @@ describe('AbravelyQueueList', () => {
     expect(wrapper.text()).toContain('Ana');
     expect(wrapper.text()).toContain('Olá');
   });
+  it('keeps native filter and ordering controls available', async () => {
+    const wrapper = mountQueueList({
+      'abravelyConversationPanel/getQueue': () => [
+        { id: 'read', unread_count: 0, updated_at: 10, meta: { sender: { name: 'Ana' } } },
+        { id: 'unread', unread_count: 2, updated_at: 20, meta: { sender: { name: 'Bia' } } },
+      ],
+      'abravelyConversationPanel/getQueueMeta': () => ({}),
+      'abravelyConversationPanel/getIsLoadingQueue': false,
+    });
+
+    expect(wrapper.find('[aria-label="Filtrar conversas"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Ordenar conversas"]').exists()).toBe(true);
+
+    await wrapper.find('[aria-label="Filtrar conversas"]').trigger('click');
+    await wrapper.vm.setUnreadFilter(true);
+    expect(wrapper.vm.visibleConversations.map(item => item.id)).toEqual(['unread']);
+
+    wrapper.vm.toggleSortDirection();
+    expect(wrapper.vm.sortDirection).toBe('asc');
+  });
 });

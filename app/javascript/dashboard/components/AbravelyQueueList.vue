@@ -13,7 +13,13 @@ export default {
   },
   emits: ['conversation-load', 'select-conversation'],
   data() {
-    return { activeQueue: 'RECEPTION', search: '' };
+    return {
+      activeQueue: 'RECEPTION',
+      search: '',
+      onlyUnread: false,
+      filterOpen: false,
+      sortDirection: 'desc',
+    };
   },
   computed: {
     queueMeta() {
@@ -40,14 +46,23 @@ export default {
     },
     visibleConversations() {
       const term = this.search.trim().toLocaleLowerCase('pt-BR');
-      if (!term) return this.conversations;
-
-      return this.conversations.filter(conversation => {
+      const matchesSearch = conversation => {
         const sender = conversation.meta?.sender || conversation.contact || {};
         return [sender.name, sender.phone_number, sender.phone, conversation.id]
           .filter(Boolean)
           .some(value => String(value).toLocaleLowerCase('pt-BR').includes(term));
-      });
+      };
+
+      return [...this.conversations]
+        .filter(conversation => !term || matchesSearch(conversation))
+        .filter(conversation => !this.onlyUnread || Number(conversation.unread_count) > 0)
+        .sort((first, second) => {
+          const firstDate = Number(first.updated_at || first.created_at || 0);
+          const secondDate = Number(second.updated_at || second.created_at || 0);
+          return this.sortDirection === 'desc'
+            ? secondDate - firstDate
+            : firstDate - secondDate;
+        });
     },
   },
   mounted() {
@@ -69,6 +84,13 @@ export default {
       this.activeQueue = queue;
       await this.fetchQueue(queue);
     },
+    toggleSortDirection() {
+      this.sortDirection = this.sortDirection === 'desc' ? 'asc' : 'desc';
+    },
+    setUnreadFilter(value) {
+      this.onlyUnread = value;
+      this.filterOpen = false;
+    },
     openConversation(conversation) {
       this.$emit('select-conversation', conversation);
     },
@@ -87,7 +109,21 @@ export default {
     <header class="px-3 pt-4 pb-3 border-b border-n-weak">
       <div class="flex items-center justify-between gap-2">
         <h1 class="text-base font-semibold text-n-slate-12">Conversas</h1>
-        <span class="px-2 py-1 text-xs font-medium rounded-md bg-n-slate-3 text-n-slate-11">Abertas</span>
+        <div class="flex items-center gap-1">
+          <div class="relative">
+            <button id="toggleConversationFilterButton" type="button" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-n-slate-11 hover:bg-n-slate-3 hover:text-n-slate-12" title="Filtrar conversas" aria-label="Filtrar conversas" @click="filterOpen = !filterOpen">
+              <span class="i-lucide-filter size-4" />
+            </button>
+            <div v-if="filterOpen" class="absolute right-0 z-30 w-44 p-1 mt-1 border rounded-lg shadow-lg bg-n-surface-1 border-n-weak">
+              <button type="button" class="w-full px-3 py-2 text-sm text-left rounded-md text-n-slate-12 hover:bg-n-slate-3" :class="!onlyUnread ? 'bg-n-slate-3' : ''" @click="setUnreadFilter(false)">Todas as conversas</button>
+              <button type="button" class="w-full px-3 py-2 text-sm text-left rounded-md text-n-slate-12 hover:bg-n-slate-3" :class="onlyUnread ? 'bg-n-slate-3' : ''" @click="setUnreadFilter(true)">Não lidas</button>
+            </div>
+          </div>
+          <button type="button" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-n-slate-11 hover:bg-n-slate-3 hover:text-n-slate-12" :title="sortDirection === 'desc' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'" aria-label="Ordenar conversas" @click="toggleSortDirection">
+            <span class="i-lucide-arrow-down-up size-4" />
+          </button>
+          <span class="px-2 py-1 text-xs font-medium rounded-md bg-n-slate-3 text-n-slate-11">Abertas</span>
+        </div>
       </div>
       <input v-model="search" type="search" class="w-full px-3 py-2 mt-3 text-sm border rounded-lg bg-n-background border-n-weak text-n-slate-12 placeholder:text-n-slate-10" placeholder="Pesquisar conversas...">
     </header>
